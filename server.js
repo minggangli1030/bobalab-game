@@ -16,7 +16,7 @@ app.post('/api/chat', async (req, res) => {
 
     const rules = loadJSON('./rules/classification.json');
     const workflows = loadJSON('./rules/workflows.json');
-    const systemPrompt = fs.readFileSync('./prompts/system-default.txt', 'utf8');
+    const systemPrompt = fs.readFileSync('./prompts/system-cot-prompt.txt', 'utf8');
 
     try {
         const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
