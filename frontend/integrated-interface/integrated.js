@@ -40,6 +40,9 @@ Qualtrics.SurveyEngine.addOnReady(function() {
     var that = this;
     that.hideNextButton();
     
+    // Store the Qualtrics context globally for access in other functions
+    window.qualtricsContext = that;
+    
     // Handle start button click
     document.getElementById('startGameBtn').addEventListener('click', function() {
         // Hide landing page
@@ -75,45 +78,6 @@ Qualtrics.SurveyEngine.addOnReady(function() {
         
         // Load first available tab
         switchToTab('g1t1');
-        
-        // TESTING ONLY: End All Button
-        document.getElementById('endAllBtn').addEventListener('click', function() {
-            // Mark all tasks as complete for testing
-            for (var g = 1; g <= 3; g++) {
-                for (var t = 1; t <= 3; t++) {
-                    var tabId = 'g' + g + 't' + t;
-                    gameState.completed[tabId] = true;
-                    
-                    // Set dummy data for testing
-                    if (g === 1) {
-                        Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_accuracy', '85.00');
-                    } else if (g === 2) {
-                        Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_correct', t === 2 ? 'true' : 'false');
-                    } else if (g === 3) {
-                        Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_accuracy', '90');
-                    }
-                }
-            }
-            
-            // Clear any active countdowns
-            if (gameState.countdownInterval) {
-                clearInterval(gameState.countdownInterval);
-                gameState.countdownInterval = null;
-            }
-            
-            // Remove break overlay if present
-            var breakOverlay = document.getElementById('breakOverlay');
-            if (breakOverlay) {
-                document.body.removeChild(breakOverlay);
-            }
-            
-            // Reset break state
-            gameState.isPaused = false;
-            gameState.isInBreak = false;
-            
-            // Show completion - pass 'that' context
-            showCompletion.call(that);
-        });
     });
 });
 
@@ -356,8 +320,7 @@ function startMandatoryBreak(completedTabId) {
     var promptsRemaining = 3 - promptsUsed;
     
     contentDiv.innerHTML = '<h2 style="color: #4CAF50; margin-bottom: 30px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Task Complete!</h2>' +
-        '<div id="breakCountdown" style="font-size: 72px; font-weight: bold; color: #4CAF50; margin: 30px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">3</div>' +
-        '<div style="display: flex; gap: 30px; justify-content: center; margin: 20px 0;">' +
+        '<div style="display: flex; gap: 30px; justify-content: center; margin: 40px 0;">' +
         '<div style="background: #f0f0f0; padding: 10px 20px; border-radius: 6px;">' +
         '<span style="color: #666; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Tasks Remaining:</span> ' +
         '<span style="color: #333; font-weight: bold; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + tasksRemaining + '/9</span>' +
@@ -367,47 +330,38 @@ function startMandatoryBreak(completedTabId) {
         '<span style="color: #333; font-weight: bold; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + promptsRemaining + '/3</span>' +
         '</div>' +
         '</div>' +
-        '<p style="color: #666; font-size: 16px; margin-top: 20px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Auto-advancing to: <span style="font-weight: bold; color: #2196F3;">' + 
+        '<p style="color: #666; font-size: 16px; margin-top: 20px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Auto-advancing to: <span style="font-weight: bold; color: #2196F3;" id="autoDestination">' + 
         (defaultNext ? document.querySelector('[data-tab="' + defaultNext + '"]').textContent.replace(' 🔒', '').replace(' ✓', '') : 'Completion') + '</span></p>';
     
     
     breakDiv.appendChild(contentDiv);
     document.body.appendChild(breakDiv);
     
-    // Countdown - 3 seconds
-    var countdown = 3;
-    gameState.countdownInterval = setInterval(function() {
-        countdown--;
-        if (countdown > 0) {
-            document.getElementById('breakCountdown').textContent = countdown;
-        } else {
-            // Clear interval
-            clearInterval(gameState.countdownInterval);
-            gameState.countdownInterval = null;
-            
-            // Remove overlay
-            if (document.body.contains(breakDiv)) {
-                document.body.removeChild(breakDiv);
-            }
-            
-            // Update paused time
-            gameState.pausedTime += (Date.now() - pauseStartTime);
-            gameState.isPaused = false;
-            gameState.isInBreak = false;
-            
-            // Go to destination
-            if (gameState.nextDestination) {
-                switchToTab(gameState.nextDestination, true);
-            }
-            gameState.nextDestination = null;
+    // Countdown - 1.5 seconds (hidden)
+    setTimeout(function() {
+        // Clear interval
+        gameState.countdownInterval = null;
+        
+        // Remove overlay
+        if (document.body.contains(breakDiv)) {
+            document.body.removeChild(breakDiv);
         }
-    }, 1000);
+        
+        // Update paused time
+        gameState.pausedTime += (Date.now() - pauseStartTime);
+        gameState.isPaused = false;
+        gameState.isInBreak = false;
+        
+        // Go to destination
+        if (gameState.nextDestination) {
+            switchToTab(gameState.nextDestination, true);
+        }
+        gameState.nextDestination = null;
+    }, 1500);
 }
 
 // Show completion - UPDATED with accuracy
 function showCompletion() {
-    var that = this; // Get Qualtrics context
-    
     // Stop the timer
     if (timerInterval) {
         clearInterval(timerInterval);
@@ -484,17 +438,29 @@ function showCompletion() {
         // Final save of all data
         storeGameData();
         
-        // Click the Qualtrics next button if it exists
-        var nextButton = document.getElementById('NextButton');
-        if (nextButton) {
-            nextButton.click();
-        } else {
-            // If no next button, try to show it first
-            that.showNextButton();
+        // Get the Qualtrics context
+        var qContext = window.qualtricsContext;
+        
+        if (qContext) {
+            // Show the next button first
+            qContext.showNextButton();
+            
+            // Give it a moment to render, then click it
             setTimeout(function() {
-                var nextBtn = document.getElementById('NextButton');
-                if (nextBtn) nextBtn.click();
+                var nextButton = document.getElementById('NextButton');
+                if (nextButton) {
+                    nextButton.click();
+                } else {
+                    console.error('NextButton not found after showing');
+                }
             }, 100);
+        } else {
+            console.error('Qualtrics context not available');
+            // Fallback: try clicking directly
+            var nextButton = document.getElementById('NextButton');
+            if (nextButton) {
+                nextButton.click();
+            }
         }
     });
 }
@@ -520,6 +486,7 @@ function loadSliderGame(taskNum) {
     var difficulties = ['easy', 'medium', 'hard'];
     var difficulty = difficulties[taskNum - 1];
     
+    // Use pure Math.random() for true randomness
     var target = difficulty === 'easy' ? Math.floor(Math.random() * 11) :
                  difficulty === 'medium' ? parseFloat((Math.random() * 10).toFixed(1)) :
                  parseFloat((Math.random() * 10).toFixed(2));
@@ -572,39 +539,16 @@ function loadSliderGame(taskNum) {
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_value', value);
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_accuracy', accuracy.toFixed(2));
         
-        // Only mark complete if accuracy > 0
-        if (accuracy > 0) {
-            markTaskComplete(tabId);
-        } else {
-            // Skip to next task without marking complete
-            var nextTabId = taskNum < 3 ? 'g1t' + (taskNum + 1) : null;
-            if (nextTabId) {
-                setTimeout(function() {
-                    switchToTab(nextTabId, true);
-                }, 500);
-            } else {
-                // Move to next game
-                var content = document.getElementById('contentArea');
-                content.innerHTML = '<div style="text-align: center; padding: 50px;"><h3 style="color: #f44336;">Task Failed (0% Accuracy)</h3><p>Moving to next game...</p></div>';
-                setTimeout(function() {
-                    for (var g = 2; g <= 3; g++) {
-                        for (var t = 1; t <= 3; t++) {
-                            var checkTabId = 'g' + g + 't' + t;
-                            if (!gameState.completed[checkTabId]) {
-                                switchToTab(checkTabId, true);
-                                return;
-                            }
-                        }
-                    }
-                }, 1500);
-            }
-        }
+        // Always mark complete regardless of accuracy
+        markTaskComplete(tabId);
     };
 }
 
 // GAME 2: COUNTING
 function loadCountingGame(taskNum) {
-    var text = textSections[Math.floor(Math.random() * textSections.length)];
+    // Better randomization - use Math.random() directly
+    var textIndex = Math.floor(Math.random() * textSections.length);
+    var text = textSections[textIndex];
     var difficulties = ['easy', 'medium', 'hard'];
     var difficulty = difficulties[taskNum - 1];
     
@@ -624,8 +568,10 @@ function loadCountingGame(taskNum) {
         answer = (text.match(new RegExp(target, 'gi')) || []).length;
     } else {
         // Hard: count two letters
-        var letter1 = ['a', 'e'][Math.floor(Math.random() * 2)];
-        var letter2 = ['n', 't'][Math.floor(Math.random() * 2)];
+        var letter1Options = ['a', 'e', 'i'];
+        var letter2Options = ['n', 't', 's'];
+        var letter1 = letter1Options[Math.floor(Math.random() * letter1Options.length)];
+        var letter2 = letter2Options[Math.floor(Math.random() * letter2Options.length)];
         target = letter1 + '" and "' + letter2;
         instruction = 'Count how many times the letters "' + letter1 + '" and "' + letter2 + '" appear in total:';
         answer = (text.match(new RegExp(letter1, 'gi')) || []).length + 
@@ -723,37 +669,8 @@ function loadCountingGame(taskNum) {
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_correct', correct);
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_correctAnswer', answer);
         
-        // Only mark complete if correct (not 0% accuracy)
-        if (correct) {
-            markTaskComplete(tabId);
-        } else {
-            // Skip to next task without marking complete
-            var nextTabId = taskNum < 3 ? 'g2t' + (taskNum + 1) : null;
-            if (nextTabId) {
-                setTimeout(function() {
-                    switchToTab(nextTabId, true);
-                }, 500);
-            } else {
-                // Move to next game
-                var content = document.getElementById('contentArea');
-                content.innerHTML = '<div style="text-align: center; padding: 50px;"><h3 style="color: #f44336;">Task Failed (Incorrect)</h3><p>Moving to next game...</p></div>';
-                setTimeout(function() {
-                    for (var g = 3; g <= 3; g++) {
-                        for (var t = 1; t <= 3; t++) {
-                            var checkTabId = 'g' + g + 't' + t;
-                            if (!gameState.completed[checkTabId]) {
-                                switchToTab(checkTabId, true);
-                                return;
-                            }
-                        }
-                    }
-                    // If no more tasks, check completion
-                    if (Object.keys(gameState.completed).length > 0) {
-                        showCompletion();
-                    }
-                }, 1500);
-            }
-        }
+        // Always mark complete regardless of whether answer is correct
+        markTaskComplete(tabId);
     };
 }
 
@@ -762,6 +679,8 @@ function loadTypingGame(taskNum) {
     var difficulties = ['easy', 'medium', 'hard'];
     var difficulty = difficulties[taskNum - 1];
     var patterns = patternSets[difficulty];
+    
+    // Use pure Math.random() for true randomness
     var pattern = patterns[Math.floor(Math.random() * patterns.length)];
     
     var content = document.getElementById('contentArea');
@@ -782,10 +701,7 @@ function loadTypingGame(taskNum) {
     html += '<input type="text" id="typeInput" placeholder="Type the pattern here..." ';
     html += 'style="width: 100%; padding: 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 20px; font-family: \'Courier New\', monospace; text-align: center; letter-spacing: 2px; box-sizing: border-box;">';
     
-    html += '<div style="text-align: center; margin: 15px 0; height: 30px;">';
-    html += '<span id="typeFeedback" style="font-size: 16px; font-weight: bold;"></span>';
-    html += '</div>';
-    
+    html += '<div style="margin-top: 20px;">';
     html += '<button id="typeSubmit" style="display: block; margin: 0 auto; padding: 12px 30px; background: #FFC107; color: #333; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold;">Submit</button>';
     html += '</div>';
     
@@ -813,33 +729,8 @@ function loadTypingGame(taskNum) {
         ctx.stroke();
     }
     
-    // Real-time feedback
+    // Real-time feedback - REMOVED
     var input = document.getElementById('typeInput');
-    var feedback = document.getElementById('typeFeedback');
-    
-    input.oninput = function() {
-        var value = this.value;
-        if (value.length === 0) {
-            feedback.textContent = '';
-            return;
-        }
-        
-        var correct = true;
-        for (var i = 0; i < value.length && i < pattern.length; i++) {
-            if (value[i] !== pattern[i]) {
-                correct = false;
-                break;
-            }
-        }
-        
-        if (correct && value.length <= pattern.length) {
-            feedback.textContent = '✓ Looking good!';
-            feedback.style.color = '#4CAF50';
-        } else {
-            feedback.textContent = '✗ Check your typing';
-            feedback.style.color = '#f44336';
-        }
-    };
     
     // Submit event
     document.getElementById('typeSubmit').onclick = function() {
@@ -859,25 +750,8 @@ function loadTypingGame(taskNum) {
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_accuracy', accuracy);
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_expected', pattern);
         
-        // Only mark complete if accuracy > 0
-        if (accuracy > 0) {
-            markTaskComplete(tabId);
-        } else {
-            // Skip to next task without marking complete
-            var nextTabId = taskNum < 3 ? 'g3t' + (taskNum + 1) : null;
-            if (nextTabId) {
-                setTimeout(function() {
-                    switchToTab(nextTabId, true);
-                }, 500);
-            } else {
-                // No more tasks - show completion
-                var content = document.getElementById('contentArea');
-                content.innerHTML = '<div style="text-align: center; padding: 50px;"><h3 style="color: #f44336;">Task Failed (0% Accuracy)</h3><p>Finishing game...</p></div>';
-                setTimeout(function() {
-                    showCompletion();
-                }, 1500);
-            }
-        }
+        // Always mark complete regardless of accuracy
+        markTaskComplete(tabId);
     };
 }
 
