@@ -111,8 +111,8 @@ Qualtrics.SurveyEngine.addOnReady(function() {
             gameState.isPaused = false;
             gameState.isInBreak = false;
             
-            // Show completion
-            showCompletion();
+            // Show completion - pass 'that' context
+            showCompletion.call(that);
         });
     });
 });
@@ -406,6 +406,8 @@ function startMandatoryBreak(completedTabId) {
 
 // Show completion - UPDATED with accuracy
 function showCompletion() {
+    var that = this; // Get Qualtrics context
+    
     // Stop the timer
     if (timerInterval) {
         clearInterval(timerInterval);
@@ -441,12 +443,12 @@ function showCompletion() {
     
     // Calculate averages
     var sliderAvg = sliderAccuracies.length > 0 ? 
-        (sliderAccuracies.reduce(function(a, b) { return a + b; }, 0) / sliderAccuracies.length).toFixed(1) : 0;
+        (sliderAccuracies.reduce(function(a, b) { return a + b; }, 0) / sliderAccuracies.length).toFixed(1) : '0.0';
     
     var countingPercentage = (countingCorrect / 3 * 100).toFixed(1);
     
     var typingAvg = typingAccuracies.length > 0 ? 
-        (typingAccuracies.reduce(function(a, b) { return a + b; }, 0) / typingAccuracies.length).toFixed(1) : 0;
+        (typingAccuracies.reduce(function(a, b) { return a + b; }, 0) / typingAccuracies.length).toFixed(1) : '0.0';
     
     // Calculate overall accuracy
     var overallAccuracy = ((parseFloat(sliderAvg) + parseFloat(countingPercentage) + parseFloat(typingAvg)) / 3).toFixed(1);
@@ -477,8 +479,24 @@ function showCompletion() {
     Qualtrics.SurveyEngine.setEmbeddedData('finalTypingAccuracy', typingAvg);
     Qualtrics.SurveyEngine.setEmbeddedData('totalTime', totalTime);
     
-    // Show next button
-    Qualtrics.SurveyEngine.showNextButton();
+    // Set up continue button
+    document.getElementById('continueBtn').addEventListener('click', function() {
+        // Final save of all data
+        storeGameData();
+        
+        // Click the Qualtrics next button if it exists
+        var nextButton = document.getElementById('NextButton');
+        if (nextButton) {
+            nextButton.click();
+        } else {
+            // If no next button, try to show it first
+            that.showNextButton();
+            setTimeout(function() {
+                var nextBtn = document.getElementById('NextButton');
+                if (nextBtn) nextBtn.click();
+            }, 100);
+        }
+    });
 }
 
 // Store data
@@ -554,7 +572,33 @@ function loadSliderGame(taskNum) {
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_value', value);
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_accuracy', accuracy.toFixed(2));
         
-        markTaskComplete(tabId);
+        // Only mark complete if accuracy > 0
+        if (accuracy > 0) {
+            markTaskComplete(tabId);
+        } else {
+            // Skip to next task without marking complete
+            var nextTabId = taskNum < 3 ? 'g1t' + (taskNum + 1) : null;
+            if (nextTabId) {
+                setTimeout(function() {
+                    switchToTab(nextTabId, true);
+                }, 500);
+            } else {
+                // Move to next game
+                var content = document.getElementById('contentArea');
+                content.innerHTML = '<div style="text-align: center; padding: 50px;"><h3 style="color: #f44336;">Task Failed (0% Accuracy)</h3><p>Moving to next game...</p></div>';
+                setTimeout(function() {
+                    for (var g = 2; g <= 3; g++) {
+                        for (var t = 1; t <= 3; t++) {
+                            var checkTabId = 'g' + g + 't' + t;
+                            if (!gameState.completed[checkTabId]) {
+                                switchToTab(checkTabId, true);
+                                return;
+                            }
+                        }
+                    }
+                }, 1500);
+            }
+        }
     };
 }
 
@@ -679,7 +723,37 @@ function loadCountingGame(taskNum) {
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_correct', correct);
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_correctAnswer', answer);
         
-        markTaskComplete(tabId);
+        // Only mark complete if correct (not 0% accuracy)
+        if (correct) {
+            markTaskComplete(tabId);
+        } else {
+            // Skip to next task without marking complete
+            var nextTabId = taskNum < 3 ? 'g2t' + (taskNum + 1) : null;
+            if (nextTabId) {
+                setTimeout(function() {
+                    switchToTab(nextTabId, true);
+                }, 500);
+            } else {
+                // Move to next game
+                var content = document.getElementById('contentArea');
+                content.innerHTML = '<div style="text-align: center; padding: 50px;"><h3 style="color: #f44336;">Task Failed (Incorrect)</h3><p>Moving to next game...</p></div>';
+                setTimeout(function() {
+                    for (var g = 3; g <= 3; g++) {
+                        for (var t = 1; t <= 3; t++) {
+                            var checkTabId = 'g' + g + 't' + t;
+                            if (!gameState.completed[checkTabId]) {
+                                switchToTab(checkTabId, true);
+                                return;
+                            }
+                        }
+                    }
+                    // If no more tasks, check completion
+                    if (Object.keys(gameState.completed).length > 0) {
+                        showCompletion();
+                    }
+                }, 1500);
+            }
+        }
     };
 }
 
@@ -785,7 +859,25 @@ function loadTypingGame(taskNum) {
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_accuracy', accuracy);
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_expected', pattern);
         
-        markTaskComplete(tabId);
+        // Only mark complete if accuracy > 0
+        if (accuracy > 0) {
+            markTaskComplete(tabId);
+        } else {
+            // Skip to next task without marking complete
+            var nextTabId = taskNum < 3 ? 'g3t' + (taskNum + 1) : null;
+            if (nextTabId) {
+                setTimeout(function() {
+                    switchToTab(nextTabId, true);
+                }, 500);
+            } else {
+                // No more tasks - show completion
+                var content = document.getElementById('contentArea');
+                content.innerHTML = '<div style="text-align: center; padding: 50px;"><h3 style="color: #f44336;">Task Failed (0% Accuracy)</h3><p>Finishing game...</p></div>';
+                setTimeout(function() {
+                    showCompletion();
+                }, 1500);
+            }
+        }
     };
 }
 
@@ -834,6 +926,25 @@ function setupChat() {
         gameState.numPrompts = numPrompts;
         Qualtrics.SurveyEngine.setEmbeddedData("numPrompts", numPrompts);
         updatePromptCounter();
+        
+        // Record inquiry timestamp and current task
+        var currentTime = Math.floor((Date.now() - gameState.startTime - gameState.pausedTime) / 1000);
+        var inquiryData = {
+            timestamp: currentTime,
+            currentTask: gameState.currentTab || 'none',
+            promptNumber: numPrompts
+        };
+        
+        // Store individual inquiry data
+        Qualtrics.SurveyEngine.setEmbeddedData("inquiry" + numPrompts + "_timestamp", currentTime);
+        Qualtrics.SurveyEngine.setEmbeddedData("inquiry" + numPrompts + "_task", gameState.currentTab || 'none');
+        
+        // Store all inquiries as JSON
+        if (!gameState.inquiries) {
+            gameState.inquiries = [];
+        }
+        gameState.inquiries.push(inquiryData);
+        Qualtrics.SurveyEngine.setEmbeddedData("inquiryTimeStamps", JSON.stringify(gameState.inquiries));
         
         // Proceed with chat
         gameState.chatHistory.push({ role: "user", content: userText });
