@@ -7,7 +7,12 @@ var gameState = {
     taskStartTimes: {},
     taskTotalTimes: {},
     chatHistory: [],
-    numPrompts: 0
+    numPrompts: 0,
+    countdownInterval: null,
+    nextDestination: null,
+    pausedTime: 0,
+    isPaused: false,
+    isInBreak: false // Track break state
 };
 
 // Timer interval
@@ -35,23 +40,81 @@ Qualtrics.SurveyEngine.addOnReady(function() {
     var that = this;
     that.hideNextButton();
     
-    // Start global timer
-    timerInterval = setInterval(updateGlobalTimer, 1000);
-    
-    // Set up tab navigation
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            if (!this.disabled) {
-                switchToTab(this.getAttribute('data-tab'));
+    // Handle start button click
+    document.getElementById('startGameBtn').addEventListener('click', function() {
+        // Hide landing page
+        document.getElementById('landingPage').style.display = 'none';
+        
+        // Show game content
+        document.getElementById('gameContent').style.display = 'block';
+        
+        // Scroll to top
+        window.scrollTo(0, 0);
+        
+        // Start the timer NOW
+        gameState.startTime = Date.now();
+        timerInterval = setInterval(updateGlobalTimer, 1000);
+        
+        // Set up tab navigation with break protection
+        document.querySelectorAll('.tab-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                if (!this.disabled) {
+                    // COMPLETELY block clicks during break
+                    if (gameState.isInBreak || gameState.countdownInterval) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                    switchToTab(this.getAttribute('data-tab'));
+                }
+            });
+        });
+        
+        // Set up chat
+        setupChat();
+        
+        // Load first available tab
+        switchToTab('g1t1');
+        
+        // TESTING ONLY: End All Button
+        document.getElementById('endAllBtn').addEventListener('click', function() {
+            // Mark all tasks as complete for testing
+            for (var g = 1; g <= 3; g++) {
+                for (var t = 1; t <= 3; t++) {
+                    var tabId = 'g' + g + 't' + t;
+                    gameState.completed[tabId] = true;
+                    
+                    // Set dummy data for testing
+                    if (g === 1) {
+                        Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_accuracy', '85.00');
+                    } else if (g === 2) {
+                        Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_correct', t === 2 ? 'true' : 'false');
+                    } else if (g === 3) {
+                        Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_accuracy', '90');
+                    }
+                }
             }
+            
+            // Clear any active countdowns
+            if (gameState.countdownInterval) {
+                clearInterval(gameState.countdownInterval);
+                gameState.countdownInterval = null;
+            }
+            
+            // Remove break overlay if present
+            var breakOverlay = document.getElementById('breakOverlay');
+            if (breakOverlay) {
+                document.body.removeChild(breakOverlay);
+            }
+            
+            // Reset break state
+            gameState.isPaused = false;
+            gameState.isInBreak = false;
+            
+            // Show completion
+            showCompletion();
         });
     });
-    
-    // Set up chat
-    setupChat();
-    
-    // Load first available tab
-    switchToTab('g1t1');
 });
 
 Qualtrics.SurveyEngine.addOnUnload(function() {
@@ -62,33 +125,43 @@ Qualtrics.SurveyEngine.addOnUnload(function() {
     storeGameData();
 });
 
-// Timer function
+// Timer function - FIXED to respect pause
 function updateGlobalTimer() {
-    // Stop updating if all tasks complete
-    if (Object.keys(gameState.completed).length >= 9) {
+    // Stop updating if all tasks complete or if paused
+    if (Object.keys(gameState.completed).length >= 9 || gameState.isPaused) {
         return;
     }
     
-    var elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+    var elapsed = Math.floor((Date.now() - gameState.startTime - gameState.pausedTime) / 1000);
     var minutes = Math.floor(elapsed / 60);
     var seconds = elapsed % 60;
     document.getElementById('globalTimer').textContent = 
         (minutes < 10 ? '0' : '') + minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
 }
 
-// Tab switching
-function switchToTab(tabId) {
-    // Record switch
-    if (gameState.currentTab && tabId !== gameState.currentTab) {
+// Tab switching - FIXED with break protection
+function switchToTab(tabId, isAutoAdvance) {
+    // ABSOLUTE BLOCK during break
+    if (gameState.isInBreak) {
+        return;
+    }
+    
+    // Clear any active countdown to prevent glitches
+    if (gameState.countdownInterval) {
+        clearInterval(gameState.countdownInterval);
+        gameState.countdownInterval = null;
+    }
+    
+    // Record switch only if it's a manual switch (not auto-advance)
+    if (gameState.currentTab && tabId !== gameState.currentTab && !isAutoAdvance) {
         gameState.switches++;
-        document.getElementById('switchCount').textContent = gameState.switches;
-        
-        // Record time on previous task
-        if (gameState.taskStartTimes[gameState.currentTab]) {
-            var timeSpent = Date.now() - gameState.taskStartTimes[gameState.currentTab];
-            gameState.taskTotalTimes[gameState.currentTab] = 
-                (gameState.taskTotalTimes[gameState.currentTab] || 0) + timeSpent;
-        }
+    }
+    
+    // Record time on previous task
+    if (gameState.currentTab && gameState.taskStartTimes[gameState.currentTab]) {
+        var timeSpent = Date.now() - gameState.taskStartTimes[gameState.currentTab];
+        gameState.taskTotalTimes[gameState.currentTab] = 
+            (gameState.taskTotalTimes[gameState.currentTab] || 0) + timeSpent;
     }
     
     // Update current tab
@@ -101,8 +174,10 @@ function switchToTab(tabId) {
         btn.style.boxShadow = 'none';
     });
     var activeBtn = document.querySelector('[data-tab="' + tabId + '"]');
-    activeBtn.style.transform = 'translateY(-2px)';
-    activeBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+    if (activeBtn) {
+        activeBtn.style.transform = 'translateY(-2px)';
+        activeBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+    }
     
     // Load content
     loadTab(tabId);
@@ -111,6 +186,13 @@ function switchToTab(tabId) {
 // Load tab content
 function loadTab(tabId) {
     var content = document.getElementById('contentArea');
+    
+    // Clear any active countdown immediately when loading new content
+    if (gameState.countdownInterval) {
+        clearInterval(gameState.countdownInterval);
+        gameState.countdownInterval = null;
+    }
+    
     content.innerHTML = '<div style="text-align: center; padding: 50px;">Loading...</div>';
     
     // Parse tab ID
@@ -132,8 +214,14 @@ function loadTab(tabId) {
     }, 100);
 }
 
-// Mark task complete
+// Mark task complete - COMPLETELY REWRITTEN with new break system
 function markTaskComplete(tabId) {
+    // Clear any existing countdown first
+    if (gameState.countdownInterval) {
+        clearInterval(gameState.countdownInterval);
+        gameState.countdownInterval = null;
+    }
+    
     gameState.completed[tabId] = true;
     
     // Update button appearance
@@ -170,34 +258,153 @@ function markTaskComplete(tabId) {
     if (Object.keys(gameState.completed).length === 9) {
         showCompletion();
     } else {
-        // Auto-advance to next task in same game if available
-        if (task < 3) {
-            var content = document.getElementById('contentArea');
-            var nextTabId = 'g' + game + 't' + (task + 1);
-            
-            // Show countdown message
-            var countdown = 3;
-            var countdownInterval = setInterval(function() {
-                content.innerHTML = '<div style="text-align: center; padding: 50px;"><h3 style="color: #4CAF50;">Task Complete!</h3><p>Advancing to next task in ' + countdown + ' seconds...</p><p style="font-size: 14px; color: #666;">Or select another task above.</p></div>';
-                countdown--;
-                
-                if (countdown < 0) {
-                    clearInterval(countdownInterval);
-                    switchToTab(nextTabId);
-                }
-            }, 1000);
-            
-            // Initial countdown display
-            content.innerHTML = '<div style="text-align: center; padding: 50px;"><h3 style="color: #4CAF50;">Task Complete!</h3><p>Advancing to next task in 3 seconds...</p><p style="font-size: 14px; color: #666;">Or select another task above.</p></div>';
-        } else {
-            // No more tasks in this game, just show completion
-            var content = document.getElementById('contentArea');
-            content.innerHTML = '<div style="text-align: center; padding: 50px;"><h3 style="color: #4CAF50;">Game Complete!</h3><p>All tasks in this game are finished.</p><p>Select another game above.</p></div>';
-        }
+        // Start mandatory 2-second break
+        startMandatoryBreak(tabId);
     }
 }
 
-// Show completion
+// NEW mandatory break function - 2 seconds, unskippable, timer paused
+function startMandatoryBreak(completedTabId) {
+    // IMMEDIATELY pause timer and set break state
+    gameState.isPaused = true;
+    gameState.isInBreak = true;
+    var pauseStartTime = Date.now();
+    
+    // Determine default next destination
+    var game = parseInt(completedTabId[1]);
+    var task = parseInt(completedTabId[3]);
+    var defaultNext = null;
+    
+    if (task < 3) {
+        defaultNext = 'g' + game + 't' + (task + 1);
+    } else {
+        // Find next available game
+        for (var g = game + 1; g <= 3; g++) {
+            for (var t = 1; t <= 3; t++) {
+                var checkTabId = 'g' + g + 't' + t;
+                if (!gameState.completed[checkTabId]) {
+                    defaultNext = checkTabId;
+                    break;
+                }
+            }
+            if (defaultNext) break;
+        }
+    }
+    
+    gameState.nextDestination = defaultNext;
+    
+    // Create break overlay that blocks EVERYTHING
+    var breakDiv = document.createElement('div');
+    breakDiv.id = 'breakOverlay';
+    breakDiv.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.9); z-index: 999999; display: flex; flex-direction: column; align-items: center; justify-content: center;';
+    
+    var contentDiv = document.createElement('div');
+    contentDiv.style.cssText = 'background: white; padding: 40px; border-radius: 10px; text-align: center; max-width: 600px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); position: relative; z-index: 1000000;';
+    
+    // Create navigation copy inside the overlay
+    var navCopy = document.createElement('div');
+    navCopy.style.cssText = 'display: flex; gap: 2px; margin-bottom: 30px; flex-wrap: wrap; justify-content: center;';
+    
+    // Copy all navigation buttons into the overlay
+    document.querySelectorAll('.tab-btn').forEach(function(originalBtn) {
+        var btnCopy = document.createElement('button');
+        btnCopy.textContent = originalBtn.textContent;
+        btnCopy.style.cssText = originalBtn.style.cssText;
+        btnCopy.setAttribute('data-tab', originalBtn.getAttribute('data-tab'));
+        
+        var tabId = originalBtn.getAttribute('data-tab');
+        
+        // Check if this task is completed
+        if (originalBtn.disabled || gameState.completed[tabId]) {
+            btnCopy.disabled = true;
+            btnCopy.style.cursor = 'not-allowed';
+            btnCopy.style.opacity = '0.5';
+        } else {
+            btnCopy.style.cursor = 'pointer';
+            btnCopy.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                var clickedTabId = this.getAttribute('data-tab');
+                gameState.nextDestination = clickedTabId;
+                
+                // Update the text to show manual selection
+                var destinationText = this.textContent.replace(' 🔒', '').replace(' ✓', '');
+                document.getElementById('autoDestination').innerHTML = destinationText + ' <span style="color: #666; font-size: 12px;">(selected)</span>';
+                
+                // Visual feedback - clear all highlights first
+                navCopy.querySelectorAll('button').forEach(function(b) {
+                    b.style.boxShadow = 'none';
+                    b.style.transform = 'scale(1)';
+                });
+                
+                // Highlight the clicked button
+                this.style.boxShadow = '0 0 0 3px #2196F3';
+                this.style.transform = 'scale(1.05)';
+                
+                console.log('Task selected:', clickedTabId); // Debug log
+            });
+        }
+        
+        navCopy.appendChild(btnCopy);
+    });
+    
+    // Calculate tasks remaining
+    var tasksCompleted = Object.keys(gameState.completed).length;
+    var tasksRemaining = 9 - tasksCompleted;
+    var promptsUsed = gameState.numPrompts || 0;
+    var promptsRemaining = 3 - promptsUsed;
+    
+    contentDiv.innerHTML = '<h2 style="color: #4CAF50; margin-bottom: 30px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Task Complete!</h2>' +
+        '<div id="breakCountdown" style="font-size: 72px; font-weight: bold; color: #4CAF50; margin: 30px 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">3</div>' +
+        '<div style="display: flex; gap: 30px; justify-content: center; margin: 20px 0;">' +
+        '<div style="background: #f0f0f0; padding: 10px 20px; border-radius: 6px;">' +
+        '<span style="color: #666; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Tasks Remaining:</span> ' +
+        '<span style="color: #333; font-weight: bold; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + tasksRemaining + '/9</span>' +
+        '</div>' +
+        '<div style="background: #f0f0f0; padding: 10px 20px; border-radius: 6px;">' +
+        '<span style="color: #666; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Prompts Remaining:</span> ' +
+        '<span style="color: #333; font-weight: bold; font-size: 16px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">' + promptsRemaining + '/3</span>' +
+        '</div>' +
+        '</div>' +
+        '<p style="color: #666; font-size: 16px; margin-top: 20px; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;">Auto-advancing to: <span style="font-weight: bold; color: #2196F3;">' + 
+        (defaultNext ? document.querySelector('[data-tab="' + defaultNext + '"]').textContent.replace(' 🔒', '').replace(' ✓', '') : 'Completion') + '</span></p>';
+    
+    
+    breakDiv.appendChild(contentDiv);
+    document.body.appendChild(breakDiv);
+    
+    // Countdown - 3 seconds
+    var countdown = 3;
+    gameState.countdownInterval = setInterval(function() {
+        countdown--;
+        if (countdown > 0) {
+            document.getElementById('breakCountdown').textContent = countdown;
+        } else {
+            // Clear interval
+            clearInterval(gameState.countdownInterval);
+            gameState.countdownInterval = null;
+            
+            // Remove overlay
+            if (document.body.contains(breakDiv)) {
+                document.body.removeChild(breakDiv);
+            }
+            
+            // Update paused time
+            gameState.pausedTime += (Date.now() - pauseStartTime);
+            gameState.isPaused = false;
+            gameState.isInBreak = false;
+            
+            // Go to destination
+            if (gameState.nextDestination) {
+                switchToTab(gameState.nextDestination, true);
+            }
+            gameState.nextDestination = null;
+        }
+    }, 1000);
+}
+
+// Show completion - UPDATED with accuracy
 function showCompletion() {
     // Stop the timer
     if (timerInterval) {
@@ -205,19 +412,72 @@ function showCompletion() {
     }
     
     // Record final time
-    var finalElapsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+    var finalElapsed = Math.floor((Date.now() - gameState.startTime - gameState.pausedTime) / 1000);
     gameState.finalTime = finalElapsed;
     
+    // Calculate accuracies for each game
+    var sliderAccuracies = [];
+    var countingCorrect = 0;
+    var typingAccuracies = [];
+    
+    // Get stored accuracy data from each game
+    // Game 1 - Slider (accuracy percentages)
+    for (var i = 1; i <= 3; i++) {
+        var acc = Qualtrics.SurveyEngine.getEmbeddedData('g1t' + i + '_accuracy');
+        if (acc) sliderAccuracies.push(parseFloat(acc));
+    }
+    
+    // Game 2 - Counting (correct/incorrect)
+    for (var j = 1; j <= 3; j++) {
+        var correct = Qualtrics.SurveyEngine.getEmbeddedData('g2t' + j + '_correct');
+        if (correct === 'true' || correct === true || correct === '1') countingCorrect++;
+    }
+    
+    // Game 3 - Typing (accuracy percentages)
+    for (var k = 1; k <= 3; k++) {
+        var typeAcc = Qualtrics.SurveyEngine.getEmbeddedData('g3t' + k + '_accuracy');
+        if (typeAcc) typingAccuracies.push(parseFloat(typeAcc));
+    }
+    
+    // Calculate averages
+    var sliderAvg = sliderAccuracies.length > 0 ? 
+        (sliderAccuracies.reduce(function(a, b) { return a + b; }, 0) / sliderAccuracies.length).toFixed(1) : 0;
+    
+    var countingPercentage = (countingCorrect / 3 * 100).toFixed(1);
+    
+    var typingAvg = typingAccuracies.length > 0 ? 
+        (typingAccuracies.reduce(function(a, b) { return a + b; }, 0) / typingAccuracies.length).toFixed(1) : 0;
+    
+    // Calculate overall accuracy
+    var overallAccuracy = ((parseFloat(sliderAvg) + parseFloat(countingPercentage) + parseFloat(typingAvg)) / 3).toFixed(1);
+    
+    // Hide game elements
     document.getElementById('tabNav').style.display = 'none';
     document.getElementById('contentArea').style.display = 'none';
     document.getElementById('chatContainer').style.display = 'none';
+    document.getElementById('gameContent').style.display = 'none';
     document.getElementById('completionMsg').style.display = 'block';
     
+    // Display final stats
     var totalTime = finalElapsed;
     document.getElementById('finalTime').textContent = Math.floor(totalTime / 60) + 'm ' + (totalTime % 60) + 's';
     document.getElementById('finalSwitches').textContent = gameState.switches;
+    document.getElementById('finalAccuracy').textContent = overallAccuracy + '%';
     
-    // Just show next button, no auto-advance
+    // Display game-specific accuracies
+    document.getElementById('sliderAccuracy').textContent = sliderAvg + '%';
+    document.getElementById('countingAccuracy').textContent = countingPercentage + '%';
+    document.getElementById('typingAccuracy').textContent = typingAvg + '%';
+    
+    // Store final accuracy data
+    Qualtrics.SurveyEngine.setEmbeddedData('finalOverallAccuracy', overallAccuracy);
+    Qualtrics.SurveyEngine.setEmbeddedData('finalSliderAccuracy', sliderAvg);
+    Qualtrics.SurveyEngine.setEmbeddedData('finalCountingScore', countingCorrect);
+    Qualtrics.SurveyEngine.setEmbeddedData('finalCountingAccuracy', countingPercentage);
+    Qualtrics.SurveyEngine.setEmbeddedData('finalTypingAccuracy', typingAvg);
+    Qualtrics.SurveyEngine.setEmbeddedData('totalTime', totalTime);
+    
+    // Show next button
     Qualtrics.SurveyEngine.showNextButton();
 }
 
@@ -295,8 +555,6 @@ function loadSliderGame(taskNum) {
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_accuracy', accuracy.toFixed(2));
         
         markTaskComplete(tabId);
-        
-        // Don't show completion message, it will be handled by markTaskComplete
     };
 }
 
@@ -348,7 +606,7 @@ function loadCountingGame(taskNum) {
     
     html += '<div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin: 20px 0;">';
     html += '<label style="font-weight: bold;">Your answer:</label>';
-    html += '<input type="number" id="countAnswer" min="0" max="999" placeholder="Type here" ';
+    html += '<input type="number" id="countAnswer" min="0" max="999" placeholder="Enter count" ';
     html += 'style="width: 150px; padding: 10px; border: 2px solid #ddd; border-radius: 8px; font-size: 18px; text-align: center;">';
     html += '</div>';
     
@@ -422,8 +680,6 @@ function loadCountingGame(taskNum) {
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_correctAnswer', answer);
         
         markTaskComplete(tabId);
-        
-        // Don't show completion message, it will be handled by markTaskComplete
     };
 }
 
@@ -530,8 +786,6 @@ function loadTypingGame(taskNum) {
         Qualtrics.SurveyEngine.setEmbeddedData(tabId + '_expected', pattern);
         
         markTaskComplete(tabId);
-        
-        // Don't show completion message, it will be handled by markTaskComplete
     };
 }
 
