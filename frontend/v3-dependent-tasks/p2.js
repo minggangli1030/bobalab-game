@@ -165,11 +165,11 @@ function loadPracticeGame(gameType) {
     
     // Check if this task has been enhanced by another practice task
     var isEnhanced = false;
-    if (gameType === 'counting' && gameState.practiceTasksCompleted['slider']) {
+    if (gameType === 'counting' && (gameState.practiceTasksCompleted['slider1'] || gameState.practiceTasksCompleted['slider2'] || gameState.practiceTasksCompleted['slider3'])) {
         isEnhanced = true;
-    } else if (gameType === 'slider' && gameState.practiceTasksCompleted['typing']) {
+    } else if (gameType === 'slider' && (gameState.practiceTasksCompleted['typing1'] || gameState.practiceTasksCompleted['typing2'] || gameState.practiceTasksCompleted['typing3'])) {
         isEnhanced = true;
-    } else if (gameType === 'typing' && gameState.practiceTasksCompleted['counting']) {
+    } else if (gameType === 'typing' && (gameState.practiceTasksCompleted['counting1'] || gameState.practiceTasksCompleted['counting2'] || gameState.practiceTasksCompleted['counting3'])) {
         isEnhanced = true;
     }
     
@@ -354,7 +354,7 @@ function loadPracticeGame(gameType) {
                 </div>
                 
                 <div style="text-align: center;">
-                    <button onclick="checkPracticeTyping('${pattern}')" style="padding: 10px 20px; background: #FFC107; color: #333; border: none; border-radius: 4px; cursor: pointer;">
+                    <button onclick="checkPracticeTyping('${pattern.replace(/'/g, "\\'")}')" style="padding: 10px 20px; background: #FFC107; color: #333; border: none; border-radius: 4px; cursor: pointer;">
                         Submit
                     </button>
                 </div>
@@ -379,7 +379,7 @@ function checkPracticeAnswer() {
     if (answer === '6') {
         feedback.style.color = '#4CAF50';
         feedback.textContent = '✓ Correct! You found all 6 occurrences of "the".';
-        gameState.practiceTasksCompleted['counting'] = true;
+        gameState.practiceTasksCompleted['counting1'] = true;
         
         // Update buttons with golden glow
         setTimeout(function() {
@@ -398,7 +398,7 @@ function checkPracticeSlider() {
     if (value === '7.5') {
         feedback.style.color = '#4CAF50';
         feedback.textContent = '✓ Perfect! You got exactly 7.5.';
-        gameState.practiceTasksCompleted['slider'] = true;
+        gameState.practiceTasksCompleted['slider1'] = true;
         
         // Update buttons with golden glow
         setTimeout(function() {
@@ -417,7 +417,7 @@ function checkPracticeTyping(expectedPattern) {
     if (typed === expectedPattern) {
         feedback.style.color = '#4CAF50';
         feedback.textContent = '✓ Excellent! Perfect match.';
-        gameState.practiceTasksCompleted['typing'] = true;
+        gameState.practiceTasksCompleted['typing1'] = true;
         
         // Update buttons with golden glow
         setTimeout(function() {
@@ -432,21 +432,21 @@ function checkPracticeTyping(expectedPattern) {
 // Update practice buttons with golden glow
 function updatePracticeButtons() {
     // Check which tasks should glow
-    if (gameState.practiceTasksCompleted['slider']) {
+    if (gameState.practiceTasksCompleted['slider1'] || gameState.practiceTasksCompleted['slider2'] || gameState.practiceTasksCompleted['slider3']) {
         var countingCard = document.getElementById('counting-practice-card');
         if (countingCard && !countingCard.classList.contains('enhanced-task')) {
             countingCard.classList.add('enhanced-task');
         }
     }
     
-    if (gameState.practiceTasksCompleted['typing']) {
+    if (gameState.practiceTasksCompleted['typing1'] || gameState.practiceTasksCompleted['typing2'] || gameState.practiceTasksCompleted['typing3']) {
         var sliderCard = document.getElementById('slider-practice-card');
         if (sliderCard && !sliderCard.classList.contains('enhanced-task')) {
             sliderCard.classList.add('enhanced-task');
         }
     }
     
-    if (gameState.practiceTasksCompleted['counting']) {
+    if (gameState.practiceTasksCompleted['counting1'] || gameState.practiceTasksCompleted['counting2'] || gameState.practiceTasksCompleted['counting3']) {
         var typingCard = document.getElementById('typing-practice-card');
         if (typingCard && !typingCard.classList.contains('enhanced-task')) {
             typingCard.classList.add('enhanced-task');

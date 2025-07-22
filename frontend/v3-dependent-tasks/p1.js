@@ -42,60 +42,60 @@ var textSections = [
 // Enhanced task dependency configuration (removed hints)
 var taskDependencies = {
     dependencies: [
-        // Slider helps Counting by highlighting target words/letters
+        // Slider helps ALL Counting tasks
         {
             from: 'g2t1', // Slider task 1
-            to: 'g1t1',   // Counting task 1
+            to: 'g1',   // ALL Counting tasks
             type: 'highlight_words',
-            probability: 0.3 // 30% for task 1
+            probability: 0.3
         },
         {
             from: 'g2t2', // Slider task 2
-            to: 'g1t2',   // Counting task 2
+            to: 'g1',   // ALL Counting tasks
             type: 'highlight_letters',
-            probability: 0.6 // 60% for task 2
+            probability: 0.6
         },
         {
             from: 'g2t3', // Slider task 3
-            to: 'g1t3',   // Counting task 3
+            to: 'g1',   // ALL Counting tasks
             type: 'highlight_both',
-            probability: 0.9 // 90% for task 3
+            probability: 0.9
         },
-        // Typing helps Slider by adding tick marks
+        // Typing helps ALL Slider tasks
         {
             from: 'g3t1', // Typing task 1
-            to: 'g2t1',   // Slider task 1
+            to: 'g2',   // ALL Slider tasks
             type: 'tick_marks',
             probability: 0.3
         },
         {
             from: 'g3t2', // Typing task 2
-            to: 'g2t2',   // Slider task 2
+            to: 'g2',   // ALL Slider tasks
             type: 'tick_marks_detailed',
             probability: 0.6
         },
         {
             from: 'g3t3', // Typing task 3
-            to: 'g2t3',   // Slider task 3
+            to: 'g2',   // ALL Slider tasks
             type: 'value_preview',
             probability: 0.9
         },
-        // Counting helps Typing by making patterns easier
+        // Counting helps ALL Typing tasks
         {
             from: 'g1t1', // Counting task 1
-            to: 'g3t1',   // Typing task 1
+            to: 'g3',   // ALL Typing tasks
             type: 'easier_pattern',
             probability: 0.3
         },
         {
             from: 'g1t2', // Counting task 2
-            to: 'g3t2',   // Typing task 2
+            to: 'g3',   // ALL Typing tasks
             type: 'no_numbers',
             probability: 0.6
         },
         {
             from: 'g1t3', // Counting task 3
-            to: 'g3t3',   // Typing task 3
+            to: 'g3',   // ALL Typing tasks
             type: 'no_symbols',
             probability: 0.9
         }
@@ -112,11 +112,15 @@ var taskDependencies = {
                 var probability = gameState.isPractice ? 1.0 : dep.probability;
                 
                 if (Math.random() < probability) {
-                    taskDependencies.activeDependencies[dep.to] = {
-                        type: dep.type,
-                        fromTask: dep.from
-                    };
-                    activated.push(dep.to);
+                    // Apply to all tasks in the target game
+                    for (var t = 1; t <= 3; t++) {
+                        var targetTask = dep.to + 't' + t;
+                        taskDependencies.activeDependencies[targetTask] = {
+                            type: dep.type,
+                            fromTask: dep.from
+                        };
+                        activated.push(targetTask);
+                    }
                     Qualtrics.SurveyEngine.setEmbeddedData('dependency_' + dep.from + '_to_' + dep.to, 'activated');
                 }
             }
