@@ -39,67 +39,68 @@ var textSections = [
     'Berkeley has an enrollment of more than 45,000 students. The university is organized around fifteen schools of study on the same campus, including the College of Chemistry, the College of Engineering, College of Letters and Science, and the Haas School of Business.'
 ];
 
-// Enhanced task dependency configuration (removed hints)
+// Enhanced task dependency configuration (simplified)
 var taskDependencies = {
     dependencies: [
-        // Slider helps ALL Counting tasks
+        // Slider helps ALL Counting tasks - highlight words and letters
         {
             from: 'g2t1', // Slider task 1
             to: 'g1',   // ALL Counting tasks
-            type: 'highlight_words',
+            type: 'highlight',
             probability: 0.3
         },
         {
             from: 'g2t2', // Slider task 2
             to: 'g1',   // ALL Counting tasks
-            type: 'highlight_letters',
+            type: 'highlight',
             probability: 0.6
         },
         {
             from: 'g2t3', // Slider task 3
             to: 'g1',   // ALL Counting tasks
-            type: 'highlight_both',
+            type: 'highlight',
             probability: 0.9
         },
-        // Typing helps ALL Slider tasks
+        // Typing helps ALL Slider tasks - comprehensive tick marks
         {
             from: 'g3t1', // Typing task 1
             to: 'g2',   // ALL Slider tasks
-            type: 'tick_marks',
+            type: 'enhanced_slider',
             probability: 0.3
         },
         {
             from: 'g3t2', // Typing task 2
             to: 'g2',   // ALL Slider tasks
-            type: 'tick_marks_detailed',
+            type: 'enhanced_slider',
             probability: 0.6
         },
         {
             from: 'g3t3', // Typing task 3
             to: 'g2',   // ALL Slider tasks
-            type: 'value_preview',
+            type: 'enhanced_slider',
             probability: 0.9
         },
-        // Counting helps ALL Typing tasks
+        // Counting helps ALL Typing tasks - simpler patterns
         {
             from: 'g1t1', // Counting task 1
             to: 'g3',   // ALL Typing tasks
-            type: 'easier_pattern',
+            type: 'simple_pattern',
             probability: 0.3
         },
         {
             from: 'g1t2', // Counting task 2
             to: 'g3',   // ALL Typing tasks
-            type: 'no_numbers',
+            type: 'simple_pattern',
             probability: 0.6
         },
         {
             from: 'g1t3', // Counting task 3
             to: 'g3',   // ALL Typing tasks
-            type: 'no_symbols',
+            type: 'simple_pattern',
             probability: 0.9
         }
     ],
+    
     
     activeDependencies: {},
     

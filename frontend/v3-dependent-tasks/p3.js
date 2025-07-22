@@ -111,8 +111,6 @@ function loadTab(tabId) {
     var game = parseInt(tabId[1]);
     var task = parseInt(tabId[3]);
     
-    var dependency = taskDependencies.getActiveDependency(tabId);
-    
     setTimeout(function() {
         switch(game) {
             case 1:
@@ -125,83 +123,7 @@ function loadTab(tabId) {
                 loadTypingGame(task);
                 break;
         }
-        
-        if (dependency) {
-            applyDependencyEnhancement(tabId, dependency.type);
-        }
     }, 100);
-}
-
-// Enhanced dependency effects (subtle, no hints)
-function applyDependencyEnhancement(tabId, type) {
-    var game = parseInt(tabId[1]);
-    
-    switch(type) {
-        case 'highlight_words':
-        case 'highlight_letters':
-        case 'highlight_both':
-            // Highlighting is applied in the drawing functions
-            break;
-            
-        case 'tick_marks':
-        case 'tick_marks_detailed':
-            if (game === 2) { // Slider game
-                setTimeout(function() {
-                    var slider = document.getElementById('gameSlider');
-                    if (slider) {
-                        var tickContainer = document.createElement('div');
-                        tickContainer.style.cssText = 'position: relative; width: 100%; height: 20px; margin-top: -10px;';
-                        
-                        var tickCount = type === 'tick_marks_detailed' ? 21 : 11;
-                        for (var i = 0; i < tickCount; i++) {
-                            var position = (i / (tickCount - 1)) * 100;
-                            var tick = document.createElement('div');
-                            tick.style.cssText = 'position: absolute; left: ' + position + '%; width: 1px; height: ' + (i % 5 === 0 ? '15px' : '10px') + '; background: #666; transform: translateX(-50%);';
-                            
-                            if (i % 5 === 0) {
-                                var label = document.createElement('div');
-                                label.style.cssText = 'position: absolute; left: ' + position + '%; top: 18px; transform: translateX(-50%); font-size: 10px; color: #666;';
-                                label.textContent = (i / (tickCount - 1) * 10).toFixed(type === 'tick_marks_detailed' ? 1 : 0);
-                                tickContainer.appendChild(label);
-                            }
-                            
-                            tickContainer.appendChild(tick);
-                        }
-                        
-                        slider.parentNode.insertBefore(tickContainer, slider.nextSibling);
-                    }
-                }, 100);
-            }
-            break;
-            
-        case 'value_preview':
-            if (game === 2) { // Slider game hard mode
-                setTimeout(function() {
-                    var valueDisplay = document.getElementById('sliderValue');
-                    if (valueDisplay && valueDisplay.textContent === '?') {
-                        // Show value briefly every 2 seconds
-                        setInterval(function() {
-                            var slider = document.getElementById('gameSlider');
-                            if (slider && valueDisplay.textContent === '?') {
-                                valueDisplay.textContent = slider.value;
-                                valueDisplay.style.color = '#FFD700';
-                                setTimeout(function() {
-                                    valueDisplay.textContent = '?';
-                                    valueDisplay.style.color = '#4CAF50';
-                                }, 500);
-                            }
-                        }, 2000);
-                    }
-                }, 100);
-            }
-            break;
-            
-        case 'easier_pattern':
-        case 'no_numbers':
-        case 'no_symbols':
-            // Pattern selection is handled in loadTypingGame
-            break;
-    }
 }
 
 function markTaskComplete(tabId) {
@@ -223,11 +145,15 @@ function markTaskComplete(tabId) {
     document.body.appendChild(promptNotification);
     
     setTimeout(function() {
+    if (promptNotification && document.body.contains(promptNotification)) {
         promptNotification.style.animation = 'slideOut 0.5s ease-in';
         setTimeout(function() {
-            document.body.removeChild(promptNotification);
+            if (document.body.contains(promptNotification)) {
+                document.body.removeChild(promptNotification);
+            }
         }, 500);
-    }, 2000);
+    }
+}, 2000);
     
     // Check and activate dependencies
     var activatedDeps = taskDependencies.checkDependencies(tabId);
@@ -320,7 +246,6 @@ function startMandatoryBreak(completedTabId) {
         var tabId = originalBtn.getAttribute('data-tab');
         var taskNum = parseInt(tabId[3]);
         
-        // Use abbreviated names for tasks 2 and 3
         var btnText = originalBtn.textContent;
         if (taskNum === 2) {
             if (tabId.startsWith('g1')) btnText = 'C2';
@@ -332,7 +257,6 @@ function startMandatoryBreak(completedTabId) {
             else if (tabId.startsWith('g3')) btnText = 'T3';
         }
         
-        // Add checkmark if completed
         if (gameState.completed[tabId]) {
             btnText = btnText.replace(' 🔒', '') + ' ✓';
         }
@@ -340,7 +264,6 @@ function startMandatoryBreak(completedTabId) {
         btnCopy.textContent = btnText;
         btnCopy.style.cssText = originalBtn.style.cssText;
         
-        // Make tasks 2 and 3 narrower
         if (taskNum === 2 || taskNum === 3) {
             btnCopy.style.minWidth = '40px';
             btnCopy.style.padding = '10px 4px';
@@ -372,8 +295,6 @@ function startMandatoryBreak(completedTabId) {
                 
                 this.style.boxShadow = '0 0 0 3px #2196F3';
                 this.style.transform = 'scale(1.05)';
-                
-                console.log('Task selected:', clickedTabId);
             });
         }
         
@@ -455,7 +376,7 @@ function loadCountingGame(taskNum) {
     
     // Check for dependency to add golden glow
     var dependency = taskDependencies.getActiveDependency('g1t' + taskNum);
-    var hasEnhancement = dependency && (dependency.type === 'highlight_words' || dependency.type === 'highlight_letters' || dependency.type === 'highlight_both');
+    var hasEnhancement = dependency && dependency.type === 'highlight';
     
     var html = '<div style="border: 2px solid #9C27B0; border-radius: 8px; padding: 30px; background: white;' + (hasEnhancement ? ' animation: goldenGlow 2s ease-in-out infinite;' : '') + '">';
     html += '<h3 style="text-align: center; color: #333;">Counting Game - Task ' + taskNum + '</h3>';
@@ -465,8 +386,40 @@ function loadCountingGame(taskNum) {
     
     html += '<p id="instruction" style="font-size: 18px; font-weight: bold; text-align: center; margin: 20px 0;">' + instruction + '<br><span style="font-size: 14px; color: #666; font-weight: normal;">(Case-insensitive)</span></p>';
     
-    html += '<div style="background-color: #fafafa; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: left;">';
-    html += '<canvas id="textCanvas" width="750" height="300" style="max-width: 100%; height: auto;"></canvas>';
+    html += '<div style="background-color: #fafafa; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: left; line-height: 1.8; font-family: monospace; font-size: 14px;">';
+    
+    // Process text for highlighting if enhanced
+    if (hasEnhancement) {
+        var displayText = text;
+        
+        if (taskNum === 1) {
+            // Highlight words
+            var regex = new RegExp('\\b' + target + '\\b', 'gi');
+            displayText = text.replace(regex, function(match) {
+                return '<span style="background-color: rgba(255, 215, 0, 0.4); padding: 2px 4px; border-radius: 3px;">' + match + '</span>';
+            });
+        } else if (taskNum === 2) {
+            // Highlight single letter
+            var regex = new RegExp(target, 'gi');
+            displayText = text.replace(regex, function(match) {
+                return '<span style="background-color: rgba(255, 215, 0, 0.4); padding: 1px 3px; border-radius: 2px;">' + match + '</span>';
+            });
+        } else {
+            // Highlight two letters
+            var targets = target.split('" and "');
+            displayText = text;
+            targets.forEach(function(letter) {
+                var regex = new RegExp(letter, 'gi');
+                displayText = displayText.replace(regex, function(match) {
+                    return '<span style="background-color: rgba(255, 215, 0, 0.4); padding: 1px 3px; border-radius: 2px;">' + match + '</span>';
+                });
+            });
+        }
+        html += displayText;
+    } else {
+        html += text;
+    }
+    
     html += '</div>';
     
     html += '<div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin: 20px 0;">';
@@ -479,135 +432,6 @@ function loadCountingGame(taskNum) {
     html += '</div>';
     
     content.innerHTML = html;
-    
-    // Check for highlighting dependency
-    var shouldHighlight = hasEnhancement;
-    
-    var canvas = document.getElementById('textCanvas');
-    var ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    ctx.font = '14px monospace';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    
-    // Draw text with highlighting if dependency is active
-    if (shouldHighlight && (taskNum === 1 || dependency.type === 'highlight_words')) {
-        // Highlight words
-        var words = text.split(' ');
-        var x = 20;
-        var y = 20;
-        var lineHeight = 22;
-        var spaceWidth = ctx.measureText(' ').width;
-        
-        for (var i = 0; i < words.length; i++) {
-            var word = words[i];
-            var wordMetrics = ctx.measureText(word + ' ');
-            
-            if (x + wordMetrics.width > canvas.width - 20) {
-                x = 20;
-                y += lineHeight;
-                if (y > canvas.height - 40) {
-                    canvas.height = y + 100;
-                    ctx.font = '14px monospace';
-                }
-            }
-            
-            // Check if this word matches target
-            if (word.toLowerCase().replace(/[^a-z]/g, '') === target.toLowerCase()) {
-                // Draw highlight
-                ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
-                ctx.fillRect(x - 2, y - 2, wordMetrics.width - spaceWidth + 4, lineHeight - 2);
-            }
-            
-            // Draw word
-            ctx.fillStyle = '#333333';
-            ctx.fillText(word, x, y);
-            x += wordMetrics.width;
-        }
-    } else if (shouldHighlight && (taskNum === 2 || taskNum === 3)) {
-        // Highlight letters
-        var chars = text.split('');
-        var x = 20;
-        var y = 20;
-        var lineHeight = 22;
-        
-        for (var j = 0; j < chars.length; j++) {
-            var char = chars[j];
-            var charWidth = ctx.measureText(char).width;
-            
-            if (char === '\n' || x + charWidth > canvas.width - 20) {
-                x = 20;
-                y += lineHeight;
-                if (y > canvas.height - 40) {
-                    canvas.height = y + 100;
-                    ctx.font = '14px monospace';
-                }
-                if (char === '\n') continue;
-            }
-            
-            // Check if this character should be highlighted
-            var shouldHighlightChar = false;
-            if (taskNum === 2) {
-                shouldHighlightChar = char.toLowerCase() === target.toLowerCase();
-            } else if (taskNum === 3) {
-                var targets = target.split('" and "');
-                shouldHighlightChar = char.toLowerCase() === targets[0].toLowerCase() || 
-                                    char.toLowerCase() === targets[1].toLowerCase();
-            }
-            
-            if (shouldHighlightChar) {
-                ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
-                ctx.fillRect(x - 1, y - 2, charWidth + 2, lineHeight - 2);
-            }
-            
-            ctx.fillStyle = '#333333';
-            ctx.fillText(char, x, y);
-            x += charWidth;
-        }
-    } else {
-        // Normal text drawing (no highlighting)
-        ctx.fillStyle = '#333333';
-        var words = text.split(' ');
-        var line = '';
-        var y = 20;
-        var lineHeight = 22;
-        var maxWidth = canvas.width - 40;
-        var x = 20;
-        
-        for (var k = 0; k < words.length; k++) {
-            var testLine = line + words[k] + ' ';
-            var metrics = ctx.measureText(testLine);
-            var testWidth = metrics.width;
-            
-            if (testWidth > maxWidth && k > 0) {
-                ctx.fillText(line, x, y);
-                line = words[k] + ' ';
-                y += lineHeight;
-                
-                if (y > canvas.height - 40) {
-                    canvas.height = y + 100;
-                    ctx.font = '14px monospace';
-                    ctx.fillStyle = '#333333';
-                }
-            } else {
-                line = testLine;
-            }
-        }
-        ctx.fillText(line, x, y);
-    }
-    
-    // Add visual noise
-    ctx.strokeStyle = 'rgba(156, 39, 176, 0.05)';
-    ctx.lineWidth = 1;
-    for (var n = 0; n < 3; n++) {
-        ctx.beginPath();
-        ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-        ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
-        ctx.stroke();
-    }
     
     document.getElementById('countSubmit').onclick = function() {
         var userAnswer = parseInt(document.getElementById('countAnswer').value || 0);
@@ -638,7 +462,7 @@ function loadSliderGame(taskNum) {
     
     // Check for dependency to add golden glow
     var dependency = taskDependencies.getActiveDependency('g2t' + taskNum);
-    var hasEnhancement = dependency && (dependency.type === 'tick_marks' || dependency.type === 'tick_marks_detailed' || dependency.type === 'value_preview');
+    var hasEnhancement = dependency && dependency.type === 'enhanced_slider';
     
     var html = '<div style="border: 2px solid #4CAF50; border-radius: 8px; padding: 30px; background: white;' + (hasEnhancement ? ' animation: goldenGlow 2s ease-in-out infinite;' : '') + '">';
     html += '<h3 style="text-align: center; color: #333;">Slider Game - Task ' + taskNum + '</h3>';
@@ -650,19 +474,73 @@ function loadSliderGame(taskNum) {
     html += 'Move the slider to: <strong style="color: #4CAF50; font-size: 24px;">' + target + '</strong>';
     html += '</p>';
     
-    html += '<div style="margin: 30px 0;">';
-    html += '<div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px; font-weight: bold; color: #666;">';
-    html += '<span>0</span><span>10</span></div>';
-    html += '<input type="range" id="gameSlider" min="0" max="10" step="' + step + '" value="5" ';
-    html += 'style="width: 100%; height: 8px; -webkit-appearance: none; appearance: none; background: #ddd; outline: none; cursor: pointer;">';
-    html += '<div id="sliderValue" style="text-align: center; font-size: 36px; font-weight: bold; color: #4CAF50; margin-top: 20px;">';
-    html += showValue ? '5' : '?';
-    html += '</div></div>';
+    if (hasEnhancement) {
+        // Enhanced slider with comprehensive scale
+        html += '<div style="margin: 30px 0;">';
+        html += '<div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 16px; font-weight: bold; color: #666;">';
+        html += '<span>0</span><span>10</span></div>';
+        
+        html += '<div style="position: relative; padding: 20px 0 30px 0;">';
+        
+        // Scale marks
+        html += '<div style="position: absolute; width: 100%; height: 20px; top: 0;">';
+        for (var i = 0; i <= 10; i++) {
+            var left = (i * 10) + '%';
+            html += '<div style="position: absolute; left: ' + left + '; transform: translateX(-50%);">';
+            html += '<div style="width: 2px; height: 12px; background: #666;"></div>';
+            html += '<div style="font-size: 12px; color: #666; margin-top: 2px; text-align: center;">' + i + '</div>';
+            html += '</div>';
+        }
+        html += '</div>';
+        
+        html += '<input type="range" id="gameSlider" min="0" max="10" step="' + step + '" value="5" ';
+        html += 'style="width: 100%; height: 8px; -webkit-appearance: none; appearance: none; background: #ddd; outline: none; cursor: pointer; margin-top: 20px; position: relative; z-index: 10;">';
+        html += '</div>';
+        
+        html += '<div id="sliderValue" style="text-align: center; font-size: 36px; font-weight: bold; color: #4CAF50; margin-top: 10px;">';
+        html += showValue ? '5' : '?';
+        html += '</div></div>';
+    } else {
+        // Standard slider
+        html += '<div style="margin: 30px 0;">';
+        html += '<div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 16px; font-weight: bold; color: #666;">';
+        html += '<span>0</span><span>10</span></div>';
+        html += '<input type="range" id="gameSlider" min="0" max="10" step="' + step + '" value="5" ';
+        html += 'style="width: 100%; height: 8px; -webkit-appearance: none; appearance: none; background: #ddd; outline: none; cursor: pointer;">';
+        html += '<div id="sliderValue" style="text-align: center; font-size: 36px; font-weight: bold; color: #4CAF50; margin-top: 20px;">';
+        html += showValue ? '5' : '?';
+        html += '</div></div>';
+    }
     
     html += '<button id="sliderSubmit" style="display: block; margin: 0 auto; padding: 12px 30px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold;">Submit</button>';
     html += '</div>';
     
     content.innerHTML = html;
+    
+    // Add slider styling
+    var style = document.createElement('style');
+    style.textContent = `
+        #gameSlider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        #gameSlider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #4CAF50;
+            cursor: pointer;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: none;
+        }
+    `;
+    document.head.appendChild(style);
     
     var slider = document.getElementById('gameSlider');
     slider.oninput = function() {
@@ -691,23 +569,13 @@ function loadTypingGame(taskNum) {
     
     // Check for dependency that makes typing easier
     var dependency = taskDependencies.getActiveDependency('g3t' + taskNum);
-    var hasEnhancement = dependency && (dependency.type === 'easier_pattern' || dependency.type === 'no_numbers' || dependency.type === 'no_symbols');
+    var hasEnhancement = dependency && dependency.type === 'simple_pattern';
     var pattern;
     
-    if (dependency) {
-        if (dependency.type === 'easier_pattern' && taskNum === 1) {
-            // Use very easy patterns
-            pattern = patternSets.veryEasy[Math.floor(Math.random() * patternSets.veryEasy.length)];
-        } else if (dependency.type === 'no_numbers' && taskNum === 2) {
-            // Use easy patterns (no numbers) for medium
-            var easyPatterns = ['Hello World', 'Test Pattern', 'Mixed Case', 'Upper Lower'];
-            pattern = easyPatterns[Math.floor(Math.random() * easyPatterns.length)];
-        } else if (dependency.type === 'no_symbols' && taskNum === 3) {
-            // Use medium patterns (no symbols) for hard
-            pattern = patternSets.medium[Math.floor(Math.random() * patternSets.medium.length)];
-        } else {
-            pattern = patternSets[difficulty][Math.floor(Math.random() * patternSets[difficulty].length)];
-        }
+    if (hasEnhancement) {
+        // Always use simple patterns when enhanced
+        var simplePatterns = ['hello world', 'easy typing', 'simple text', 'quick test', 'basic words'];
+        pattern = simplePatterns[Math.floor(Math.random() * simplePatterns.length)];
     } else {
         pattern = patternSets[difficulty][Math.floor(Math.random() * patternSets[difficulty].length)];
     }
@@ -722,8 +590,9 @@ function loadTypingGame(taskNum) {
     
     html += '<p style="font-size: 18px; font-weight: bold; text-align: center; margin: 20px 0;">Type the following pattern exactly:</p>';
     
+    // Direct text display instead of canvas
     html += '<div style="background-color: #f5f5f5; border: 2px solid #FFC107; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">';
-    html += '<canvas id="patternCanvas" width="600" height="80" style="max-width: 100%; height: auto;"></canvas>';
+    html += '<span style="font-size: 32px; font-family: \'Courier New\', monospace; letter-spacing: 2px; color: #333; font-weight: bold;">' + pattern + '</span>';
     html += '</div>';
     
     html += '<input type="text" id="typeInput" placeholder="Type the pattern here..." ';
@@ -734,26 +603,6 @@ function loadTypingGame(taskNum) {
     html += '</div>';
     
     content.innerHTML = html;
-    
-    var canvas = document.getElementById('patternCanvas');
-    var ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.font = 'bold 36px Courier New, monospace';
-    ctx.fillStyle = '#333333';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(pattern, canvas.width / 2, canvas.height / 2);
-    
-    ctx.strokeStyle = 'rgba(255, 193, 7, 0.1)';
-    ctx.lineWidth = 1;
-    for (var i = 0; i < 5; i++) {
-        ctx.beginPath();
-        ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-        ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
-        ctx.stroke();
-    }
     
     var input = document.getElementById('typeInput');
     
@@ -780,7 +629,6 @@ function loadTypingGame(taskNum) {
 
 // CHAT SYSTEM
 function setupChat() {
-    var MAX_TOTAL_TOKENS = 300;
     var chatbox = document.getElementById('chatbox');
     var userInput = document.getElementById('userInput');
     var sendBtn = document.getElementById('sendBtn');
@@ -881,10 +729,6 @@ function setupChat() {
         
         chatbox.appendChild(p);
         chatbox.scrollTop = chatbox.scrollHeight;
-    }
-    
-    function estimateTokens(text) {
-        return Math.ceil(text.length / 4);
     }
     
     function updatePromptCounter() {
