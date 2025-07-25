@@ -164,10 +164,13 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false }) 
         
         {/* Current value display */}
         <div className="current-value">
-          {showValue ? 
-            parseFloat(input).toFixed(taskNum === 1 ? 0 : (taskNum === 2 ? 1 : 2)) : 
-            '??'
-          }
+          {showValue ? (
+            taskNum === 2 ? 
+              // For task 2 (medium), only show integer part
+              Math.floor(parseFloat(input)).toString() :
+              // For other tasks, show full precision
+              parseFloat(input).toFixed(taskNum === 1 ? 0 : (taskNum === 2 ? 1 : 2))
+          ) : '??'}
         </div>
       </div>
       

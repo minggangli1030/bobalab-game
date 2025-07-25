@@ -1,4 +1,4 @@
-// src/components/StudentLogin.jsx
+// src/components/StudentLogin.jsx - Updated with Oski Bear example
 import React, { useState } from 'react';
 import { codeVerification } from '../utils/codeVerification';
 
@@ -86,7 +86,7 @@ export default function StudentLogin({ onLoginSuccess }) {
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="e.g., John Doe or john.doe@university.edu"
+              placeholder="e.g., Oski Bear or oskibear@berkeley.edu"
               disabled={loading}
               style={{
                 width: '100%',
