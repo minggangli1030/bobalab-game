@@ -39,7 +39,7 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
     
     // Set text properties
-    ctx.font = 'bold 32px "Courier New", monospace';
+    ctx.font = 'bold 40px "Courier New", monospace';
     ctx.fillStyle = '#333';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -120,9 +120,9 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
     
     if (passed) {
       if (input === pattern) {
-        setFeedback('✓ Perfect match! 100% accuracy');
+        setFeedback('✓ Flawless!');
       } else {
-        setFeedback(`✓ Well done! ${accuracy}% accuracy`);
+        setFeedback('✓ Good job!');
       }
       
       setTimeout(() => {
@@ -133,11 +133,11 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
         });
       }, 1500);
     } else {
-      // Show feedback but allow retry
+      // Show feedback but allow retry - don't show accuracy percentage
       if (isPractice) {
-        setFeedback(`✗ ${accuracy}% accuracy. Correct pattern: "${pattern}". Try for 90%+ to pass.`);
+        setFeedback(`✗ Correct pattern: "${pattern}". Try again!`);
       } else {
-        setFeedback(`✗ ${accuracy}% accuracy. Need 90%+ to pass. Try again!`);
+        setFeedback('✗ Try again!');
       }
     }
   };
@@ -153,8 +153,6 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
       
       <p className="instruction">
         Type this pattern exactly:
-        <br />
-        <span className="hint">Need 90%+ accuracy to pass</span>
       </p>
       
       <div className="pattern-display">

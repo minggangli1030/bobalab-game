@@ -38,11 +38,11 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
     
     // Set text properties
-    ctx.font = '14px monospace';
+    ctx.font = '18px monospace';
     ctx.fillStyle = '#333';
     
-    const lineHeight = 22;
-    const padding = 20;
+    const lineHeight = 28;
+    const padding = 25;
     const maxWidth = canvas.width - (padding * 2);
     
     // Word wrap function
@@ -82,15 +82,41 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
         const words = line.split(' ');
         
         words.forEach((word, wordIndex) => {
-          const shouldHighlight = highlights.some(highlight => 
-            word.toLowerCase().includes(highlight.toLowerCase())
-          );
+          const shouldHighlight = highlights.some(highlight => {
+            if (taskNum === 1) {
+              // For word highlighting, match whole words
+              return word.toLowerCase() === highlight.toLowerCase();
+            } else {
+              // For letter highlighting, check if word contains the letter
+              return word.toLowerCase().includes(highlight.toLowerCase());
+            }
+          });
           
           if (shouldHighlight) {
             // Draw highlight background
             const wordWidth = ctx.measureText(word + ' ').width;
             ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
-            ctx.fillRect(x - 2, y - 16, wordWidth, 20);
+            ctx.fillRect(x - 2, y - 18, wordWidth, 24);
+          }
+          
+          // For letter highlighting in multi-letter tasks, highlight individual letters
+          if (taskNum > 1 && highlights.length > 0) {
+            let letterX = x;
+            for (let i = 0; i < word.length; i++) {
+              const char = word[i];
+              const charWidth = ctx.measureText(char).width;
+              
+              const shouldHighlightLetter = highlights.some(highlight => 
+                char.toLowerCase() === highlight.toLowerCase()
+              );
+              
+              if (shouldHighlightLetter) {
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
+                ctx.fillRect(letterX - 1, y - 18, charWidth + 2, 24);
+              }
+              
+              letterX += charWidth;
+            }
           }
           
           // Draw word
@@ -228,9 +254,9 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
     
     if (passed) {
       if (accuracy === 100) {
-        setFeedback('✓ Perfect! 100% accuracy');
+        setFeedback('✓ Flawless!');
       } else {
-        setFeedback(`✓ Good job! ${accuracy}% accuracy`);
+        setFeedback('✓ Good job!');
       }
       
       setTimeout(() => {
@@ -241,11 +267,11 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
         });
       }, 1500);
     } else {
-      // Show feedback but allow retry
+      // Show feedback but allow retry - don't show accuracy percentage
       if (isPractice) {
-        setFeedback(`✗ ${accuracy}% accuracy. The correct answer is ${answer}. Try for 90%+ to pass.`);
+        setFeedback(`✗ Incorrect. The correct answer is ${answer}. Try again!`);
       } else {
-        setFeedback(`✗ ${accuracy}% accuracy. Need 90%+ to pass. Try again!`);
+        setFeedback('✗ Try again!');
       }
     }
   };
@@ -262,7 +288,7 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
       <p className="instruction">
         <strong>{instruction}</strong>
         <br />
-        <span className="hint">(Case-insensitive) • Need 90%+ accuracy to pass</span>
+        <span className="hint">(Case-insensitive)</span>
       </p>
       
       {/* Use uncopyable image */}

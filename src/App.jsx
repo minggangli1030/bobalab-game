@@ -591,12 +591,6 @@ function App() {
       <div className="app">
         <h1>Multi-Task Challenge - Practice Mode</h1>
         <PracticeMode rulesData={rulesDataRef.current} />
-        <button 
-          onClick={startMainGame}
-          style={{ marginTop: '20px', padding: '12px 30px', background: '#2196F3', color: 'white', border: 'none', borderRadius: '6px', fontSize: '16px', cursor: 'pointer' }}
-        >
-          Done Practicing - Start Main Game
-        </button>
       </div>
     );
   }
@@ -794,15 +788,23 @@ function App() {
       <div style={{ 
         display: 'flex', 
         gap: '20px', 
-        minHeight: '600px',
+        alignItems: 'stretch',
         marginTop: '20px'
       }}>
         {/* Game area - 2/3 width */}
         <div style={{ 
           flex: '2', 
-          minWidth: '0' 
+          minWidth: '0',
+          display: 'flex',
+          flexDirection: 'column'
         }}>
-          <div className="task-container">
+          <div className="task-container" style={{ 
+            flex: 1,
+            height: '600px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
             {renderTask()}
           </div>
         </div>

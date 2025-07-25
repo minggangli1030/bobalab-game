@@ -72,9 +72,9 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false }) 
     
     if (passed) {
       if (userValue === target) {
-        setFeedback('✓ Perfect match! 100% accuracy');
+        setFeedback('✓ Flawless!');
       } else {
-        setFeedback(`✓ Great! ${accuracy}% accuracy`);
+        setFeedback('✓ Good job!');
       }
       
       setTimeout(() => {
@@ -85,11 +85,11 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false }) 
         });
       }, 1500);
     } else {
-      // Show feedback but allow retry
+      // Show feedback but allow retry - don't show accuracy percentage
       if (isPractice) {
-        setFeedback(`✗ ${accuracy}% accuracy. Target was ${target}. Try for 90%+ to pass.`);
+        setFeedback(`✗ Target was ${target}. Try again!`);
       } else {
-        setFeedback(`✗ ${accuracy}% accuracy. Need 90%+ to pass. Try again!`);
+        setFeedback('✗ Try again!');
       }
     }
   };
@@ -140,8 +140,6 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false }) 
       
       <p className="instruction">
         Move the slider to: <strong className="target-value">{target}</strong>
-        <br />
-        <span className="hint">Need 90%+ accuracy to pass</span>
       </p>
       
       <div className="slider-container">
