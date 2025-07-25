@@ -88,12 +88,13 @@
   color: #333;
 }
 
-.input-section input:focus {
+.typing-input:focus {
   outline: none;
-  border-color: #333;
-  box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.1);
-  background: white;
+  border-color: #1682ce;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+  background-color: white;
 }
+
 
 .input-section input::placeholder {
   color: #999;
