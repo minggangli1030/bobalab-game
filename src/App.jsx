@@ -145,7 +145,7 @@ function App() {
         const timeSinceActivity = Date.now() - lastActivityRef.current;
         console.log('Time since last activity:', Math.floor(timeSinceActivity / 1000), 'seconds');
         
-        if (timeSinceActivity > 30000) { // 30 seconds
+        if (timeSinceActivity > 60000) { // 60 seconds (changed from 30)
           console.log('Starting idle countdown!');
           setIsIdle(true);
           startIdleCountdown();
@@ -848,29 +848,29 @@ function App() {
         gap: '20px', 
         alignItems: 'stretch',
         marginTop: '20px',
-        height: '650px',
+        minHeight: '650px',
         width: '100%'
       }}>
         {/* Game area - 2/3 width */}
         <div style={{ 
           flex: '0 0 66.666%', 
-          height: '100%',
+          minHeight: '650px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           background: 'white',
           borderRadius: '8px',
           border: '1px solid #e0e0e0',
-          overflow: 'hidden'
+          overflow: 'visible'
         }}>
           <div className="task-container" style={{ 
             width: '100%',
-            height: '100%',
+            minHeight: '650px',
             padding: '20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            overflow: 'hidden'
+            overflow: 'visible'
           }}>
             {renderTask()}
           </div>
@@ -883,7 +883,7 @@ function App() {
           borderRadius: '8px',
           border: '1px solid #e0e0e0',
           overflow: 'hidden',
-          height: '100%'
+          height: '650px'
         }}>
           <ChatContainer 
             bonusPrompts={bonusPrompts}

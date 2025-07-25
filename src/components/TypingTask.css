@@ -8,6 +8,7 @@
   max-width: 100%;
   margin: 0 auto;
   text-align: center;
+  min-height: 600px; /* Match other tasks minimum height */
 }
 
 .task.typing h3 {
@@ -62,7 +63,7 @@
   padding: 10px;
   font-size: 18px;
   font-family: 'Courier New', monospace;
-  border: 2px solid #ddd;
+  border: 2px solid #f44336;
   border-radius: 4px;
   text-align: center;
   transition: all 0.3s ease;
@@ -70,7 +71,7 @@
 
 .typing-input:focus {
   outline: none;
-  border-color: #f44336;
+  border-color: #d32f2f;
   box-shadow: 0 0 5px rgba(244, 67, 54, 0.3);
   background-color: rgba(244, 67, 54, 0.05);
 }

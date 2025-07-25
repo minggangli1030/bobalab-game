@@ -176,7 +176,7 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="Type the pattern here..."
+          placeholder="Type here..."
           className="typing-input"
         />
       </div>
