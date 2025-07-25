@@ -42,10 +42,12 @@ function App() {
   const [isIdle, setIsIdle] = useState(false);
   const [idleCountdown, setIdleCountdown] = useState(5);
   const [gameBlocked, setGameBlocked] = useState(false);
+  const [pausedTime, setPausedTime] = useState(0);
   
   // Refs
   const startTimeRef = useRef(Date.now());
   const timerIntervalRef = useRef(null);
+  const pauseStartRef = useRef(null);
   const outOfFocusTimerRef = useRef(null);
   const idleTimerRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
@@ -286,10 +288,9 @@ function App() {
   const startTimer = () => {
     startTimeRef.current = Date.now();
     timerIntervalRef.current = setInterval(() => {
-      if (!isInBreak) { // Only update timer when not in break
-        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
-        setGlobalTimer(elapsed);
-      }
+      // Calculate elapsed time minus any paused time
+      const elapsed = Math.floor((Date.now() - startTimeRef.current - pausedTime) / 1000);
+      setGlobalTimer(elapsed);
     }, 1000);
   };
   
@@ -433,7 +434,8 @@ function App() {
   const startMandatoryBreak = (completedTabId) => {
     setIsInBreak(true);
     
-    // Timer is automatically paused via the timer interval check
+    // Pause the timer by recording when break started
+    pauseStartRef.current = Date.now();
     
     // Determine next task
     const game = parseInt(completedTabId[1]);
@@ -454,18 +456,21 @@ function App() {
     eventTracker.trackUserAction('break_started', {
       afterTask: completedTabId,
       nextTask: nextTab,
-      breakDuration: 3000
+      breakDuration: 2000
     });
     
-    // Auto-advance after 3 seconds
+    // Auto-advance after 2 seconds (changed from 3)
     setTimeout(() => {
+      // Calculate how long the break was and add to paused time
+      const breakDuration = Date.now() - pauseStartRef.current;
+      setPausedTime(prev => prev + breakDuration);
+      
       setIsInBreak(false);
-      // Timer will automatically resume via the timer interval check
       
       if (nextTab) {
         handleTabSwitch(nextTab, true);
       }
-    }, 3000);
+    }, 2000);
   };
   
   // Show notification
@@ -492,7 +497,7 @@ function App() {
       clearInterval(timerIntervalRef.current);
     }
     
-    const finalTime = Math.floor((Date.now() - startTimeRef.current) / 1000);
+    const finalTime = Math.floor((Date.now() - startTimeRef.current - pausedTime) / 1000);
     
     await eventTracker.logEvent('game_complete', {
       totalTime: finalTime,
