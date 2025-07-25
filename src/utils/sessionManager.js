@@ -1,36 +1,10 @@
-// src/utils/sessionManager.js - With Code Verification
+// src/utils/sessionManager.js
 import { db } from '../firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { codeVerification } from './codeVerification';
 
 export const sessionManager = {
   async checkAccess() {
     try {
-      // First check if there's a code in the URL
-      const urlCode = codeVerification.getCodeFromURL();
-      
-      if (urlCode) {
-        // Verify the code
-        const { valid, reason, codeData } = await codeVerification.verifyCode(urlCode);
-        
-        if (!valid) {
-          return { 
-            allowed: false, 
-            reason: `Access denied: ${reason}`,
-            code: urlCode
-          };
-        }
-        
-        // Code is valid, create a new session
-        return { 
-          allowed: true, 
-          newSession: true, 
-          code: urlCode,
-          codeData 
-        };
-      }
-      
-      // No code provided - check IP-based access (original logic)
       const ip = await this.getUserIP();
       const sessionId = localStorage.getItem('sessionId');
       
@@ -44,7 +18,7 @@ export const sessionManager = {
       const snapshot = await getDocs(q);
       
       if (!snapshot.empty) {
-        // Check if any session was abandoned
+        // Check if any session was abandoned (quit/refresh)
         const abandonedSession = snapshot.docs.find(doc => 
           doc.data().status === 'abandoned'
         );
@@ -57,7 +31,7 @@ export const sessionManager = {
           };
         }
         
-        // Check for incomplete session
+        // Check for incomplete but not abandoned
         const incompleteSession = snapshot.docs.find(doc => 
           doc.data().status === 'incomplete'
         );
@@ -71,49 +45,34 @@ export const sessionManager = {
         }
       }
       
-      // Allow access without code for development
       return { allowed: true, newSession: true };
-      
     } catch (error) {
       console.error('Error checking access:', error);
-      // If Firebase fails, check if we have a code
-      const urlCode = codeVerification.getCodeFromURL();
-      if (urlCode) {
-        // Allow access with code even if Firebase is down
-        return { allowed: true, newSession: true, code: urlCode, offlineMode: true };
-      }
-      return { allowed: true }; // Allow access on error for development
+      // Allow access on error but flag it
+      return { allowed: true, newSession: true, offlineMode: true };
     }
   },
   
-  async createSession(accessCode = null, codeData = null) {
-    const ip = await this.getUserIP();
-    const sessionData = {
-      id: crypto.randomUUID(),
-      ip,
-      accessCode,
-      qualtricsData: codeData?.metadata || null,
-      startTime: serverTimestamp(),
-      status: 'active',
-      completedTasks: {},
-      events: [],
-      chatHistory: [],
-      numPrompts: 0,
-      bonusPrompts: 0,
-      practiceCompleted: false,
-      userAgent: navigator.userAgent,
-      screenResolution: `${window.screen.width}x${window.screen.height}`,
-      source: accessCode ? 'qualtrics' : 'direct'
-    };
-    
+  async createSession() {
     try {
+      const ip = await this.getUserIP();
+      const sessionData = {
+        id: crypto.randomUUID(),
+        ip,
+        startTime: serverTimestamp(),
+        status: 'active',
+        completedTasks: {},
+        events: [],
+        chatHistory: [],
+        numPrompts: 0,
+        bonusPrompts: 0,
+        practiceCompleted: false,
+        userAgent: navigator.userAgent,
+        screenResolution: `${window.screen.width}x${window.screen.height}`
+      };
+      
       const docRef = await addDoc(collection(db, 'sessions'), sessionData);
       localStorage.setItem('sessionId', docRef.id);
-      
-      // Mark code as used if provided
-      if (accessCode) {
-        await codeVerification.markCodeAsUsed(accessCode, docRef.id);
-      }
       
       // Set up beforeunload handler
       window.addEventListener('beforeunload', async (e) => {
@@ -123,10 +82,9 @@ export const sessionManager = {
       return docRef.id;
     } catch (error) {
       console.error('Error creating session:', error);
-      // Fallback for offline mode
+      // Create offline session
       const offlineId = 'offline-' + Date.now();
       localStorage.setItem('sessionId', offlineId);
-      localStorage.setItem('offlineSession', JSON.stringify(sessionData));
       return offlineId;
     }
   },
@@ -151,6 +109,7 @@ export const sessionManager = {
       const data = await response.json();
       return data.ip;
     } catch (error) {
+      // Fallback to a unique identifier if IP service fails
       return 'unknown-' + Date.now();
     }
   }

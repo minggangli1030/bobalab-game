@@ -1,4 +1,4 @@
-// src/utils/eventTracker.js - Temporarily bypass Firestore
+// src/utils/eventTracker.js
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -22,7 +22,6 @@ export const eventTracker = {
       console.error('Failed to log event:', error);
       this.storeOfflineEvent(event);
     }
-    */
   },
   
   storeOfflineEvent(event) {
@@ -32,9 +31,20 @@ export const eventTracker = {
   },
   
   async syncOfflineEvents() {
-    console.log('Sync offline events - skipped for local testing');
+    const offlineEvents = JSON.parse(localStorage.getItem('offlineEvents') || '[]');
+    if (offlineEvents.length > 0) {
+      for (const event of offlineEvents) {
+        try {
+          await addDoc(collection(db, 'events'), event);
+        } catch (error) {
+          console.error('Failed to sync offline event:', error);
+        }
+      }
+      localStorage.removeItem('offlineEvents');
+    }
   },
   
+  // Specific tracking methods
   trackPageSwitch(from, to, isAutoAdvance = false) {
     return this.logEvent('page_switch', { 
       from, 
@@ -69,10 +79,13 @@ export const eventTracker = {
   
   calculateAccuracy(taskId, answer, expected) {
     if (taskId.startsWith('g1')) {
+      // Counting game - exact match
       return answer === expected ? 100 : 0;
     } else if (taskId.startsWith('g2')) {
+      // Slider game - distance-based
       return Math.max(0, 100 - (Math.abs(answer - expected) / 10 * 100));
     } else if (taskId.startsWith('g3')) {
+      // Typing game - character match
       if (answer === expected) return 100;
       let matches = 0;
       for (let i = 0; i < Math.min(answer.length, expected.length); i++) {

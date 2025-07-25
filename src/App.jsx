@@ -18,12 +18,6 @@ import AdminPage from './AdminPage';
 
 
 function App() {
-  // Test Firebase connection
-  useEffect(() => {
-  import('./testFirebase').then(({ testFirebaseConnection }) => {
-    testFirebaseConnection();
-  });
-  }, []);
 
   if (window.location.search.includes('admin=true')) {
   return <AdminPage />;
