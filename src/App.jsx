@@ -38,7 +38,7 @@ function App() {
   const [isInBreak, setIsInBreak] = useState(false);
   const [breakDestination, setBreakDestination] = useState(null);
   const [isOutOfFocus, setIsOutOfFocus] = useState(false);
-  const [outOfFocusCountdown, setOutOfFocusCountdown] = useState(15);
+  const [outOfFocusCountdown, setOutOfFocusCountdown] = useState(30);
   const [isIdle, setIsIdle] = useState(false);
   const [idleCountdown, setIdleCountdown] = useState(5);
   const [gameBlocked, setGameBlocked] = useState(false);

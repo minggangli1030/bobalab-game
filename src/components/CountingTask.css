@@ -51,7 +51,7 @@
   margin: 15px 0;
   line-height: 1.6;
   font-family: monospace;
-  font-size: 13px;
+  font-size: 11px;
   text-align: left;
   min-height: 250px;
   max-height: 350px;
@@ -90,7 +90,7 @@
 
 .input-section input:focus {
   outline: none;
-  border-color: #9C27B0;
+  border-color: #333;
   box-shadow: 0 0 0 3px rgba(156, 39, 176, 0.1);
   background: white;
 }
