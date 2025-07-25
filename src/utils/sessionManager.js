@@ -1,64 +1,61 @@
-// src/utils/sessionManager.js
+// src/utils/sessionManager.js - Code Required Version
 import { db } from '../firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { codeVerification } from './codeVerification';
 
 export const sessionManager = {
   async checkAccess() {
     try {
-      const ip = await this.getUserIP();
-      const sessionId = localStorage.getItem('sessionId');
+      // First check if there's a code in the URL
+      const urlCode = codeVerification.getCodeFromURL();
       
-      // Check for existing sessions from this IP
-      const q = query(
-        collection(db, 'sessions'),
-        where('ip', '==', ip),
-        where('status', 'in', ['incomplete', 'abandoned', 'active'])
-      );
-      
-      const snapshot = await getDocs(q);
-      
-      if (!snapshot.empty) {
-        // Check if any session was abandoned (quit/refresh)
-        const abandonedSession = snapshot.docs.find(doc => 
-          doc.data().status === 'abandoned'
-        );
-        
-        if (abandonedSession) {
-          return { 
-            allowed: false, 
-            reason: 'You have already attempted this game. Access denied.',
-            sessionData: abandonedSession.data()
-          };
-        }
-        
-        // Check for incomplete but not abandoned
-        const incompleteSession = snapshot.docs.find(doc => 
-          doc.data().status === 'incomplete'
-        );
-        
-        if (incompleteSession) {
-          return {
-            allowed: true,
-            resumeSession: incompleteSession.id,
-            sessionData: incompleteSession.data()
-          };
-        }
+      // ENFORCE CODE REQUIREMENT
+      if (!urlCode) {
+        return { 
+          allowed: false, 
+          reason: 'Access code required. Please access this game through your Qualtrics survey.',
+          requiresCode: true
+        };
       }
       
-      return { allowed: true, newSession: true };
+      // Verify the code
+      const { valid, reason, codeData } = await codeVerification.verifyCode(urlCode);
+      
+      if (!valid) {
+        return { 
+          allowed: false, 
+          reason: `Invalid or expired access code: ${reason}`,
+          code: urlCode
+        };
+      }
+      
+      // Code is valid, create a new session
+      return { 
+        allowed: true, 
+        newSession: true, 
+        code: urlCode,
+        codeData 
+      };
+      
     } catch (error) {
       console.error('Error checking access:', error);
-      // Allow access on error but flag it
-      return { allowed: true, newSession: true, offlineMode: true };
+      // On error, still require code
+      return { 
+        allowed: false, 
+        reason: 'System error. Please try again or contact support.',
+        requiresCode: true
+      };
     }
   },
   
-  async createSession() {
+  async createSession(accessCode = null, codeData = null) {
     try {
       const ip = await this.getUserIP();
       const sessionData = {
         id: crypto.randomUUID(),
         ip,
+        accessCode,
+        qualtricsData: codeData?.metadata || null,
         startTime: serverTimestamp(),
         status: 'active',
         completedTasks: {},
@@ -68,11 +65,17 @@ export const sessionManager = {
         bonusPrompts: 0,
         practiceCompleted: false,
         userAgent: navigator.userAgent,
-        screenResolution: `${window.screen.width}x${window.screen.height}`
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        source: accessCode ? 'qualtrics' : 'direct'
       };
       
       const docRef = await addDoc(collection(db, 'sessions'), sessionData);
       localStorage.setItem('sessionId', docRef.id);
+      
+      // Mark code as used if provided
+      if (accessCode) {
+        await codeVerification.markCodeAsUsed(accessCode, docRef.id);
+      }
       
       // Set up beforeunload handler
       window.addEventListener('beforeunload', async (e) => {
@@ -82,9 +85,10 @@ export const sessionManager = {
       return docRef.id;
     } catch (error) {
       console.error('Error creating session:', error);
-      // Create offline session
+      // Fallback for offline mode
       const offlineId = 'offline-' + Date.now();
       localStorage.setItem('sessionId', offlineId);
+      localStorage.setItem('offlineSession', JSON.stringify({ ...sessionData, id: offlineId }));
       return offlineId;
     }
   },
@@ -109,7 +113,6 @@ export const sessionManager = {
       const data = await response.json();
       return data.ip;
     } catch (error) {
-      // Fallback to a unique identifier if IP service fails
       return 'unknown-' + Date.now();
     }
   }

@@ -7,6 +7,7 @@ import NavTabs from './components/NavTabs';
 import PracticeMode from './components/PracticeMode';
 import ChatContainer from './components/ChatContainer';
 import ProgressSummary from './components/ProgressSummary';
+import StudentLogin from './components/StudentLogin';
 import { sessionManager } from './utils/sessionManager';
 import { eventTracker } from './utils/eventTracker';
 import { taskDependencies } from './utils/taskDependencies';
@@ -15,16 +16,11 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './App.css';
 import AdminPage from './AdminPage';
 
-
-
 function App() {
-
-   // Admin page (hidden route)
+  // Admin page (hidden route)
   if (window.location.search.includes('admin=true')) {
     return <AdminPage />;
   }
- 
-
 
   // State management
   const [mode, setMode] = useState('landing');
@@ -33,6 +29,7 @@ function App() {
   const [completed, setCompleted] = useState({});
   const [sessionId, setSessionId] = useState(null);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [accessDeniedReason, setAccessDeniedReason] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [globalTimer, setGlobalTimer] = useState(0);
   const [taskStartTimes, setTaskStartTimes] = useState({});
@@ -66,23 +63,31 @@ function App() {
   // Session management
   const checkAndInitSession = async () => {
     try {
-      const { allowed, reason, resumeSession, newSession } = await sessionManager.checkAccess();
+      // Check if there's a code in the URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasCode = urlParams.has('code') || urlParams.has('c');
+      
+      // If no code, show student login
+      if (!hasCode) {
+        setMode('studentLogin');
+        setIsLoading(false);
+        return;
+      }
+      
+      const { allowed, reason, resumeSession, newSession, code, codeData } = await sessionManager.checkAccess();
       
       if (!allowed) {
         setAccessDenied(true);
-        alert(reason);
-        setTimeout(() => {
-          window.location.href = 'about:blank';
-        }, 1000);
+        setAccessDeniedReason(reason);
+        setIsLoading(false);
         return;
       }
       
       if (resumeSession) {
         setSessionId(resumeSession);
         localStorage.setItem('sessionId', resumeSession);
-        // Could load previous state here
       } else if (newSession) {
-        const id = await sessionManager.createSession();
+        const id = await sessionManager.createSession(code, codeData);
         setSessionId(id);
       }
       
@@ -139,7 +144,7 @@ function App() {
     });
     
     // Update session
-    if (sessionId) {
+    if (sessionId && !sessionId.startsWith('offline-')) {
       await updateDoc(doc(db, 'sessions', sessionId), {
         [`completedTasks.${tabId}`]: true,
         bonusPrompts: bonusPrompts + 1,
@@ -244,7 +249,7 @@ function App() {
       completedTasks: Object.keys(completed).length
     });
     
-    if (sessionId) {
+    if (sessionId && !sessionId.startsWith('offline-')) {
       await updateDoc(doc(db, 'sessions', sessionId), {
         status: 'completed',
         completedAt: serverTimestamp(),
@@ -328,11 +333,33 @@ function App() {
     );
   }
   
+  // Student login screen
+  if (mode === 'studentLogin') {
+    return <StudentLogin onLoginSuccess={(code) => {
+      window.location.href = `${window.location.origin}?code=${code}`;
+    }} />;
+  }
+  
   // Access denied screen
   if (accessDenied) {
     return (
       <div className="app" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <h2>Access Denied</h2>
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '40px', 
+          background: 'white', 
+          borderRadius: '8px', 
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          maxWidth: '500px'
+        }}>
+          <h2 style={{ color: '#f44336', marginBottom: '20px' }}>Access Denied</h2>
+          <p style={{ color: '#666', marginBottom: '30px', fontSize: '18px' }}>
+            {accessDeniedReason || 'You need a valid access code to play this game.'}
+          </p>
+          <p style={{ color: '#888', fontSize: '16px' }}>
+            Please access this game through your student login or survey link.
+          </p>
+        </div>
       </div>
     );
   }
@@ -494,17 +521,14 @@ function App() {
             </div>
           </div>
           
-          <button 
-            onClick={() => window.location.reload()}
-            style={{ marginTop: '30px', padding: '15px 40px', background: 'linear-gradient(135deg, #2196F3, #1976D2)', color: 'white', border: 'none', borderRadius: '6px', fontSize: '18px', fontWeight: 'bold', cursor: 'pointer' }}
-          >
-            Start New Session
-          </button>
+          <p style={{ marginTop: '30px', color: '#666' }}>
+            Thank you for participating! Your results have been saved.
+          </p>
         </div>
       </div>
     );
   }
-  
+
   // Main challenge mode
   return (
     <div className="app">
