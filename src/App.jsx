@@ -19,10 +19,11 @@ import AdminPage from './AdminPage';
 
 function App() {
 
+   // Admin page (hidden route)
   if (window.location.search.includes('admin=true')) {
-  return <AdminPage />;
+    return <AdminPage />;
   }
-
+ 
 
 
   // State management
