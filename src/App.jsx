@@ -109,14 +109,14 @@ function App() {
     };
     
     // Add activity listeners
-    document.addEventListener('mousedown', updateActivity);
-    document.addEventListener('mousemove', updateActivity);
-    document.addEventListener('keypress', updateActivity);
-    document.addEventListener('keydown', updateActivity);
-    document.addEventListener('scroll', updateActivity);
-    document.addEventListener('touchstart', updateActivity);
-    document.addEventListener('click', updateActivity);
-    document.addEventListener('input', updateActivity); // Added for typing in input fields
+    const eventListeners = [
+      'mousedown', 'mousemove', 'keypress', 'keydown', 
+      'scroll', 'touchstart', 'click', 'input', 'change'
+    ];
+    
+    eventListeners.forEach(event => {
+      document.addEventListener(event, updateActivity);
+    });
     
     // Focus detection
     const handleFocus = () => {
@@ -289,6 +289,9 @@ function App() {
   
   // Handle task completion
   const handleComplete = async (tabId, data) => {
+    // Reset idle timer on task completion
+    lastActivityRef.current = Date.now();
+    
     setCompleted(prev => ({ ...prev, [tabId]: true }));
     setBonusPrompts(prev => prev + 1);
     
@@ -329,6 +332,17 @@ function App() {
   // Handle tab switching
   const handleTabSwitch = async (newTab, isAutoAdvance = false) => {
     if (isInBreak) return;
+    
+    // Reset idle timer on tab switch
+    lastActivityRef.current = Date.now();
+    if (isIdle) {
+      setIsIdle(false);
+      setIdleCountdown(5);
+      if (idleTimerRef.current) {
+        clearInterval(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+    }
     
     if (currentTab !== newTab && !isAutoAdvance) {
       setSwitches(prev => prev + 1);

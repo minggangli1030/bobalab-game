@@ -251,33 +251,37 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
     // Add user message
     const userMsg = { sender: 'user', text: input };
     setMessages(msgs => [...msgs, userMsg]);
+    const userInput = input; // Store input before clearing
     setInput('');
     setPromptsUsed(prev => prev + 1);
     setIsTyping(true);
 
-    // Find best response
-    const { response, metadata } = findBestResponse(input);
-    
-    // Log the interaction
-    await eventTracker.trackChatInteraction(
-      input,
-      { 
-        text: response, 
-        ...metadata 
-      },
-      promptsUsed + 1,
-      currentTask
-    );
+    // Small delay to ensure response data is loaded
+    setTimeout(async () => {
+      // Find best response
+      const { response, metadata } = findBestResponse(userInput);
+      
+      // Log the interaction
+      await eventTracker.trackChatInteraction(
+        userInput,
+        { 
+          text: response, 
+          ...metadata 
+        },
+        promptsUsed + 1,
+        currentTask
+      );
 
-    // Simulate typing delay
-    setTimeout(() => {
-      setIsTyping(false);
-      setMessages(msgs => [...msgs, {
-        sender: 'bot',
-        text: response,
-        metadata: metadata
-      }]);
-    }, 500 + Math.random() * 1000);
+      // Simulate typing delay
+      setTimeout(() => {
+        setIsTyping(false);
+        setMessages(msgs => [...msgs, {
+          sender: 'bot',
+          text: response,
+          metadata: metadata
+        }]);
+      }, 500 + Math.random() * 500);
+    }, 100);
   };
 
   return (
