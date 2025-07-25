@@ -75,8 +75,8 @@
 
 .typing-input:focus {
   outline: none;
-  border-color: #1682ce;
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+  border-color: #f44336;
+  box-shadow: 0 0 0 3px rgba(231, 78, 76, 0.2);
   background-color: white;
 }
 

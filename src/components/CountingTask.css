@@ -90,8 +90,8 @@
 
 .typing-input:focus {
   outline: none;
-  border-color: #1682ce;
-  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.2);
+  border-color: #9C27B0;
+  box-shadow: 0 0 0 3px rgba(221, 119, 242, 0.2);
   background-color: white;
 }
 

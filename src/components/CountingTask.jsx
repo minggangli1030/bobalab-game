@@ -20,103 +20,80 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
   const canvasRef = useRef(null);
   
   // Generate uncopyable text image
-  const generateTextImage = (textContent, highlights = null) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+const generateTextImage = (textContent, highlights = null) => {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  // Set canvas size - wider for better fit
+  canvas.width = 900;
+  canvas.height = 350;
+  
+  // Set background
+  ctx.fillStyle = '#fafafa';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Set border
+  ctx.strokeStyle = '#e0e0e0';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(0, 0, canvas.width, canvas.height);
+  
+  // Set text properties - smaller font
+  ctx.font = '16px monospace';
+  ctx.fillStyle = '#333';
+  
+  const lineHeight = 24;
+  const padding = 20;
+  const maxWidth = canvas.width - (padding * 2);
+  
+  // Word wrap function
+  const wrapText = (text, maxWidth) => {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
     
-    // Set canvas size - wider for better fit
-    canvas.width = 900;
-    canvas.height = 350;
-    
-    // Set background
-    ctx.fillStyle = '#fafafa';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Set border
-    ctx.strokeStyle = '#e0e0e0';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
-    
-    // Set text properties - smaller font
-    ctx.font = '16px monospace';
-    ctx.fillStyle = '#333';
-    
-    const lineHeight = 24;
-    const padding = 20;
-    const maxWidth = canvas.width - (padding * 2);
-    
-    // Word wrap function
-    const wrapText = (text, maxWidth) => {
-      const words = text.split(' ');
-      const lines = [];
-      let currentLine = '';
+    for (let word of words) {
+      const testLine = currentLine + (currentLine ? ' ' : '') + word;
+      const metrics = ctx.measureText(testLine);
       
-      for (let word of words) {
-        const testLine = currentLine + (currentLine ? ' ' : '') + word;
-        const metrics = ctx.measureText(testLine);
-        
-        if (metrics.width > maxWidth && currentLine) {
-          lines.push(currentLine);
-          currentLine = word;
-        } else {
-          currentLine = testLine;
-        }
-      }
-      
-      if (currentLine) {
+      if (metrics.width > maxWidth && currentLine) {
         lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = testLine;
       }
-      
-      return lines;
-    };
+    }
     
-    const lines = wrapText(textContent, maxWidth);
+    if (currentLine) {
+      lines.push(currentLine);
+    }
     
-    // Draw text with highlights
-    lines.forEach((line, lineIndex) => {
-      const y = padding + (lineIndex + 1) * lineHeight;
+    return lines;
+  };
+  
+  const lines = wrapText(textContent, maxWidth);
+  
+  // Draw text with highlights
+  lines.forEach((line, lineIndex) => {
+    const y = padding + (lineIndex + 1) * lineHeight;
+    
+    if (highlights && highlights.length > 0) {
+      // Draw with highlights
+      let x = padding;
       
-      if (highlights && highlights.length > 0) {
-        // Draw with highlights
-        let x = padding;
+      if (taskNum === 1) {
+        // Task 1: Highlight whole words
         const words = line.split(' ');
         
         words.forEach((word, wordIndex) => {
-          const shouldHighlight = highlights.some(highlight => {
-            if (taskNum === 1) {
-              // For word highlighting, match whole words
-              return word.toLowerCase() === highlight.toLowerCase();
-            } else {
-              // For letter highlighting, check if word contains the letter
-              return word.toLowerCase().includes(highlight.toLowerCase());
-            }
-          });
+          const shouldHighlight = highlights.some(highlight => 
+            word.toLowerCase() === highlight.toLowerCase()
+          );
           
           if (shouldHighlight) {
-            // Draw highlight background
-            const wordWidth = ctx.measureText(word + ' ').width;
+            // Draw highlight background for whole word
+            const wordWidth = ctx.measureText(word).width;
             ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
-            ctx.fillRect(x - 2, y - 18, wordWidth, 24);
-          }
-          
-          // For letter highlighting in multi-letter tasks, highlight individual letters
-          if (taskNum > 1 && highlights.length > 0) {
-            let letterX = x;
-            for (let i = 0; i < word.length; i++) {
-              const char = word[i];
-              const charWidth = ctx.measureText(char).width;
-              
-              const shouldHighlightLetter = highlights.some(highlight => 
-                char.toLowerCase() === highlight.toLowerCase()
-              );
-              
-              if (shouldHighlightLetter) {
-                ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
-                ctx.fillRect(letterX - 1, y - 18, charWidth + 2, 24);
-              }
-              
-              letterX += charWidth;
-            }
+            ctx.fillRect(x - 2, y - 18, wordWidth + 4, 24);
           }
           
           // Draw word
@@ -125,13 +102,35 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
           x += ctx.measureText(word + ' ').width;
         });
       } else {
-        // Draw without highlights
-        ctx.fillText(line, padding, y);
+        // Tasks 2 & 3: Highlight individual letters only
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const charWidth = ctx.measureText(char).width;
+          
+          const shouldHighlightLetter = highlights.some(highlight => 
+            char.toLowerCase() === highlight.toLowerCase()
+          );
+          
+          if (shouldHighlightLetter) {
+            // Draw highlight background for single letter
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
+            ctx.fillRect(x - 1, y - 18, charWidth + 2, 24);
+          }
+          
+          // Draw character
+          ctx.fillStyle = '#333';
+          ctx.fillText(char, x, y);
+          x += charWidth;
+        }
       }
-    });
-    
-    return canvas.toDataURL();
-  };
+    } else {
+      // Draw without highlights
+      ctx.fillText(line, padding, y);
+    }
+  });
+  
+  return canvas.toDataURL();
+};
   
   useEffect(() => {
     const randomIndex = Math.floor(Math.random() * textSections.length);
