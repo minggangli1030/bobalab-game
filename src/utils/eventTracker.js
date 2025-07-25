@@ -1,4 +1,4 @@
-// src/utils/eventTracker.js
+// src/utils/eventTracker.js - Updated with enhanced chat tracking
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -69,11 +69,16 @@ export const eventTracker = {
   trackChatInteraction(query, response, promptNumber, currentTask) {
     return this.logEvent('chat_interaction', {
       query,
-      response,
+      response: response.text,
+      responseId: response.id,
+      responseLevel: response.level,
+      responseType: response.type,
+      matchedTriggers: response.triggers,
+      responseScore: response.score,
       promptNumber,
       currentTask,
-      responseType: response.type,
-      responseLevel: response.level
+      queryLength: query.length,
+      responseLength: response.text.length
     });
   },
   

@@ -1,43 +1,235 @@
-// src/components/ChatContainer.jsx - Updated for sidebar layout
-import React, { useState } from 'react'
-import './ChatContainer.css'
+// src/components/ChatContainer.jsx - Updated with preset response system
+import React, { useState, useEffect, useRef } from 'react';
+import { eventTracker } from '../utils/eventTracker';
+import './ChatContainer.css';
 
 export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
   const [messages, setMessages] = useState([
     { sender: 'bot', text: 'Hello! I\'m here to help with your tasks. Ask me anything!' }
-  ])
-  const [input, setInput] = useState('')
-  const [promptsUsed, setPromptsUsed] = useState(0)
+  ]);
+  const [input, setInput] = useState('');
+  const [promptsUsed, setPromptsUsed] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const responseDataRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
-  const totalPrompts = 3 + bonusPrompts
-  const remainingPrompts = totalPrompts - promptsUsed
+  const totalPrompts = 3 + bonusPrompts;
+  const remainingPrompts = totalPrompts - promptsUsed;
 
-  const handleSend = () => {
-    if (!input.trim()) return
+  // Load response data on mount
+  useEffect(() => {
+    loadResponseData();
+  }, []);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const loadResponseData = async () => {
+    try {
+      // Fetch from your GitHub repo (update URL to your actual repo)
+      const response = await fetch('/data/chat-responses.json');
+      if (!response.ok) {
+        throw new Error('Failed to load response data');
+      }
+      responseDataRef.current = await response.json();
+      console.log('Loaded response data:', responseDataRef.current.metadata);
+    } catch (error) {
+      console.error('Error loading response data:', error);
+      // Fallback to a simple response system
+      responseDataRef.current = {
+        fallback: [
+          {
+            id: 'error-fallback',
+            response: 'I can help with counting, slider, and typing tasks. What would you like to know?'
+          }
+        ]
+      };
+    }
+  };
+
+  const findBestResponse = (userInput) => {
+    if (!responseDataRef.current) {
+      return { 
+        response: 'Still loading... Please try again in a moment.', 
+        metadata: { id: 'loading', level: 'Task-level', type: 'Find for me' }
+      };
+    }
+
+    const input = userInput.toLowerCase();
+    const matches = [];
+
+    // Determine current game type
+    const gameType = currentTask ? 
+      (currentTask.startsWith('g1') ? 'counting' : 
+       currentTask.startsWith('g2') ? 'slider' : 
+       currentTask.startsWith('g3') ? 'typing' : null) : null;
+
+    // Search in current game responses first (higher weight)
+    if (gameType && responseDataRef.current.responses[gameType]) {
+      searchResponses(responseDataRef.current.responses[gameType], input, matches, 2.0);
+    }
+
+    // Search in general responses
+    if (responseDataRef.current.general) {
+      searchGeneralResponses(responseDataRef.current.general, input, matches, 1.0);
+    }
+
+    // Search in other game responses (lower weight)
+    Object.keys(responseDataRef.current.responses || {}).forEach(game => {
+      if (game !== gameType) {
+        searchResponses(responseDataRef.current.responses[game], input, matches, 0.5);
+      }
+    });
+
+    // Sort by score (highest first)
+    matches.sort((a, b) => b.score - a.score);
+
+    // If we have good matches, select based on score
+    if (matches.length > 0 && matches[0].score > 0.3) {
+      // Get all top-scoring matches
+      const topScore = matches[0].score;
+      const topMatches = matches.filter(m => m.score === topScore);
+      
+      // Randomly select from top matches
+      const selected = topMatches[Math.floor(Math.random() * topMatches.length)];
+      
+      return {
+        response: selected.response.response,
+        metadata: {
+          id: selected.response.id,
+          level: selected.level || 'Task-level',
+          type: selected.type || 'Find for me',
+          triggers: selected.matchedTriggers,
+          score: selected.score
+        }
+      };
+    }
+
+    // Return random fallback
+    const fallbacks = responseDataRef.current.fallback || [];
+    const fallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    
+    return {
+      response: fallback.response,
+      metadata: {
+        id: fallback.id,
+        level: 'Task-level',
+        type: 'Iterate with me',
+        context: fallback.context
+      }
+    };
+  };
+
+  const searchResponses = (gameResponses, input, matches, weight) => {
+    // Search both workflow and task level
+    ['workflow', 'task'].forEach(level => {
+      if (!gameResponses[level]) return;
+      
+      // Search all 4 categories
+      ['make_for_me', 'find_for_me', 'jumpstart_for_me', 'iterate_with_me'].forEach(type => {
+        if (!gameResponses[level][type]) return;
+        
+        gameResponses[level][type].forEach(response => {
+          const { score, matchedTriggers } = calculateTriggerScore(response.triggers, input);
+          
+          if (score > 0) {
+            matches.push({
+              response: response,
+              score: score * weight * (response.priority || 1),
+              level: level === 'workflow' ? 'Workflow-level' : 'Task-level',
+              type: type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+              matchedTriggers: matchedTriggers
+            });
+          }
+        });
+      });
+    });
+  };
+
+  const searchGeneralResponses = (generalResponses, input, matches, weight) => {
+    Object.keys(generalResponses).forEach(category => {
+      if (Array.isArray(generalResponses[category])) {
+        generalResponses[category].forEach(response => {
+          const { score, matchedTriggers } = calculateTriggerScore(response.triggers, input);
+          
+          if (score > 0) {
+            matches.push({
+              response: response,
+              score: score * weight * (response.priority || 1),
+              level: 'Workflow-level',
+              type: 'Find for me',
+              matchedTriggers: matchedTriggers
+            });
+          }
+        });
+      }
+    });
+  };
+
+  const calculateTriggerScore = (triggers, input) => {
+    let totalScore = 0;
+    const matchedTriggers = [];
+    
+    triggers.forEach(trigger => {
+      // Count occurrences of trigger in input
+      const regex = new RegExp(`\\b${trigger}\\b`, 'gi');
+      const matches = input.match(regex);
+      
+      if (matches) {
+        // Score based on trigger length and frequency
+        const triggerScore = (trigger.length / input.length) * matches.length;
+        totalScore += triggerScore;
+        matchedTriggers.push({ trigger, count: matches.length });
+      }
+    });
+    
+    return { score: totalScore, matchedTriggers };
+  };
+
+  const handleSend = async () => {
+    if (!input.trim()) return;
     
     if (remainingPrompts <= 0) {
       setMessages(msgs => [...msgs, {
         sender: 'system',
         text: '⚠️ No prompts remaining. Complete more tasks to earn additional prompts!'
-      }])
-      return
+      }]);
+      return;
     }
 
-    const userMsg = { sender: 'user', text: input }
-    setMessages(msgs => [...msgs, userMsg])
-    setInput('')
-    setPromptsUsed(prev => prev + 1)
+    // Add user message
+    const userMsg = { sender: 'user', text: input };
+    setMessages(msgs => [...msgs, userMsg]);
+    setInput('');
+    setPromptsUsed(prev => prev + 1);
+    setIsTyping(true);
 
-    // Placeholder bot reply; replace with real API call
-    const botReply = {
-      sender: 'bot',
-      text: '🤖 This is a placeholder response. In the real game, I would provide helpful hints about your current task!'
-    }
+    // Find best response
+    const { response, metadata } = findBestResponse(input);
     
+    // Log the interaction
+    await eventTracker.trackChatInteraction(
+      input,
+      { 
+        text: response, 
+        ...metadata 
+      },
+      promptsUsed + 1,
+      currentTask
+    );
+
+    // Simulate typing delay
     setTimeout(() => {
-      setMessages(msgs => [...msgs, botReply])
-    }, 1000)
-  }
+      setIsTyping(false);
+      setMessages(msgs => [...msgs, {
+        sender: 'bot',
+        text: response,
+        metadata: metadata
+      }]);
+    }, 500 + Math.random() * 1000);
+  };
 
   return (
     <div className="chat-container-sidebar">
@@ -59,6 +251,15 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
             </div>
           </div>
         ))}
+        {isTyping && (
+          <div className="message bot">
+            <div className="message-content">
+              <strong>AI:</strong>
+              <span className="typing-indicator">...</span>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
       
       {/* Input */}
@@ -79,5 +280,5 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
         </button>
       </div>
     </div>
-  )
+  );
 }
