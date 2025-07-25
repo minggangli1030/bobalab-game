@@ -1,7 +1,9 @@
-// src/components/SliderTask.jsx - Updated with enhanced slider from p3.js
+// src/components/SliderTask.jsx - Updated with 90% accuracy threshold
 import React, { useEffect, useState, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import { taskDependencies } from '../utils/taskDependencies';
+import { db } from '../firebase';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './SliderTask.css';
 
 export default function SliderTask({ taskNum, onComplete, isPractice = false }) {
@@ -29,37 +31,65 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false }) 
     setInput(5.0); // Start at middle
   }, [taskNum]);
 
+  const calculateAccuracy = (userValue, targetValue) => {
+    const difference = Math.abs(userValue - targetValue);
+    const maxRange = 10; // slider range is 0-10
+    const accuracy = Math.max(0, 100 - (difference / maxRange * 100));
+    return Math.round(accuracy);
+  };
+
   const handleSubmit = async () => {
     const timeTaken = Date.now() - startTime;
     const userValue = parseFloat(input);
-    const correct = userValue === target;
+    const accuracy = calculateAccuracy(userValue, target);
+    const passThreshold = 90;
+    const passed = accuracy >= passThreshold;
     
     attemptsRef.current += 1;
     
     await eventTracker.trackTaskAttempt(
       `g2t${taskNum}`,
       attemptsRef.current,
-      correct,
+      passed,
       timeTaken,
       userValue,
       target
     );
     
-    if (correct) {
-      setFeedback('✓ Perfect match!');
+    // Store accuracy to database
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId && !sessionId.startsWith('offline-')) {
+      try {
+        await updateDoc(doc(db, 'sessions', sessionId), {
+          [`taskAccuracies.g2t${taskNum}`]: accuracy,
+          [`taskTimes.g2t${taskNum}`]: timeTaken,
+          lastActivity: serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error storing accuracy:', error);
+      }
+    }
+    
+    if (passed) {
+      if (userValue === target) {
+        setFeedback('✓ Perfect match! 100% accuracy');
+      } else {
+        setFeedback(`✓ Great! ${accuracy}% accuracy`);
+      }
+      
       setTimeout(() => {
         onComplete(`g2t${taskNum}`, {
           attempts: attemptsRef.current,
           totalTime: timeTaken,
-          accuracy: 100
+          accuracy: accuracy
         });
       }, 1500);
     } else {
-      // Show target value only in practice mode
+      // Show feedback but allow retry
       if (isPractice) {
-        setFeedback(`✗ You chose ${userValue}, target was ${target}`);
+        setFeedback(`✗ ${accuracy}% accuracy. Target was ${target}. Try for 90%+ to pass.`);
       } else {
-        setFeedback(`✗ Not quite right. Try again!`);
+        setFeedback(`✗ ${accuracy}% accuracy. Need 90%+ to pass. Try again!`);
       }
     }
   };
@@ -110,6 +140,8 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false }) 
       
       <p className="instruction">
         Move the slider to: <strong className="target-value">{target}</strong>
+        <br />
+        <span className="hint">Need 90%+ accuracy to pass</span>
       </p>
       
       <div className="slider-container">

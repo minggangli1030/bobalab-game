@@ -1,7 +1,9 @@
-// src/components/TypingTask.jsx - Updated with uncopyable pattern image
+// src/components/TypingTask.jsx - Updated with 90% accuracy threshold
 import React, { useEffect, useState, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import { taskDependencies } from '../utils/taskDependencies';
+import { db } from '../firebase';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './TypingTask.css';
 
 const patterns = {
@@ -67,36 +69,75 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
     setPatternImageUrl(imageUrl);
   }, [taskNum]);
 
+  const calculateAccuracy = (userInput, expectedPattern) => {
+    if (userInput === expectedPattern) return 100;
+    
+    // Calculate character-by-character accuracy
+    const maxLength = Math.max(userInput.length, expectedPattern.length);
+    if (maxLength === 0) return 0;
+    
+    let matches = 0;
+    for (let i = 0; i < maxLength; i++) {
+      if (userInput[i] === expectedPattern[i]) {
+        matches++;
+      }
+    }
+    
+    const accuracy = (matches / maxLength) * 100;
+    return Math.round(accuracy);
+  };
+
   const handleSubmit = async () => {
     const timeTaken = Date.now() - startTime;
-    const correct = input === pattern;
+    const accuracy = calculateAccuracy(input, pattern);
+    const passThreshold = 90;
+    const passed = accuracy >= passThreshold;
     
     attemptsRef.current += 1;
     
     await eventTracker.trackTaskAttempt(
       `g3t${taskNum}`,
       attemptsRef.current,
-      correct,
+      passed,
       timeTaken,
       input,
       pattern
     );
     
-    if (correct) {
-      setFeedback('✓ Perfect match!');
+    // Store accuracy to database
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId && !sessionId.startsWith('offline-')) {
+      try {
+        await updateDoc(doc(db, 'sessions', sessionId), {
+          [`taskAccuracies.g3t${taskNum}`]: accuracy,
+          [`taskTimes.g3t${taskNum}`]: timeTaken,
+          lastActivity: serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error storing accuracy:', error);
+      }
+    }
+    
+    if (passed) {
+      if (input === pattern) {
+        setFeedback('✓ Perfect match! 100% accuracy');
+      } else {
+        setFeedback(`✓ Well done! ${accuracy}% accuracy`);
+      }
+      
       setTimeout(() => {
         onComplete(`g3t${taskNum}`, {
           attempts: attemptsRef.current,
           totalTime: timeTaken,
-          accuracy: 100
+          accuracy: accuracy
         });
       }, 1500);
     } else {
-      // Show correct pattern only in practice mode
+      // Show feedback but allow retry
       if (isPractice) {
-        setFeedback(`✗ Not quite right. The correct pattern is: "${pattern}"`);
+        setFeedback(`✗ ${accuracy}% accuracy. Correct pattern: "${pattern}". Try for 90%+ to pass.`);
       } else {
-        setFeedback('✗ Not quite right. Try again!');
+        setFeedback(`✗ ${accuracy}% accuracy. Need 90%+ to pass. Try again!`);
       }
     }
   };
@@ -112,6 +153,8 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
       
       <p className="instruction">
         Type this pattern exactly:
+        <br />
+        <span className="hint">Need 90%+ accuracy to pass</span>
       </p>
       
       <div className="pattern-display">

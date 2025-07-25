@@ -1,7 +1,9 @@
-// src/components/CountingTask.jsx - Updated with practice mode answer reveal
+// src/components/CountingTask.jsx - Updated with 90% accuracy threshold
 import React, { useEffect, useState, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import { taskDependencies } from '../utils/taskDependencies';
+import { db } from '../firebase';
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './CountingTask.css';
 
 export default function CountingTask({ taskNum, textSections, onComplete, isPractice = false }) {
@@ -181,37 +183,69 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
     }
   }, [taskNum, textSections]);
   
+  const calculateAccuracy = (userAnswer, correctAnswer) => {
+    if (userAnswer === correctAnswer) return 100;
+    
+    // Calculate accuracy based on how close the answer is
+    const maxPossible = Math.max(userAnswer, correctAnswer, 1); // Avoid division by zero
+    const difference = Math.abs(userAnswer - correctAnswer);
+    const accuracy = Math.max(0, 100 - (difference / maxPossible * 100));
+    
+    return Math.round(accuracy);
+  };
+  
   const handleSubmit = async () => {
     const timeTaken = Date.now() - startTime;
     const userAnswer = parseInt(input, 10) || 0;
-    const correct = userAnswer === answer;
+    const accuracy = calculateAccuracy(userAnswer, answer);
+    const passThreshold = 90;
+    const passed = accuracy >= passThreshold;
     
     attemptsRef.current += 1;
     
     await eventTracker.trackTaskAttempt(
       `g1t${taskNum}`,
       attemptsRef.current,
-      correct,
+      passed,
       timeTaken,
       userAnswer,
       answer
     );
     
-    if (correct) {
-      setFeedback('✓ Correct!');
+    // Store accuracy to database
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId && !sessionId.startsWith('offline-')) {
+      try {
+        await updateDoc(doc(db, 'sessions', sessionId), {
+          [`taskAccuracies.g1t${taskNum}`]: accuracy,
+          [`taskTimes.g1t${taskNum}`]: timeTaken,
+          lastActivity: serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error storing accuracy:', error);
+      }
+    }
+    
+    if (passed) {
+      if (accuracy === 100) {
+        setFeedback('✓ Perfect! 100% accuracy');
+      } else {
+        setFeedback(`✓ Good job! ${accuracy}% accuracy`);
+      }
+      
       setTimeout(() => {
         onComplete(`g1t${taskNum}`, {
           attempts: attemptsRef.current,
           totalTime: timeTaken,
-          accuracy: 100
+          accuracy: accuracy
         });
       }, 1500);
     } else {
-      // Show correct answer only in practice mode
+      // Show feedback but allow retry
       if (isPractice) {
-        setFeedback(`✗ Incorrect. The correct answer is ${answer}.`);
+        setFeedback(`✗ ${accuracy}% accuracy. The correct answer is ${answer}. Try for 90%+ to pass.`);
       } else {
-        setFeedback('✗ Incorrect. Try again!');
+        setFeedback(`✗ ${accuracy}% accuracy. Need 90%+ to pass. Try again!`);
       }
     }
   };
@@ -228,7 +262,7 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
       <p className="instruction">
         <strong>{instruction}</strong>
         <br />
-        <span className="hint">(Case-insensitive)</span>
+        <span className="hint">(Case-insensitive) • Need 90%+ accuracy to pass</span>
       </p>
       
       {/* Use uncopyable image */}
