@@ -37,10 +37,18 @@ function App() {
   const [bonusPrompts, setBonusPrompts] = useState(0);
   const [isInBreak, setIsInBreak] = useState(false);
   const [breakDestination, setBreakDestination] = useState(null);
+  const [isOutOfFocus, setIsOutOfFocus] = useState(false);
+  const [outOfFocusCountdown, setOutOfFocusCountdown] = useState(15);
+  const [isIdle, setIsIdle] = useState(false);
+  const [idleCountdown, setIdleCountdown] = useState(5);
+  const [gameBlocked, setGameBlocked] = useState(false);
   
   // Refs
   const startTimeRef = useRef(Date.now());
   const timerIntervalRef = useRef(null);
+  const outOfFocusTimerRef = useRef(null);
+  const idleTimerRef = useRef(null);
+  const lastActivityRef = useRef(Date.now());
   const rulesDataRef = useRef({
     textSections: [
       'The University of California, Berkeley (UC Berkeley, Berkeley, Cal, or California) is a public land-grant research university in Berkeley, California, United States. Founded in 1868 and named after the Anglo-Irish philosopher George Berkeley, it is the state\'s first land-grant university and is the founding campus of the University of California system.',
@@ -53,12 +61,109 @@ function App() {
   useEffect(() => {
     checkAndInitSession();
     
+    // Set up focus and idle detection
+    setupFocusAndIdleDetection();
+    
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
       }
+      if (outOfFocusTimerRef.current) {
+        clearInterval(outOfFocusTimerRef.current);
+      }
+      if (idleTimerRef.current) {
+        clearInterval(idleTimerRef.current);
+      }
     };
   }, []);
+  
+  // Focus and idle detection setup
+  const setupFocusAndIdleDetection = () => {
+    // Track user activity
+    const updateActivity = () => {
+      lastActivityRef.current = Date.now();
+      setIsIdle(false);
+      setIdleCountdown(5);
+    };
+    
+    // Add activity listeners
+    document.addEventListener('mousedown', updateActivity);
+    document.addEventListener('mousemove', updateActivity);
+    document.addEventListener('keypress', updateActivity);
+    document.addEventListener('scroll', updateActivity);
+    document.addEventListener('touchstart', updateActivity);
+    
+    // Focus detection
+    const handleFocus = () => {
+      setIsOutOfFocus(false);
+      setOutOfFocusCountdown(15);
+      if (outOfFocusTimerRef.current) {
+        clearInterval(outOfFocusTimerRef.current);
+        outOfFocusTimerRef.current = null;
+      }
+    };
+    
+    const handleBlur = () => {
+      if (mode === 'challenge' && !gameBlocked) {
+        setIsOutOfFocus(true);
+        startOutOfFocusCountdown();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+    
+    // Start idle detection timer
+    const idleCheckInterval = setInterval(() => {
+      if (mode === 'challenge' && !gameBlocked) {
+        const timeSinceActivity = Date.now() - lastActivityRef.current;
+        
+        if (timeSinceActivity > 30000 && !isIdle) { // 30 seconds
+          setIsIdle(true);
+          startIdleCountdown();
+        }
+      }
+    }, 1000);
+    
+    idleTimerRef.current = idleCheckInterval;
+  };
+  
+  // Out of focus countdown
+  const startOutOfFocusCountdown = () => {
+    outOfFocusTimerRef.current = setInterval(() => {
+      setOutOfFocusCountdown(prev => {
+        if (prev <= 1) {
+          setGameBlocked(true);
+          setIsOutOfFocus(false);
+          clearInterval(outOfFocusTimerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+  
+  // Idle countdown
+  const startIdleCountdown = () => {
+    const idleCountdownInterval = setInterval(() => {
+      setIdleCountdown(prev => {
+        if (prev <= 1) {
+          setGameBlocked(true);
+          setIsIdle(false);
+          clearInterval(idleCountdownInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+  
+  // Handle user response to idle warning
+  const handleIdleResponse = () => {
+    setIsIdle(false);
+    setIdleCountdown(5);
+    lastActivityRef.current = Date.now();
+  };
   
   // Session management
   const checkAndInitSession = async () => {
@@ -556,6 +661,109 @@ function App() {
   // Main challenge mode
   return (
     <div className="app">
+      {/* Game blocked overlay */}
+      {gameBlocked && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(0, 0, 0, 0.9)',
+          zIndex: 999999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '40px',
+            borderRadius: '10px',
+            textAlign: 'center',
+            maxWidth: '500px'
+          }}>
+            <h2 style={{ color: '#f44336', marginBottom: '20px' }}>Game Session Ended</h2>
+            <p style={{ marginBottom: '30px' }}>
+              Your session has been terminated due to inactivity or switching away from the game.
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              style={{
+                padding: '12px 30px',
+                background: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Restart Game
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Out of focus warning */}
+      {isOutOfFocus && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          background: '#ff9800',
+          color: 'white',
+          padding: '15px 20px',
+          borderRadius: '8px',
+          zIndex: 10000,
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+        }}>
+          <strong>⚠️ Focus Warning</strong>
+          <br />
+          Game will be blocked in {outOfFocusCountdown} seconds
+        </div>
+      )}
+      
+      {/* Idle warning */}
+      {isIdle && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: 'rgba(0, 0, 0, 0.7)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            borderRadius: '10px',
+            textAlign: 'center',
+            maxWidth: '400px'
+          }}>
+            <h3 style={{ color: '#ff9800', marginBottom: '15px' }}>Are you still there?</h3>
+            <p style={{ marginBottom: '20px' }}>
+              Auto-closing in {idleCountdown} seconds due to inactivity
+            </p>
+            <button 
+              onClick={handleIdleResponse}
+              style={{
+                padding: '10px 20px',
+                background: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              Continue Playing
+            </button>
+          </div>
+        </div>
+      )}
+
       <h1>Multi-Task Challenge</h1>
       
       {/* Timer display */}
@@ -563,10 +771,9 @@ function App() {
         Time: {Math.floor(globalTimer / 60)}:{(globalTimer % 60).toString().padStart(2, '0')}
       </div>
       
-      {/* Removed practice button in main game mode */}
+      {/* Mode switch - removed chat button */}
       <div className="mode-switch">
         <button disabled={true}>Challenge</button>
-        <button onClick={() => setMode('chat')}>Chat</button>
       </div>
       
       <NavTabs
@@ -583,8 +790,39 @@ function App() {
         />
       </div>
       
-      <div className="task-container">
-        {renderTask()}
+      {/* Side-by-side layout: Game + Chat */}
+      <div style={{ 
+        display: 'flex', 
+        gap: '20px', 
+        minHeight: '600px',
+        marginTop: '20px'
+      }}>
+        {/* Game area - 2/3 width */}
+        <div style={{ 
+          flex: '2', 
+          minWidth: '0' 
+        }}>
+          <div className="task-container">
+            {renderTask()}
+          </div>
+        </div>
+        
+        {/* Chat area - 1/3 width */}
+        <div style={{ 
+          flex: '1', 
+          minWidth: '300px',
+          maxWidth: '400px',
+          background: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e0e0e0',
+          overflow: 'hidden',
+          height: '600px'
+        }}>
+          <ChatContainer 
+            bonusPrompts={bonusPrompts}
+            currentTask={currentTab}
+          />
+        </div>
       </div>
       
       <ProgressSummary completed={completed} />
