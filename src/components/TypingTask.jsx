@@ -1,4 +1,4 @@
-// src/components/TypingTask.jsx - Updated with proper interface and hidden answers
+// src/components/TypingTask.jsx - Updated with uncopyable pattern image
 import React, { useEffect, useState, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import { taskDependencies } from '../utils/taskDependencies';
@@ -10,12 +10,43 @@ const patterns = {
   hard: ['a@1 B#2 c$3', 'Qw3$ Er4# Ty5@', 'X9% Y8& Z7*', 'P6! Q5? R4+']
 };
 
-export default function TypingTask({ taskNum, onComplete }) {
+export default function TypingTask({ taskNum, onComplete, isPractice = false }) {
   const [pattern, setPattern] = useState('');
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [startTime] = useState(Date.now());
+  const [patternImageUrl, setPatternImageUrl] = useState('');
   const attemptsRef = useRef(0);
+
+  // Generate uncopyable pattern image
+  const generatePatternImage = (patternText) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    canvas.width = 600;
+    canvas.height = 150;
+    
+    // Set background
+    ctx.fillStyle = '#f5f5f5';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Set border
+    ctx.strokeStyle = '#FFC107';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    
+    // Set text properties
+    ctx.font = 'bold 32px "Courier New", monospace';
+    ctx.fillStyle = '#333';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Draw pattern text
+    ctx.fillText(patternText, canvas.width / 2, canvas.height / 2);
+    
+    return canvas.toDataURL();
+  };
 
   useEffect(() => {
     const level = ['easy', 'medium', 'hard'][taskNum - 1];
@@ -30,6 +61,10 @@ export default function TypingTask({ taskNum, onComplete }) {
     
     const selectedPattern = pset[Math.floor(Math.random() * pset.length)];
     setPattern(selectedPattern);
+    
+    // Generate pattern image
+    const imageUrl = generatePatternImage(selectedPattern);
+    setPatternImageUrl(imageUrl);
   }, [taskNum]);
 
   const handleSubmit = async () => {
@@ -57,8 +92,12 @@ export default function TypingTask({ taskNum, onComplete }) {
         });
       }, 1500);
     } else {
-      // Don't show the correct pattern - just indicate it's incorrect
-      setFeedback('✗ Not quite right. Try again!');
+      // Show correct pattern only in practice mode
+      if (isPractice) {
+        setFeedback(`✗ Not quite right. The correct pattern is: "${pattern}"`);
+      } else {
+        setFeedback('✗ Not quite right. Try again!');
+      }
     }
   };
 
@@ -76,7 +115,26 @@ export default function TypingTask({ taskNum, onComplete }) {
       </p>
       
       <div className="pattern-display">
-        <span className="pattern-text">{pattern}</span>
+        {patternImageUrl ? (
+          <img 
+            src={patternImageUrl} 
+            alt="Pattern to type"
+            style={{ 
+              width: '100%', 
+              maxWidth: '600px',
+              height: 'auto',
+              userSelect: 'none',
+              pointerEvents: 'none',
+              border: '2px solid #FFC107',
+              borderRadius: '8px'
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+            draggable={false}
+          />
+        ) : (
+          // Fallback display
+          <span className="pattern-text">{pattern}</span>
+        )}
       </div>
       
       <div className="input-section">

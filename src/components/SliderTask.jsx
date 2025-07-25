@@ -1,10 +1,10 @@
-// src/components/SliderTask.jsx - Fixed to match original interface
+// src/components/SliderTask.jsx - Updated with enhanced slider from p3.js
 import React, { useEffect, useState, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import { taskDependencies } from '../utils/taskDependencies';
 import './SliderTask.css';
 
-export default function SliderTask({ taskNum, onComplete }) {
+export default function SliderTask({ taskNum, onComplete, isPractice = false }) {
   const [target, setTarget] = useState(5);
   const [input, setInput] = useState(5.0);
   const [feedback, setFeedback] = useState(null);
@@ -55,12 +55,51 @@ export default function SliderTask({ taskNum, onComplete }) {
         });
       }, 1500);
     } else {
-      setFeedback(`✗ You chose ${userValue}, target was ${target}`);
+      // Show target value only in practice mode
+      if (isPractice) {
+        setFeedback(`✗ You chose ${userValue}, target was ${target}`);
+      } else {
+        setFeedback(`✗ Not quite right. Try again!`);
+      }
     }
   };
 
   const isEnhanced = taskDependencies.getActiveDependency(`g2t${taskNum}`);
   const step = taskNum === 1 ? 1 : (taskNum === 2 ? 0.1 : 0.01);
+  const showValue = taskNum !== 3; // Hide value only on hard mode
+  
+  // Generate scale marks for enhanced slider
+  const generateScaleMarks = () => {
+    const marks = [];
+    for (let i = 0; i <= 10; i++) {
+      marks.push(
+        <div 
+          key={i}
+          style={{
+            position: 'absolute',
+            left: `${(i * 10)}%`,
+            transform: 'translateX(-50%)',
+            textAlign: 'center'
+          }}
+        >
+          <div style={{
+            width: '2px',
+            height: '12px',
+            background: '#666',
+            margin: '0 auto'
+          }} />
+          <div style={{
+            fontSize: '12px',
+            color: '#666',
+            marginTop: '2px'
+          }}>
+            {i}
+          </div>
+        </div>
+      );
+    }
+    return marks;
+  };
   
   return (
     <div className={`task slider ${isEnhanced ? 'enhanced-task' : ''}`}>
@@ -80,20 +119,55 @@ export default function SliderTask({ taskNum, onComplete }) {
           <span>10</span>
         </div>
         
-        {/* Slider input */}
-        <input
-          type="range"
-          min="0"
-          max="10"
-          step={step}
-          value={input}
-          onChange={e => setInput(parseFloat(e.target.value))}
-          className="slider-input"
-        />
+        {/* Enhanced slider with comprehensive scale (when enhanced) */}
+        {isEnhanced ? (
+          <div style={{ position: 'relative', padding: '20px 0 30px 0' }}>
+            {/* Scale marks */}
+            <div style={{ 
+              position: 'absolute', 
+              width: '100%', 
+              height: '20px', 
+              top: '0' 
+            }}>
+              {generateScaleMarks()}
+            </div>
+            
+            {/* Slider input */}
+            <input
+              type="range"
+              min="0"
+              max="10"
+              step={step}
+              value={input}
+              onChange={e => setInput(parseFloat(e.target.value))}
+              className="slider-input enhanced"
+              style={{
+                width: '100%',
+                marginTop: '20px',
+                position: 'relative',
+                zIndex: 10
+              }}
+            />
+          </div>
+        ) : (
+          // Standard slider
+          <input
+            type="range"
+            min="0"
+            max="10"
+            step={step}
+            value={input}
+            onChange={e => setInput(parseFloat(e.target.value))}
+            className="slider-input"
+          />
+        )}
         
         {/* Current value display */}
         <div className="current-value">
-          {taskNum === 3 ? '??' : parseFloat(input).toFixed(taskNum === 1 ? 0 : (taskNum === 2 ? 1 : 2))}
+          {showValue ? 
+            parseFloat(input).toFixed(taskNum === 1 ? 0 : (taskNum === 2 ? 1 : 2)) : 
+            '??'
+          }
         </div>
       </div>
       

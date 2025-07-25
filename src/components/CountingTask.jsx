@@ -1,10 +1,10 @@
-// src/components/CountingTask.jsx - Updated to hide correct answer
+// src/components/CountingTask.jsx - Updated with practice mode answer reveal
 import React, { useEffect, useState, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import { taskDependencies } from '../utils/taskDependencies';
 import './CountingTask.css';
 
-export default function CountingTask({ taskNum, textSections, onComplete }) {
+export default function CountingTask({ taskNum, textSections, onComplete, isPractice = false }) {
   const [target, setTarget] = useState('');
   const [instruction, setInstruction] = useState('');
   const [answer, setAnswer] = useState(null);
@@ -13,7 +13,97 @@ export default function CountingTask({ taskNum, textSections, onComplete }) {
   const [text, setText] = useState('');
   const [displayText, setDisplayText] = useState('');
   const [startTime] = useState(Date.now());
+  const [textImageUrl, setTextImageUrl] = useState('');
   const attemptsRef = useRef(0);
+  const canvasRef = useRef(null);
+  
+  // Generate uncopyable text image
+  const generateTextImage = (textContent, highlights = null) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    canvas.width = 800;
+    canvas.height = 400;
+    
+    // Set background
+    ctx.fillStyle = '#fafafa';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Set border
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    
+    // Set text properties
+    ctx.font = '14px monospace';
+    ctx.fillStyle = '#333';
+    
+    const lineHeight = 22;
+    const padding = 20;
+    const maxWidth = canvas.width - (padding * 2);
+    
+    // Word wrap function
+    const wrapText = (text, maxWidth) => {
+      const words = text.split(' ');
+      const lines = [];
+      let currentLine = '';
+      
+      for (let word of words) {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const metrics = ctx.measureText(testLine);
+        
+        if (metrics.width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      return lines;
+    };
+    
+    const lines = wrapText(textContent, maxWidth);
+    
+    // Draw text with highlights
+    lines.forEach((line, lineIndex) => {
+      const y = padding + (lineIndex + 1) * lineHeight;
+      
+      if (highlights && highlights.length > 0) {
+        // Draw with highlights
+        let x = padding;
+        const words = line.split(' ');
+        
+        words.forEach((word, wordIndex) => {
+          const shouldHighlight = highlights.some(highlight => 
+            word.toLowerCase().includes(highlight.toLowerCase())
+          );
+          
+          if (shouldHighlight) {
+            // Draw highlight background
+            const wordWidth = ctx.measureText(word + ' ').width;
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.4)';
+            ctx.fillRect(x - 2, y - 16, wordWidth, 20);
+          }
+          
+          // Draw word
+          ctx.fillStyle = '#333';
+          ctx.fillText(word, x, y);
+          x += ctx.measureText(word + ' ').width;
+        });
+      } else {
+        // Draw without highlights
+        ctx.fillText(line, padding, y);
+      }
+    });
+    
+    return canvas.toDataURL();
+  };
   
   useEffect(() => {
     const selectedText = textSections[Math.floor(Math.random() * textSections.length)];
@@ -23,18 +113,26 @@ export default function CountingTask({ taskNum, textSections, onComplete }) {
     const dependency = taskDependencies.getActiveDependency(`g1t${taskNum}`);
     const hasHighlight = dependency && dependency.type === 'highlight';
     
-    let targetWord, instructionText, correctAnswer;
+    let targetWord, instructionText, correctAnswer, highlights = null;
     
     if (taskNum === 1) {
       const words = ['the', 'of', 'and', 'in'];
       targetWord = words[Math.floor(Math.random() * words.length)];
       instructionText = `Count how many times the word "${targetWord}" appears:`;
       correctAnswer = (selectedText.match(new RegExp(`\\b${targetWord}\\b`, 'gi')) || []).length;
+      
+      if (hasHighlight) {
+        highlights = [targetWord];
+      }
     } else if (taskNum === 2) {
       const letters = ['e', 'a', 'i', 'o'];
       targetWord = letters[Math.floor(Math.random() * letters.length)];
       instructionText = `Count how many times the letter "${targetWord}" appears (case-insensitive):`;
       correctAnswer = (selectedText.match(new RegExp(targetWord, 'gi')) || []).length;
+      
+      if (hasHighlight) {
+        highlights = [targetWord];
+      }
     } else {
       const letter1 = ['a', 'e', 'i'][Math.floor(Math.random() * 3)];
       const letter2 = ['n', 't', 's'][Math.floor(Math.random() * 3)];
@@ -42,13 +140,21 @@ export default function CountingTask({ taskNum, textSections, onComplete }) {
       instructionText = `Count how many times the letters "${letter1}" and "${letter2}" appear in total:`;
       correctAnswer = (selectedText.match(new RegExp(letter1, 'gi')) || []).length + 
                      (selectedText.match(new RegExp(letter2, 'gi')) || []).length;
+      
+      if (hasHighlight) {
+        highlights = [letter1, letter2];
+      }
     }
     
     setTarget(targetWord);
     setInstruction(instructionText);
     setAnswer(correctAnswer);
     
-    // Apply highlighting if dependency is active
+    // Generate text image
+    const imageUrl = generateTextImage(selectedText, highlights);
+    setTextImageUrl(imageUrl);
+    
+    // For copyable display (only used if image fails to load)
     if (hasHighlight) {
       let highlighted = selectedText;
       if (taskNum === 1) {
@@ -101,8 +207,12 @@ export default function CountingTask({ taskNum, textSections, onComplete }) {
         });
       }, 1500);
     } else {
-      // Don't show the correct answer - just indicate it's incorrect
-      setFeedback('✗ Incorrect. Try again!');
+      // Show correct answer only in practice mode
+      if (isPractice) {
+        setFeedback(`✗ Incorrect. The correct answer is ${answer}.`);
+      } else {
+        setFeedback('✗ Incorrect. Try again!');
+      }
     }
   };
   
@@ -121,10 +231,29 @@ export default function CountingTask({ taskNum, textSections, onComplete }) {
         <span className="hint">(Case-insensitive)</span>
       </p>
       
-      <div 
-        className="text-display"
-        dangerouslySetInnerHTML={{ __html: displayText }}
-      />
+      {/* Use uncopyable image */}
+      <div className="text-display">
+        {textImageUrl ? (
+          <img 
+            src={textImageUrl} 
+            alt="Text passage for counting"
+            style={{ 
+              width: '100%', 
+              maxWidth: '800px',
+              height: 'auto',
+              border: '2px solid #e0e0e0',
+              borderRadius: '8px',
+              userSelect: 'none',
+              pointerEvents: 'none'
+            }}
+            onContextMenu={(e) => e.preventDefault()}
+            draggable={false}
+          />
+        ) : (
+          // Fallback to HTML if image generation fails
+          <div dangerouslySetInnerHTML={{ __html: displayText }} />
+        )}
+      </div>
       
       <div className="input-section">
         <label>Your answer:</label>

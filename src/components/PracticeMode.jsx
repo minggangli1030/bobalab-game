@@ -1,4 +1,4 @@
-// src/components/PracticeMode.jsx - Fixed Practice Mode
+// src/components/PracticeMode.jsx - Updated to pass isPractice flag
 import React, { useState, useEffect } from 'react';
 import { taskDependencies } from '../utils/taskDependencies';
 import CountingTask from './CountingTask';
@@ -117,6 +117,7 @@ export default function PracticeMode({ rulesData }) {
           taskNum={taskNum}
           textSections={rulesData.textSections || ['Practice text for counting...']}
           onComplete={handlePracticeComplete}
+          isPractice={true}
         />
       )}
       
@@ -124,6 +125,7 @@ export default function PracticeMode({ rulesData }) {
         <SliderTask
           taskNum={taskNum}
           onComplete={handlePracticeComplete}
+          isPractice={true}
         />
       )}
       
@@ -131,6 +133,7 @@ export default function PracticeMode({ rulesData }) {
         <TypingTask
           taskNum={taskNum}
           onComplete={handlePracticeComplete}
+          isPractice={true}
         />
       )}
     </div>

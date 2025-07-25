@@ -1,4 +1,4 @@
-/* src/components/SliderTask.css */
+/* src/components/SliderTask.css - Enhanced with comprehensive scale styling */
 .task.slider {
   border: 2px solid #4CAF50;
   border-radius: 8px;
@@ -66,23 +66,41 @@
   cursor: pointer;
 }
 
+.slider-input.enhanced {
+  background: linear-gradient(to right, #e0e0e0 0%, #4CAF50 50%, #e0e0e0 100%);
+}
+
 .slider-input::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
   background: #4CAF50;
   border-radius: 50%;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
+}
+
+.slider-input::-webkit-slider-thumb:hover {
+  background: #45a049;
+  transform: scale(1.1);
 }
 
 .slider-input::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 25px;
+  height: 25px;
   background: #4CAF50;
   border-radius: 50%;
   cursor: pointer;
   border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
+}
+
+.slider-input::-moz-range-thumb:hover {
+  background: #45a049;
+  transform: scale(1.1);
 }
 
 .current-value {
@@ -94,6 +112,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
 }
 
 .submit-btn {
@@ -107,11 +126,19 @@
   font-size: 16px;
   font-weight: bold;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .submit-btn:hover {
   background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.submit-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .feedback {
@@ -119,16 +146,45 @@
   font-size: 18px;
   font-weight: bold;
   margin-top: 20px;
-  padding: 10px;
+  padding: 15px;
   border-radius: 8px;
+  animation: fadeIn 0.3s ease-in;
 }
 
 .feedback.correct {
   color: #4CAF50;
   background: #e8f5e9;
+  border: 1px solid #4CAF50;
 }
 
 .feedback.incorrect {
   color: #f44336;
   background: #ffebee;
+  border: 1px solid #f44336;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Enhanced task golden glow effect */
+.enhanced-task {
+  animation: goldenGlow 2s ease-in-out infinite;
+  border: 2px solid rgba(255, 215, 0, 0.6) !important;
+}
+
+@keyframes goldenGlow {
+  0% { 
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    border-color: rgba(255, 215, 0, 0.6);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.6);
+    border-color: rgba(255, 215, 0, 0.9);
+  }
+  100% { 
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+    border-color: rgba(255, 215, 0, 0.6);
+  }
 }
