@@ -7,9 +7,9 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './TypingTask.css';
 
 const patterns = {
-  easy: ['hello world', 'easy typing', 'test input', 'simple text'],
-  medium: ['HeLLo WoRLd', 'TeSt PaTTeRn', 'MiXeD cAsE', 'CaPiTaL lEtTeRs'],
-  hard: ['a@1 B#2 c$3', 'Qw3$ Er4# Ty5@', 'X9% Y8& Z7*', 'P6! Q5? R4+']
+  easy: ['hello world', 'easy typing', 'test input', 'simple text', 'quick brown', 'lazy dog', 'type this', 'good job'],
+  medium: ['HeLLo WoRLd', 'TeSt PaTTeRn', 'MiXeD cAsE', 'CaPiTaL lEtTeRs', 'QuIcK bRoWn', 'LaZy DoG', 'TyPe ThIs', 'GoOd JoB'],
+  hard: ['a@1 B#2 c$3', 'Qw3$ Er4# Ty5@', 'X9% Y8& Z7*', 'P6! Q5? R4+', 'Z1@ Y2# X3$', 'M7& N8* O9!', 'J4% K5^ L6&', 'D1! E2@ F3#']
 };
 
 export default function TypingTask({ taskNum, onComplete, isPractice = false }) {
@@ -56,7 +56,8 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
       pset = patterns.easy;
     }
     
-    const selectedPattern = pset[Math.floor(Math.random() * pset.length)];
+    const randomIndex = Math.floor(Math.random() * pset.length);
+    const selectedPattern = pset[randomIndex];
     setPattern(selectedPattern);
     
     // Generate pattern image

@@ -134,7 +134,8 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
   };
   
   useEffect(() => {
-    const selectedText = textSections[Math.floor(Math.random() * textSections.length)];
+    const randomIndex = Math.floor(Math.random() * textSections.length);
+    const selectedText = textSections[randomIndex];
     setText(selectedText);
     
     // Check for dependency enhancement

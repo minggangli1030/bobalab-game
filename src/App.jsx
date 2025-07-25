@@ -556,15 +556,32 @@ function App() {
     
     // Calculate current overall accuracy
     const calculateOverallAccuracy = () => {
-      const sessionId = localStorage.getItem('sessionId');
-      if (!sessionId) return 0;
+      const completedTaskIds = Object.keys(completed);
+      if (completedTaskIds.length === 0) return 0;
       
-      // This would ideally fetch from database, but for now calculate from completed tasks
-      const completedTasks = Object.keys(completed);
-      if (completedTasks.length === 0) return 0;
+      let totalAccuracy = 0;
+      let validTasks = 0;
       
-      // Placeholder calculation - in real implementation, fetch stored accuracies
-      return Math.round(85 + Math.random() * 10); // Simulated accuracy between 85-95%
+      // Get accuracy for each completed task from localStorage
+      completedTaskIds.forEach(taskId => {
+        // Get the attempt history for this task
+        const historyStr = localStorage.getItem(`attemptHistory_${taskId}`);
+        if (historyStr) {
+          const history = JSON.parse(historyStr);
+          if (history.length > 0) {
+            // Get the best accuracy achieved for this task
+            const bestAccuracy = Math.max(...history.map(h => h.accuracy));
+            totalAccuracy += bestAccuracy;
+            validTasks++;
+          }
+        }
+      });
+      
+      // Calculate average accuracy across all completed tasks
+      if (validTasks === 0) return 0;
+      
+      const averageAccuracy = totalAccuracy / validTasks;
+      return Math.round(averageAccuracy);
     };
     
     const currentAccuracy = calculateOverallAccuracy();

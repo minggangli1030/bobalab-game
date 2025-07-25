@@ -14,21 +14,23 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false }) 
   const attemptsRef = useRef(0);
 
   useEffect(() => {
-    // Generate target based on difficulty
+    // Generate target based on difficulty with proper randomization
     let targetValue;
     if (taskNum === 1) {
-      // Easy: integer from 0-10
+      // Easy: random integer from 0-10
       targetValue = Math.floor(Math.random() * 11);
     } else if (taskNum === 2) {
-      // Medium: one decimal place
-      targetValue = parseFloat((Math.random() * 10).toFixed(1));
+      // Medium: random value with one decimal place (0.0 to 10.0)
+      // Generate a random number from 0 to 100, then divide by 10
+      targetValue = Math.floor(Math.random() * 101) / 10;
     } else {
-      // Hard: two decimal places
-      targetValue = parseFloat((Math.random() * 10).toFixed(2));
+      // Hard: random value with two decimal places (0.00 to 10.00)
+      // Generate a random number from 0 to 1000, then divide by 100
+      targetValue = Math.floor(Math.random() * 1001) / 100;
     }
     
     setTarget(targetValue);
-    setInput(5.0); // Start at middle
+    setInput(5.0); // Always start at middle
   }, [taskNum]);
 
   const calculateAccuracy = (userValue, targetValue) => {
