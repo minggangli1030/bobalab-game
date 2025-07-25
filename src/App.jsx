@@ -64,9 +64,6 @@ function App() {
   useEffect(() => {
     checkAndInitSession();
     
-    // Set up focus and idle detection
-    setupFocusAndIdleDetection();
-    
     return () => {
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
@@ -80,14 +77,34 @@ function App() {
     };
   }, []);
   
+  // Set up focus and idle detection when mode changes
+  useEffect(() => {
+    if (mode === 'challenge') {
+      console.log('Setting up idle detection for challenge mode');
+      setupFocusAndIdleDetection();
+    }
+    
+    return () => {
+      if (idleTimerRef.current) {
+        clearInterval(idleTimerRef.current);
+        idleTimerRef.current = null;
+      }
+    };
+  }, [mode, gameBlocked, isInBreak, isIdle]);
+  
   // Focus and idle detection setup
   const setupFocusAndIdleDetection = () => {
     // Track user activity
     const updateActivity = () => {
       lastActivityRef.current = Date.now();
+      console.log('Activity detected, resetting timer');
       if (isIdle) {
         setIsIdle(false);
         setIdleCountdown(5);
+        if (idleTimerRef.current) {
+          clearInterval(idleTimerRef.current);
+          idleTimerRef.current = null;
+        }
       }
     };
     
@@ -122,10 +139,14 @@ function App() {
     
     // Start idle detection timer
     const idleCheckInterval = setInterval(() => {
-      if (mode === 'challenge' && !gameBlocked && !isInBreak) {
+      console.log('Idle check - mode:', mode, 'blocked:', gameBlocked, 'break:', isInBreak, 'idle:', isIdle);
+      
+      if (mode === 'challenge' && !gameBlocked && !isInBreak && !isIdle) {
         const timeSinceActivity = Date.now() - lastActivityRef.current;
+        console.log('Time since last activity:', Math.floor(timeSinceActivity / 1000), 'seconds');
         
-        if (timeSinceActivity > 30000 && !isIdle) { // 30 seconds
+        if (timeSinceActivity > 30000) { // 30 seconds
+          console.log('Starting idle countdown!');
           setIsIdle(true);
           startIdleCountdown();
         }
@@ -133,6 +154,12 @@ function App() {
     }, 1000);
     
     idleTimerRef.current = idleCheckInterval;
+    
+    return () => {
+      if (idleCheckInterval) {
+        clearInterval(idleCheckInterval);
+      }
+    };
   };
   
   // Out of focus countdown
@@ -821,13 +848,12 @@ function App() {
         gap: '20px', 
         alignItems: 'stretch',
         marginTop: '20px',
-        height: '600px',
+        height: '650px',
         width: '100%'
       }}>
         {/* Game area - 2/3 width */}
         <div style={{ 
-          flex: '2 1 0', 
-          minWidth: '0',
+          flex: '0 0 66.666%', 
           height: '100%',
           display: 'flex',
           alignItems: 'center',
@@ -852,9 +878,7 @@ function App() {
         
         {/* Chat area - 1/3 width */}
         <div style={{ 
-          flex: '1 1 0', 
-          minWidth: '0',
-          maxWidth: '400px',
+          flex: '0 0 33.333%', 
           background: 'white',
           borderRadius: '8px',
           border: '1px solid #e0e0e0',

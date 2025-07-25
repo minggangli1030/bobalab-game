@@ -24,9 +24,9 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
-    // Set canvas size - smaller for better fit
-    canvas.width = 700;
-    canvas.height = 300;
+    // Set canvas size - wider for better fit
+    canvas.width = 900;
+    canvas.height = 350;
     
     // Set background
     ctx.fillStyle = '#fafafa';
@@ -299,9 +299,9 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
             alt="Text passage for counting"
             style={{ 
               width: '100%', 
-              maxWidth: '700px',
+              maxWidth: '900px',
               height: 'auto',
-              maxHeight: '300px',
+              maxHeight: '350px',
               objectFit: 'contain',
               border: 'none',
               userSelect: 'none',
