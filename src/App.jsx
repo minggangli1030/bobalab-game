@@ -599,7 +599,14 @@ function App() {
     return (
       <div className="app">
         <h1>Multi-Task Challenge - Practice Mode</h1>
-        <PracticeMode rulesData={rulesDataRef.current} />
+        <PracticeMode 
+          rulesData={rulesDataRef.current} 
+          onStartMainGame={() => {
+            // Don't reload - just change mode
+            setMode('landing');
+            setPracticeChoice(null);
+          }}
+        />
       </div>
     );
   }
@@ -797,9 +804,9 @@ function App() {
       <div style={{ 
         display: 'flex', 
         gap: '20px', 
-        alignItems: 'flex-start',
+        alignItems: 'stretch', // Changed from flex-start to stretch
         marginTop: '20px',
-        height: '600px'
+        height: '700px' // Increased from 600px
       }}>
         {/* Game area - 2/3 width */}
         <div style={{ 
@@ -811,11 +818,16 @@ function App() {
           justifyContent: 'center',
           background: 'white',
           borderRadius: '8px',
-          border: '1px solid #e0e0e0'
+          border: '1px solid #e0e0e0',
+          overflow: 'auto' // Added to handle overflow
         }}>
           <div className="task-container" style={{ 
             width: '100%',
-            padding: '20px'
+            padding: '20px',
+            minHeight: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
           }}>
             {renderTask()}
           </div>
@@ -830,7 +842,7 @@ function App() {
           borderRadius: '8px',
           border: '1px solid #e0e0e0',
           overflow: 'hidden',
-          height: '100%'
+          height: '100%' // Ensure full height
         }}>
           <ChatContainer 
             bonusPrompts={bonusPrompts}

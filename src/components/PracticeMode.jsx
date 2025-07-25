@@ -6,7 +6,7 @@ import SliderTask from './SliderTask';
 import TypingTask from './TypingTask';
 import './PracticeMode.css';
 
-export default function PracticeMode({ rulesData }) {
+export default function PracticeMode({ rulesData, onStartMainGame }) {
   const [currentPractice, setCurrentPractice] = useState(null);
   const [completedPractice, setCompletedPractice] = useState({});
   
@@ -89,8 +89,13 @@ export default function PracticeMode({ rulesData }) {
         <button 
           className="back-btn" 
           onClick={() => {
-            // Clear practice state and restart properly
-            window.location.href = window.location.origin + window.location.search;
+            // Use the provided callback instead of reloading
+            if (onStartMainGame) {
+              onStartMainGame();
+            } else {
+              // Fallback to reload if no callback provided
+              window.location.href = window.location.origin + window.location.search;
+            }
           }}
         >
           Done Practicing - Start Main Game

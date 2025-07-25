@@ -33,11 +33,6 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
     ctx.fillStyle = '#f5f5f5';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Set border
-    ctx.strokeStyle = '#f44336';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
-    
     // Set text properties
     ctx.font = 'bold 40px "Courier New", monospace';
     ctx.fillStyle = '#333';
@@ -155,7 +150,7 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
         Type this pattern exactly:
       </p>
       
-      <div className="pattern-display" style={{ border: '2px solid #f44336' }}>
+      <div className="pattern-display">
         {patternImageUrl ? (
           <img 
             src={patternImageUrl} 
@@ -165,9 +160,7 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
               maxWidth: '600px',
               height: 'auto',
               userSelect: 'none',
-              pointerEvents: 'none',
-              border: '2px solid #f44336',
-              borderRadius: '8px'
+              pointerEvents: 'none'
             }}
             onContextMenu={(e) => e.preventDefault()}
             draggable={false}
@@ -188,7 +181,7 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
         />
       </div>
       
-      <button onClick={handleSubmit} className="submit-btn" style={{ background: '#f44336' }}>
+      <button onClick={handleSubmit} className="submit-btn">
         Submit
       </button>
       

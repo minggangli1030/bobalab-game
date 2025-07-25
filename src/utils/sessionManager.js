@@ -29,7 +29,28 @@ export const sessionManager = {
         };
       }
       
-      // Code is valid, create a new session
+      // Code is valid, check if it's already been used for a real session
+      // (Allow practice mode without marking code as used)
+      if (codeData.status === 'used' && codeData.sessionId) {
+        // Check if this was just used for practice
+        const existingSessionId = localStorage.getItem('sessionId');
+        if (existingSessionId === codeData.sessionId) {
+          // Same browser/session, allow continuation
+          return {
+            allowed: true,
+            resumeSession: codeData.sessionId,
+            code: urlCode,
+            codeData
+          };
+        } else {
+          return {
+            allowed: false,
+            reason: 'This code has already been used.',
+            code: urlCode
+          };
+        }
+      }
+      
       return { 
         allowed: true, 
         newSession: true, 
@@ -48,7 +69,7 @@ export const sessionManager = {
     }
   },
   
-  async createSession(accessCode = null, codeData = null) {
+  async createSession(accessCode = null, codeData = null, isPractice = false) {
     try {
       const ip = await this.getUserIP();
       const sessionData = {
@@ -66,14 +87,15 @@ export const sessionManager = {
         practiceCompleted: false,
         userAgent: navigator.userAgent,
         screenResolution: `${window.screen.width}x${window.screen.height}`,
-        source: accessCode ? 'qualtrics' : 'direct'
+        source: accessCode ? 'qualtrics' : 'direct',
+        isPractice: isPractice
       };
       
       const docRef = await addDoc(collection(db, 'sessions'), sessionData);
       localStorage.setItem('sessionId', docRef.id);
       
-      // Mark code as used if provided
-      if (accessCode) {
+      // Only mark code as used if this is NOT practice mode
+      if (accessCode && !isPractice) {
         await codeVerification.markCodeAsUsed(accessCode, docRef.id);
       }
       
