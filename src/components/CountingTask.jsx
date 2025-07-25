@@ -24,9 +24,9 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     
-    // Set canvas size
-    canvas.width = 800;
-    canvas.height = 400;
+    // Set canvas size - smaller for better fit
+    canvas.width = 700;
+    canvas.height = 300;
     
     // Set background
     ctx.fillStyle = '#fafafa';
@@ -37,12 +37,12 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
     ctx.lineWidth = 2;
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
     
-    // Set text properties
-    ctx.font = '18px monospace';
+    // Set text properties - smaller font
+    ctx.font = '16px monospace';
     ctx.fillStyle = '#333';
     
-    const lineHeight = 28;
-    const padding = 25;
+    const lineHeight = 24;
+    const padding = 20;
     const maxWidth = canvas.width - (padding * 2);
     
     // Word wrap function
@@ -299,10 +299,11 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
             alt="Text passage for counting"
             style={{ 
               width: '100%', 
-              maxWidth: '800px',
+              maxWidth: '700px',
               height: 'auto',
-              border: '2px solid #e0e0e0',
-              borderRadius: '8px',
+              maxHeight: '300px',
+              objectFit: 'contain',
+              border: 'none',
               userSelect: 'none',
               pointerEvents: 'none'
             }}

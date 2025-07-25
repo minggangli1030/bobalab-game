@@ -85,16 +85,20 @@ function App() {
     // Track user activity
     const updateActivity = () => {
       lastActivityRef.current = Date.now();
-      setIsIdle(false);
-      setIdleCountdown(5);
+      if (isIdle) {
+        setIsIdle(false);
+        setIdleCountdown(5);
+      }
     };
     
     // Add activity listeners
     document.addEventListener('mousedown', updateActivity);
     document.addEventListener('mousemove', updateActivity);
     document.addEventListener('keypress', updateActivity);
+    document.addEventListener('keydown', updateActivity);
     document.addEventListener('scroll', updateActivity);
     document.addEventListener('touchstart', updateActivity);
+    document.addEventListener('click', updateActivity);
     
     // Focus detection
     const handleFocus = () => {
@@ -118,7 +122,7 @@ function App() {
     
     // Start idle detection timer
     const idleCheckInterval = setInterval(() => {
-      if (mode === 'challenge' && !gameBlocked) {
+      if (mode === 'challenge' && !gameBlocked && !isInBreak) {
         const timeSinceActivity = Date.now() - lastActivityRef.current;
         
         if (timeSinceActivity > 30000 && !isIdle) { // 30 seconds
@@ -148,17 +152,22 @@ function App() {
   
   // Idle countdown
   const startIdleCountdown = () => {
+    let countdown = 5;
+    setIdleCountdown(countdown);
+    
     const idleCountdownInterval = setInterval(() => {
-      setIdleCountdown(prev => {
-        if (prev <= 1) {
-          setGameBlocked(true);
-          setIsIdle(false);
-          clearInterval(idleCountdownInterval);
-          return 0;
-        }
-        return prev - 1;
-      });
+      countdown -= 1;
+      setIdleCountdown(countdown);
+      
+      if (countdown <= 0) {
+        setGameBlocked(true);
+        setIsIdle(false);
+        clearInterval(idleCountdownInterval);
+      }
     }, 1000);
+    
+    // Store the interval ID so we can clear it if user becomes active
+    idleTimerRef.current = idleCountdownInterval;
   };
   
   // Handle user response to idle warning
@@ -166,6 +175,12 @@ function App() {
     setIsIdle(false);
     setIdleCountdown(5);
     lastActivityRef.current = Date.now();
+    
+    // Clear the countdown interval
+    if (idleTimerRef.current) {
+      clearInterval(idleTimerRef.current);
+      idleTimerRef.current = null;
+    }
   };
   
   // Session management
@@ -525,7 +540,7 @@ function App() {
                 <h3 style={{ color: '#4CAF50' }}>🎯 Slider Game</h3>
                 <p>Match target values with increasing precision.</p>
                 
-                <h3 style={{ color: '#FFC107' }}>⌨️ Typing Game</h3>
+                <h3 style={{ color: '#f44336' }}>⌨️ Typing Game</h3>
                 <p>Type patterns exactly as shown.</p>
               </div>
               
@@ -804,13 +819,14 @@ function App() {
       <div style={{ 
         display: 'flex', 
         gap: '20px', 
-        alignItems: 'stretch', // Changed from flex-start to stretch
+        alignItems: 'stretch',
         marginTop: '20px',
-        height: '700px' // Increased from 600px
+        height: '600px',
+        width: '100%'
       }}>
         {/* Game area - 2/3 width */}
         <div style={{ 
-          flex: '2', 
+          flex: '2 1 0', 
           minWidth: '0',
           height: '100%',
           display: 'flex',
@@ -819,15 +835,16 @@ function App() {
           background: 'white',
           borderRadius: '8px',
           border: '1px solid #e0e0e0',
-          overflow: 'auto' // Added to handle overflow
+          overflow: 'hidden'
         }}>
           <div className="task-container" style={{ 
             width: '100%',
+            height: '100%',
             padding: '20px',
-            minHeight: '100%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center'
+            justifyContent: 'center',
+            overflow: 'hidden'
           }}>
             {renderTask()}
           </div>
@@ -835,14 +852,14 @@ function App() {
         
         {/* Chat area - 1/3 width */}
         <div style={{ 
-          flex: '1', 
-          minWidth: '300px',
+          flex: '1 1 0', 
+          minWidth: '0',
           maxWidth: '400px',
           background: 'white',
           borderRadius: '8px',
           border: '1px solid #e0e0e0',
           overflow: 'hidden',
-          height: '100%' // Ensure full height
+          height: '100%'
         }}>
           <ChatContainer 
             bonusPrompts={bonusPrompts}

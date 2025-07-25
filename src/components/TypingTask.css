@@ -1,6 +1,6 @@
-/* src/components/TypingTask.css - Updated with yellow color scheme */
+/* src/components/TypingTask.css - Updated with red color scheme */
 .task.typing {
-  border: 2px solid #FFC107;
+  border: 2px solid #f44336;
   border-radius: 8px;
   padding: 30px;
   background: white;
@@ -68,15 +68,15 @@
 
 .typing-input:focus {
   outline: none;
-  border-color: #FFC107;
-  box-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
+  border-color: #f44336;
+  box-shadow: 0 0 5px rgba(244, 67, 54, 0.3);
 }
 
 .submit-btn {
   display: block;
   margin: 0 auto;
   padding: 12px 30px;
-  background: #FFC107;
+  background: #f44336;
   color: white;
   border: none;
   border-radius: 4px;
@@ -88,7 +88,7 @@
 }
 
 .submit-btn:hover {
-  background: #FFA000;
+  background: #d32f2f;
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }

@@ -2,9 +2,9 @@
 .task.counting {
   border: 2px solid #9C27B0;
   border-radius: 8px;
-  padding: 30px;
+  padding: 20px;
   background: white;
-  max-width: 800px;
+  max-width: 700px;
   margin: 0 auto;
 }
 
@@ -29,9 +29,9 @@
 .difficulty-badge.hard { background: #f44336; }
 
 .instruction {
-  font-size: 18px;
+  font-size: 16px;
   text-align: center;
-  margin: 20px 0;
+  margin: 15px 0;
 }
 
 .hint {
@@ -44,13 +44,14 @@
   background: #fafafa;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
-  padding: 20px;
-  margin: 20px 0;
-  line-height: 1.8;
+  padding: 15px;
+  margin: 15px 0;
+  line-height: 1.6;
   font-family: monospace;
-  font-size: 14px;
+  font-size: 13px;
   text-align: left;
-  min-height: 150px;
+  max-height: 250px;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
