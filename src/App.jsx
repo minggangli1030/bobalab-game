@@ -146,7 +146,7 @@ function App() {
         const timeSinceActivity = Date.now() - lastActivityRef.current;
         console.log('Time since last activity:', Math.floor(timeSinceActivity / 1000), 'seconds');
         
-        if (timeSinceActivity > 60000) { // 60 seconds
+        if (timeSinceActivity > 120000) { // 120 seconds (2 minutes)
           console.log('Starting idle countdown!');
           setIsIdle(true);
           startIdleCountdown();
@@ -273,6 +273,9 @@ function App() {
   
   // Start main game
   const startMainGame = () => {
+    // Clear all dependencies before starting main game
+    taskDependencies.clearAllDependencies();
+    
     // Clear any practice-related state
     setMode('challenge');
     setCompleted({});

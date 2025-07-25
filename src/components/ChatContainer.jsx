@@ -106,7 +106,7 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
       };
     }
 
-    const input = userInput.toLowerCase();
+    const input = userInput.toLowerCase().trim();
     const matches = [];
 
     // Determine current game type
@@ -115,8 +115,10 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
        currentTask.startsWith('g2') ? 'slider' : 
        currentTask.startsWith('g3') ? 'typing' : null) : null;
 
+    console.log('Finding response for:', input, 'Current game:', gameType);
+
     // Search in current game responses first (higher weight)
-    if (gameType && responseDataRef.current.responses[gameType]) {
+    if (gameType && responseDataRef.current.responses && responseDataRef.current.responses[gameType]) {
       searchResponses(responseDataRef.current.responses[gameType], input, matches, 2.0);
     }
 
@@ -126,11 +128,15 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
     }
 
     // Search in other game responses (lower weight)
-    Object.keys(responseDataRef.current.responses || {}).forEach(game => {
-      if (game !== gameType) {
-        searchResponses(responseDataRef.current.responses[game], input, matches, 0.5);
-      }
-    });
+    if (responseDataRef.current.responses) {
+      Object.keys(responseDataRef.current.responses).forEach(game => {
+        if (game !== gameType) {
+          searchResponses(responseDataRef.current.responses[game], input, matches, 0.5);
+        }
+      });
+    }
+
+    console.log('Found matches:', matches.length, matches);
 
     // Sort by score (highest first)
     matches.sort((a, b) => b.score - a.score);
@@ -158,7 +164,9 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
 
     // Return random fallback
     const fallbacks = responseDataRef.current.fallback || [];
-    const fallback = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+    const fallback = fallbacks.length > 0 ? 
+      fallbacks[Math.floor(Math.random() * fallbacks.length)] :
+      { response: 'Ask about counting, slider, or typing tasks. Task order matters!', id: 'default-fallback' };
     
     return {
       response: fallback.response,
@@ -166,7 +174,7 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
         id: fallback.id,
         level: 'Task-level',
         type: 'Iterate with me',
-        context: fallback.context
+        context: fallback.context || 'fallback'
       }
     };
   };
@@ -218,6 +226,8 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
   };
 
   const calculateTriggerScore = (triggers, input) => {
+    if (!triggers || triggers.length === 0) return { score: 0, matchedTriggers: [] };
+    
     let totalScore = 0;
     const matchedTriggers = [];
     
