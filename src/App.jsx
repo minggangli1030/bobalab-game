@@ -116,6 +116,7 @@ function App() {
     document.addEventListener('scroll', updateActivity);
     document.addEventListener('touchstart', updateActivity);
     document.addEventListener('click', updateActivity);
+    document.addEventListener('input', updateActivity); // Added for typing in input fields
     
     // Focus detection
     const handleFocus = () => {
@@ -128,7 +129,7 @@ function App() {
     };
     
     const handleBlur = () => {
-      if (mode === 'challenge' && !gameBlocked) {
+      if (mode === 'challenge' && !gameBlocked && !isInBreak) {
         setIsOutOfFocus(true);
         startOutOfFocusCountdown();
       }
@@ -145,7 +146,7 @@ function App() {
         const timeSinceActivity = Date.now() - lastActivityRef.current;
         console.log('Time since last activity:', Math.floor(timeSinceActivity / 1000), 'seconds');
         
-        if (timeSinceActivity > 60000) { // 60 seconds (changed from 30)
+        if (timeSinceActivity > 60000) { // 60 seconds
           console.log('Starting idle countdown!');
           setIsIdle(true);
           startIdleCountdown();
@@ -644,9 +645,9 @@ function App() {
         <PracticeMode 
           rulesData={rulesDataRef.current} 
           onStartMainGame={() => {
-            // Don't reload - just change mode
-            setMode('landing');
-            setPracticeChoice(null);
+            // Clear dependencies and start main game directly
+            taskDependencies.clearAllDependencies();
+            startMainGame();
           }}
         />
       </div>

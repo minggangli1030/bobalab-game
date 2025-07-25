@@ -11,6 +11,9 @@ export default function PracticeMode({ rulesData, onStartMainGame }) {
   const [completedPractice, setCompletedPractice] = useState({});
   
   useEffect(() => {
+    // Clear all dependencies when entering practice mode
+    taskDependencies.clearAllDependencies();
+    
     // Update visual indicators when tasks are completed
     Object.keys(completedPractice).forEach(taskId => {
       if (taskId.startsWith('g2')) {
@@ -34,6 +37,12 @@ export default function PracticeMode({ rulesData, onStartMainGame }) {
     // Activate dependencies with 100% probability in practice mode
     taskDependencies.checkDependencies(taskId, true);
     setCurrentPractice(null);
+  };
+  
+  const startMainGame = () => {
+    // Clear all dependencies before starting main game
+    taskDependencies.clearAllDependencies();
+    onStartMainGame();
   };
   
   const renderPracticeMenu = () => (
@@ -87,16 +96,8 @@ export default function PracticeMode({ rulesData, onStartMainGame }) {
       {/* Single button to start main game */}
       <div style={{ textAlign: 'center', marginTop: '30px' }}>
         <button 
-          className="back-btn" 
-          onClick={() => {
-            // Use the provided callback instead of reloading
-            if (onStartMainGame) {
-              onStartMainGame();
-            } else {
-              // Fallback to reload if no callback provided
-              window.location.href = window.location.origin + window.location.search;
-            }
-          }}
+          className="start-main-game-btn" 
+          onClick={startMainGame}
         >
           Done Practicing - Start Main Game
         </button>
@@ -120,30 +121,32 @@ export default function PracticeMode({ rulesData, onStartMainGame }) {
         ← Back to Practice Menu
       </button>
       
-      {game === '1' && (
-        <CountingTask
-          taskNum={taskNum}
-          textSections={rulesData.textSections || ['Practice text for counting...']}
-          onComplete={handlePracticeComplete}
-          isPractice={true}
-        />
-      )}
-      
-      {game === '2' && (
-        <SliderTask
-          taskNum={taskNum}
-          onComplete={handlePracticeComplete}
-          isPractice={true}
-        />
-      )}
-      
-      {game === '3' && (
-        <TypingTask
-          taskNum={taskNum}
-          onComplete={handlePracticeComplete}
-          isPractice={true}
-        />
-      )}
+      <div className="practice-task-wrapper">
+        {game === '1' && (
+          <CountingTask
+            taskNum={taskNum}
+            textSections={rulesData.textSections || ['Practice text for counting...']}
+            onComplete={handlePracticeComplete}
+            isPractice={true}
+          />
+        )}
+        
+        {game === '2' && (
+          <SliderTask
+            taskNum={taskNum}
+            onComplete={handlePracticeComplete}
+            isPractice={true}
+          />
+        )}
+        
+        {game === '3' && (
+          <TypingTask
+            taskNum={taskNum}
+            onComplete={handlePracticeComplete}
+            isPractice={true}
+          />
+        )}
+      </div>
     </div>
   );
 }

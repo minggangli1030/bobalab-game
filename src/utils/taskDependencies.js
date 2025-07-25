@@ -93,5 +93,10 @@ export const taskDependencies = {
   
   clearDependency(taskId) {
     delete this.activeDependencies[taskId];
+  },
+  
+  clearAllDependencies() {
+    this.activeDependencies = {};
+    console.log('All task dependencies cleared');
   }
 };

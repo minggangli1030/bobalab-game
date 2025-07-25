@@ -28,23 +28,72 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
 
   const loadResponseData = async () => {
     try {
-      // Fetch from your GitHub repo (update URL to your actual repo)
-      const response = await fetch('/data/chat-responses.json');
+      // Try local first, then GitHub
+      let response = await fetch('/data/chat-responses.json');
+      
+      if (!response.ok) {
+        // Fallback to GitHub raw content (update with your repo URL)
+        response = await fetch('https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/public/data/chat-responses.json');
+      }
+      
       if (!response.ok) {
         throw new Error('Failed to load response data');
       }
+      
       responseDataRef.current = await response.json();
       console.log('Loaded response data:', responseDataRef.current.metadata);
     } catch (error) {
       console.error('Error loading response data:', error);
-      // Fallback to a simple response system
+      // Fallback to embedded minimal responses
       responseDataRef.current = {
-        fallback: [
-          {
-            id: 'error-fallback',
-            response: 'I can help with counting, slider, and typing tasks. What would you like to know?'
+        responses: {
+          counting: {
+            workflow: {
+              make_for_me: [{
+                id: 'fallback-1',
+                response: 'Count systematically from left to right. Tasks affect each other - try different orders!',
+                triggers: ['how', 'count', 'strategy']
+              }]
+            },
+            task: {
+              find_for_me: [{
+                id: 'fallback-2',
+                response: 'Count every occurrence. Case-insensitive for letters, exact match for words.',
+                triggers: ['what', 'rule', 'case']
+              }]
+            }
+          },
+          slider: {
+            task: {
+              find_for_me: [{
+                id: 'fallback-3',
+                response: 'Move the slider to match the target value. Easy=integers, Medium=1 decimal, Hard=2 decimals+hidden.',
+                triggers: ['how', 'work', 'slider']
+              }]
+            }
+          },
+          typing: {
+            task: {
+              find_for_me: [{
+                id: 'fallback-4',
+                response: 'Type exactly as shown. Every character, space, and symbol must match.',
+                triggers: ['type', 'exact', 'pattern']
+              }]
+            }
           }
-        ]
+        },
+        general: {
+          navigation: [{
+            id: 'fallback-5',
+            response: 'Complete tasks in any order. Each gives +1 prompt. Task order affects difficulty!',
+            triggers: ['order', 'switch', 'navigate']
+          }]
+        },
+        fallback: [{
+          id: 'fallback-default',
+          response: 'Ask about counting, slider, or typing tasks. Task order matters - experiment!',
+          triggers: []
+        }]
       };
     }
   };

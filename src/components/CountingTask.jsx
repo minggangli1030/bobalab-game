@@ -197,11 +197,14 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
         );
       } else {
         const [letter1, letter2] = targetWord.split('" and "');
-        highlighted = selectedText
-          .replace(new RegExp(letter1, 'gi'), match => 
-            `<span class="highlighted-letter">${match}</span>`)
-          .replace(new RegExp(letter2, 'gi'), match => 
-            `<span class="highlighted-letter">${match}</span>`);
+        // Only highlight individual letters, not within words
+        highlighted = selectedText.split('').map(char => {
+          if (char.toLowerCase() === letter1.toLowerCase() || 
+              char.toLowerCase() === letter2.toLowerCase()) {
+            return `<span class="highlighted-letter">${char}</span>`;
+          }
+          return char;
+        }).join('');
       }
       setDisplayText(highlighted);
     } else {
