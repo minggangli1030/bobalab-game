@@ -13,6 +13,7 @@ import { taskDependencies } from './utils/taskDependencies';
 import { db } from './firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './App.css';
+import AdminPage from './AdminPage';
 
 
 
@@ -23,6 +24,10 @@ function App() {
     testFirebaseConnection();
   });
   }, []);
+
+  if (window.location.search.includes('admin=true')) {
+  return <AdminPage />;
+  }
 
 
 
