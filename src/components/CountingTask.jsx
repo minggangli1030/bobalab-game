@@ -37,11 +37,11 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
     ctx.lineWidth = 2;
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
     
-    // Set text properties - smaller font
-    ctx.font = '16px monospace';
+    // Set text properties - larger font for better readability
+    ctx.font = '20px monospace';
     ctx.fillStyle = '#333';
     
-    const lineHeight = 24;
+    const lineHeight = 30;
     const padding = 20;
     const maxWidth = canvas.width - (padding * 2);
     
