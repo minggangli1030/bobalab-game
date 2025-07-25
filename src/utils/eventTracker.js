@@ -4,10 +4,6 @@ import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 export const eventTracker = {
   async logEvent(eventType, eventData) {
-    // TEMPORARY: Log to console instead of Firestore
-    console.log('Event:', eventType, eventData);
-    
-    /* Original code - commented out
     const sessionId = localStorage.getItem('sessionId');
     
     const event = {
