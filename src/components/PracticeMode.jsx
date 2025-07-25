@@ -1,4 +1,4 @@
-// src/components/PracticeMode.jsx
+// src/components/PracticeMode.jsx - Fixed Practice Mode
 import React, { useState, useEffect } from 'react';
 import { taskDependencies } from '../utils/taskDependencies';
 import CountingTask from './CountingTask';
@@ -40,7 +40,7 @@ export default function PracticeMode({ rulesData }) {
     <div className="practice-menu">
       <h2>Practice Mode</h2>
       <p className="practice-hint">
-        Try completing tasks in different orders to see how they affect each other!
+        Try one task from each game type to see how they affect each other!
       </p>
       
       <div className="practice-cards">
@@ -48,15 +48,12 @@ export default function PracticeMode({ rulesData }) {
           <h3>🔢 Counting Game</h3>
           <p>Count words or letters in text passages</p>
           <div className="practice-buttons">
-            {[1, 2, 3].map(n => (
-              <button
-                key={n}
-                onClick={() => setCurrentPractice(`g1t${n}`)}
-                className={completedPractice[`g1t${n}`] ? 'completed' : ''}
-              >
-                Task {n} {completedPractice[`g1t${n}`] && '✓'}
-              </button>
-            ))}
+            <button
+              onClick={() => setCurrentPractice('g1t1')}
+              className={completedPractice['g1t1'] ? 'completed' : ''}
+            >
+              Try Counting {completedPractice['g1t1'] && '✓'}
+            </button>
           </div>
         </div>
         
@@ -64,15 +61,12 @@ export default function PracticeMode({ rulesData }) {
           <h3>🎯 Slider Game</h3>
           <p>Match target values with precision</p>
           <div className="practice-buttons">
-            {[1, 2, 3].map(n => (
-              <button
-                key={n}
-                onClick={() => setCurrentPractice(`g2t${n}`)}
-                className={completedPractice[`g2t${n}`] ? 'completed' : ''}
-              >
-                Task {n} {completedPractice[`g2t${n}`] && '✓'}
-              </button>
-            ))}
+            <button
+              onClick={() => setCurrentPractice('g2t1')}
+              className={completedPractice['g2t1'] ? 'completed' : ''}
+            >
+              Try Slider {completedPractice['g2t1'] && '✓'}
+            </button>
           </div>
         </div>
         
@@ -80,22 +74,25 @@ export default function PracticeMode({ rulesData }) {
           <h3>⌨️ Typing Game</h3>
           <p>Type patterns exactly as shown</p>
           <div className="practice-buttons">
-            {[1, 2, 3].map(n => (
-              <button
-                key={n}
-                onClick={() => setCurrentPractice(`g3t${n}`)}
-                className={completedPractice[`g3t${n}`] ? 'completed' : ''}
-              >
-                Task {n} {completedPractice[`g3t${n}`] && '✓'}
-              </button>
-            ))}
+            <button
+              onClick={() => setCurrentPractice('g3t1')}
+              className={completedPractice['g3t1'] ? 'completed' : ''}
+            >
+              Try Typing {completedPractice['g3t1'] && '✓'}
+            </button>
           </div>
         </div>
       </div>
       
-      <button className="back-btn" onClick={() => window.location.reload()}>
-        Done Practicing - Start Main Game
-      </button>
+      {/* Single button to start main game */}
+      <div style={{ textAlign: 'center', marginTop: '30px' }}>
+        <button 
+          className="back-btn" 
+          onClick={() => window.location.reload()}
+        >
+          Done Practicing - Start Main Game
+        </button>
+      </div>
     </div>
   );
   

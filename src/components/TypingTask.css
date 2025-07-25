@@ -1,0 +1,110 @@
+/* src/components/TypingTask.css */
+.task.typing {
+  border: 2px solid #FFC107;
+  border-radius: 8px;
+  padding: 30px;
+  background: white;
+  max-width: 800px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.task.typing h3 {
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.difficulty-badge {
+  display: inline-block;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 20px;
+}
+
+.difficulty-badge.easy { background: #4CAF50; }
+.difficulty-badge.medium { background: #FF9800; }
+.difficulty-badge.hard { background: #f44336; }
+
+.instruction {
+  font-size: 18px;
+  text-align: center;
+  margin: 20px 0;
+  color: #333;
+}
+
+.pattern-display {
+  background: #f5f5f5;
+  border: 2px solid #FFC107;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 20px 0;
+  text-align: center;
+}
+
+.pattern-text {
+  font-size: 32px;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  color: #333;
+  font-weight: bold;
+}
+
+.input-section {
+  margin: 20px 0;
+}
+
+.typing-input {
+  width: 300px;
+  padding: 10px;
+  font-size: 18px;
+  font-family: 'Courier New', monospace;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.typing-input:focus {
+  outline: none;
+  border-color: #FFC107;
+  box-shadow: 0 0 5px rgba(255, 193, 7, 0.3);
+}
+
+.submit-btn {
+  display: block;
+  margin: 0 auto;
+  padding: 12px 30px;
+  background: #FFC107;
+  color: #333;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.submit-btn:hover {
+  background: #FFB300;
+}
+
+.feedback {
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  margin-top: 20px;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.feedback.correct {
+  color: #4CAF50;
+  background: #e8f5e9;
+}
+
+.feedback.incorrect {
+  color: #f44336;
+  background: #ffebee;
+}

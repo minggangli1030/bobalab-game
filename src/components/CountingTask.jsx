@@ -1,4 +1,4 @@
-// src/components/CountingTask.jsx
+// src/components/CountingTask.jsx - Updated to hide correct answer
 import React, { useEffect, useState, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import { taskDependencies } from '../utils/taskDependencies';
@@ -91,9 +91,8 @@ export default function CountingTask({ taskNum, textSections, onComplete }) {
       answer
     );
     
-    setFeedback(correct ? '✓ Correct!' : `✗ Incorrect. The answer was ${answer}.`);
-    
     if (correct) {
+      setFeedback('✓ Correct!');
       setTimeout(() => {
         onComplete(`g1t${taskNum}`, {
           attempts: attemptsRef.current,
@@ -101,6 +100,9 @@ export default function CountingTask({ taskNum, textSections, onComplete }) {
           accuracy: 100
         });
       }, 1500);
+    } else {
+      // Don't show the correct answer - just indicate it's incorrect
+      setFeedback('✗ Incorrect. Try again!');
     }
   };
   

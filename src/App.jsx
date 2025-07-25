@@ -1,4 +1,4 @@
-// src/App.jsx
+// src/App.jsx - Updated with fixes
 import React, { useState, useEffect, useRef } from 'react';
 import CountingTask from './components/CountingTask';
 import SliderTask from './components/SliderTask';
@@ -478,7 +478,6 @@ function App() {
         <h1>Multi-Task Challenge</h1>
         <div className="mode-switch">
           <button onClick={() => setMode('challenge')}>Challenge</button>
-          <button onClick={() => setMode('practice')}>Practice</button>
           <button disabled={true}>Chat</button>
         </div>
         <ChatContainer 
@@ -539,9 +538,9 @@ function App() {
         Time: {Math.floor(globalTimer / 60)}:{(globalTimer % 60).toString().padStart(2, '0')}
       </div>
       
+      {/* Removed practice button in main game mode */}
       <div className="mode-switch">
         <button disabled={true}>Challenge</button>
-        <button onClick={() => setMode('practice')}>Practice</button>
         <button onClick={() => setMode('chat')}>Chat</button>
       </div>
       
