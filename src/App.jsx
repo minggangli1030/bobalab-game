@@ -1,4 +1,4 @@
-// src/App.jsx - Updated with fixes
+// src/App.jsx - Complete version with enhanced tracking
 import React, { useState, useEffect, useRef } from 'react';
 import CountingTask from './components/CountingTask';
 import SliderTask from './components/SliderTask';
@@ -121,17 +121,29 @@ function App() {
     // Focus detection
     const handleFocus = () => {
       setIsOutOfFocus(false);
-      setOutOfFocusCountdown(15);
+      setOutOfFocusCountdown(30);
       if (outOfFocusTimerRef.current) {
         clearInterval(outOfFocusTimerRef.current);
         outOfFocusTimerRef.current = null;
       }
+      
+      // Track focus return
+      eventTracker.trackUserAction('focus_returned', {
+        currentTask: currentTab,
+        gameTime: globalTimer
+      });
     };
     
     const handleBlur = () => {
       if (mode === 'challenge' && !gameBlocked && !isInBreak) {
         setIsOutOfFocus(true);
         startOutOfFocusCountdown();
+        
+        // Track focus lost
+        eventTracker.trackUserAction('focus_lost', {
+          currentTask: currentTab,
+          gameTime: globalTimer
+        });
       }
     };
     
@@ -171,6 +183,13 @@ function App() {
           setGameBlocked(true);
           setIsOutOfFocus(false);
           clearInterval(outOfFocusTimerRef.current);
+          
+          // Track game blocked due to focus
+          eventTracker.trackUserAction('game_blocked_focus', {
+            currentTask: currentTab,
+            gameTime: globalTimer
+          });
+          
           return 0;
         }
         return prev - 1;
@@ -191,6 +210,13 @@ function App() {
         setGameBlocked(true);
         setIsIdle(false);
         clearInterval(idleCountdownInterval);
+        
+        // Track game blocked due to idle
+        eventTracker.trackUserAction('game_blocked_idle', {
+          currentTask: currentTab,
+          gameTime: globalTimer,
+          timeSinceLastActivity: Date.now() - lastActivityRef.current
+        });
       }
     }, 1000);
     
@@ -209,6 +235,12 @@ function App() {
       clearInterval(idleTimerRef.current);
       idleTimerRef.current = null;
     }
+    
+    // Track idle response
+    eventTracker.trackUserAction('idle_warning_dismissed', {
+      currentTask: currentTab,
+      gameTime: globalTimer
+    });
   };
   
   // Session management
@@ -264,6 +296,13 @@ function App() {
   // Handle practice choice
   const handlePracticeChoice = (choice) => {
     setPracticeChoice(choice);
+    
+    // Track practice choice
+    eventTracker.trackUserAction('practice_choice', {
+      choice: choice,
+      timestamp: Date.now()
+    });
+    
     if (choice === 'no') {
       startMainGame();
     } else {
@@ -285,8 +324,10 @@ function App() {
     
     startTimer();
     setTaskStartTimes({ g1t1: Date.now() });
+    eventTracker.setPageStartTime('g1t1');
     eventTracker.logEvent('game_start', { 
-      practiceCompleted: practiceChoice === 'yes' 
+      practiceCompleted: practiceChoice === 'yes',
+      timestamp: Date.now()
     });
   };
   
@@ -301,11 +342,20 @@ function App() {
     // Check and activate dependencies
     const activatedDeps = taskDependencies.checkDependencies(tabId, mode === 'practice');
     
-    // Log completion
+    // Enhanced tracking for task completion
+    await eventTracker.trackTaskComplete(tabId, data.attempts, data.totalTime, data.accuracy);
+    
+    // Log completion event with full context
     await eventTracker.logEvent('task_complete', {
       taskId: tabId,
       ...data,
-      activatedDependencies: activatedDeps
+      activatedDependencies: activatedDeps,
+      completionContext: {
+        totalTasksCompleted: Object.keys(completed).length + 1,
+        currentGameTime: globalTimer,
+        switchesBeforeCompletion: switches,
+        bonusPromptsEarned: bonusPrompts + 1
+      }
     });
     
     // Update session
@@ -336,6 +386,15 @@ function App() {
   const handleTabSwitch = async (newTab, isAutoAdvance = false) => {
     if (isInBreak) return;
     
+    // Track user action
+    if (!isAutoAdvance) {
+      await eventTracker.trackUserAction('manual_tab_switch', {
+        from: currentTab,
+        to: newTab,
+        reason: 'user_clicked'
+      });
+    }
+    
     // Reset idle timer on tab switch
     lastActivityRef.current = Date.now();
     if (isIdle) {
@@ -349,20 +408,25 @@ function App() {
     
     if (currentTab !== newTab && !isAutoAdvance) {
       setSwitches(prev => prev + 1);
-      await eventTracker.trackPageSwitch(currentTab, newTab, isAutoAdvance);
     }
+    
+    // Enhanced page switch tracking
+    await eventTracker.trackPageSwitch(currentTab, newTab, isAutoAdvance);
     
     // Track time on previous task
     if (taskStartTimes[currentTab]) {
       const timeSpent = Date.now() - taskStartTimes[currentTab];
       await eventTracker.logEvent('task_time', {
         taskId: currentTab,
-        timeSpent
+        timeSpent,
+        completed: completed[currentTab] || false,
+        leftForTask: newTab
       });
     }
     
     setCurrentTab(newTab);
     setTaskStartTimes(prev => ({ ...prev, [newTab]: Date.now() }));
+    eventTracker.setPageStartTime(newTab);
   };
   
   // Mandatory break between tasks
@@ -385,6 +449,13 @@ function App() {
     }
     
     setBreakDestination(nextTab);
+    
+    // Track break start
+    eventTracker.trackUserAction('break_started', {
+      afterTask: completedTabId,
+      nextTask: nextTab,
+      breakDuration: 3000
+    });
     
     // Auto-advance after 3 seconds
     setTimeout(() => {
@@ -426,7 +497,12 @@ function App() {
     await eventTracker.logEvent('game_complete', {
       totalTime: finalTime,
       totalSwitches: switches,
-      completedTasks: Object.keys(completed).length
+      completedTasks: Object.keys(completed).length,
+      finalContext: {
+        practiceCompleted: practiceChoice === 'yes',
+        totalPrompts: 3 + bonusPrompts,
+        promptsUsed: 3 + bonusPrompts - (3 + bonusPrompts) // Calculate from chat usage
+      }
     });
     
     if (sessionId && !sessionId.startsWith('offline-')) {
