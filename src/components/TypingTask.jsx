@@ -34,7 +34,7 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Set border
-    ctx.strokeStyle = '#FFC107';
+    ctx.strokeStyle = '#f44336';
     ctx.lineWidth = 2;
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
     
@@ -155,7 +155,7 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
         Type this pattern exactly:
       </p>
       
-      <div className="pattern-display">
+      <div className="pattern-display" style={{ border: '2px solid #f44336' }}>
         {patternImageUrl ? (
           <img 
             src={patternImageUrl} 
@@ -166,7 +166,7 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
               height: 'auto',
               userSelect: 'none',
               pointerEvents: 'none',
-              border: '2px solid #FFC107',
+              border: '2px solid #f44336',
               borderRadius: '8px'
             }}
             onContextMenu={(e) => e.preventDefault()}
@@ -188,7 +188,7 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
         />
       </div>
       
-      <button onClick={handleSubmit} className="submit-btn">
+      <button onClick={handleSubmit} className="submit-btn" style={{ background: '#f44336' }}>
         Submit
       </button>
       

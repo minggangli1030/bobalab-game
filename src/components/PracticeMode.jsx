@@ -88,7 +88,10 @@ export default function PracticeMode({ rulesData }) {
       <div style={{ textAlign: 'center', marginTop: '30px' }}>
         <button 
           className="back-btn" 
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            // Clear practice state and restart properly
+            window.location.href = window.location.origin + window.location.search;
+          }}
         >
           Done Practicing - Start Main Game
         </button>

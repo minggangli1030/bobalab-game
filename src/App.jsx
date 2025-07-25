@@ -53,7 +53,10 @@ function App() {
     textSections: [
       'The University of California, Berkeley (UC Berkeley, Berkeley, Cal, or California) is a public land-grant research university in Berkeley, California, United States. Founded in 1868 and named after the Anglo-Irish philosopher George Berkeley, it is the state\'s first land-grant university and is the founding campus of the University of California system.',
       'Ten faculty members and forty male students made up the fledgling university when it opened in Oakland in 1869. Frederick Billings, a trustee of the College of California, suggested that a new campus site north of Oakland be named in honor of Anglo-Irish philosopher George Berkeley.',
-      'Berkeley has an enrollment of more than 45,000 students. The university is organized around fifteen schools of study on the same campus, including the College of Chemistry, the College of Engineering, College of Letters and Science, and the Haas School of Business.'
+      'Berkeley has an enrollment of more than 45,000 students. The university is organized around fifteen schools of study on the same campus, including the College of Chemistry, the College of Engineering, College of Letters and Science, and the Haas School of Business.',
+      'Oski the Bear (Oski) is the official mascot of the University of California, Berkeley ("Cal"), representing the California Golden Bears. Named after the Oski Yell, he made his debut at a freshman rally in the Greek Theatre on September 25, 1941. Prior to his debut, live bears were used as Cal mascots. Oski\'s name, design, and character were developed by William "Rocky" Rockwell, who was the first student to play the role, and Warrington Colescott, an editor of The Daily Californian and famed satirist.',
+      'Since his debut, Oski\'s activities have been managed by the Oski Committee, which also appoints a new Oski whenever a replacement is required. Historically, persons who played Oski were male and of short stature (under 5\'7"), although the gender requirement was dropped around 1974.',
+      'Oski\'s identity is protected by the Committee, and wearers of the suit generally do not disclose their identity to the public. There is a volunteer advisor that can provide guidance to the committee. To that end, there may be multiple members of the Committee who wear the suit, depending on their schedules.'
     ]
   });
   
@@ -227,7 +230,13 @@ function App() {
   
   // Start main game
   const startMainGame = () => {
+    // Clear any practice-related state
     setMode('challenge');
+    setCompleted({});
+    setSwitches(0);
+    setBonusPrompts(0);
+    setCurrentTab('g1t1');
+    
     startTimer();
     setTaskStartTimes({ g1t1: Date.now() });
     eventTracker.logEvent('game_start', { 
@@ -788,22 +797,25 @@ function App() {
       <div style={{ 
         display: 'flex', 
         gap: '20px', 
-        alignItems: 'stretch',
-        marginTop: '20px'
+        alignItems: 'flex-start',
+        marginTop: '20px',
+        height: '600px'
       }}>
         {/* Game area - 2/3 width */}
         <div style={{ 
           flex: '2', 
           minWidth: '0',
+          height: '100%',
           display: 'flex',
-          flexDirection: 'column'
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e0e0e0'
         }}>
           <div className="task-container" style={{ 
-            flex: 1,
-            height: '600px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            width: '100%',
+            padding: '20px'
           }}>
             {renderTask()}
           </div>
@@ -818,7 +830,7 @@ function App() {
           borderRadius: '8px',
           border: '1px solid #e0e0e0',
           overflow: 'hidden',
-          height: '600px'
+          height: '100%'
         }}>
           <ChatContainer 
             bonusPrompts={bonusPrompts}
