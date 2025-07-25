@@ -14,7 +14,18 @@ import { db } from './firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './App.css';
 
+
+
 function App() {
+  // Test Firebase connection
+  useEffect(() => {
+  import('./testFirebase').then(({ testFirebaseConnection }) => {
+    testFirebaseConnection();
+  });
+  }, []);
+
+
+
   // State management
   const [mode, setMode] = useState('landing');
   const [practiceChoice, setPracticeChoice] = useState(null);

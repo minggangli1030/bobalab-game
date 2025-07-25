@@ -1,14 +1,18 @@
-// src/utils/sessionManager.js
+// src/utils/sessionManager.js - Temporarily bypass Firestore
 import { db } from '../firebase';
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 
 export const sessionManager = {
   async checkAccess() {
     try {
+      // TEMPORARY: Skip Firestore check
+      console.log('Bypassing Firestore for testing...');
+      return { allowed: true, newSession: true };
+      
+      /* Original code - commented out for now
       const ip = await this.getUserIP();
       const sessionId = localStorage.getItem('sessionId');
       
-      // Check for existing sessions from this IP
       const q = query(
         collection(db, 'sessions'),
         where('ip', '==', ip),
@@ -18,7 +22,6 @@ export const sessionManager = {
       const snapshot = await getDocs(q);
       
       if (!snapshot.empty) {
-        // Check if any session was abandoned (quit/refresh)
         const abandonedSession = snapshot.docs.find(doc => 
           doc.data().status === 'abandoned'
         );
@@ -31,7 +34,6 @@ export const sessionManager = {
           };
         }
         
-        // Check for incomplete but not abandoned
         const incompleteSession = snapshot.docs.find(doc => 
           doc.data().status === 'incomplete'
         );
@@ -46,52 +48,55 @@ export const sessionManager = {
       }
       
       return { allowed: true, newSession: true };
+      */
     } catch (error) {
       console.error('Error checking access:', error);
-      return { allowed: true }; // Allow access on error
+      return { allowed: true };
     }
   },
   
   async createSession() {
-    const ip = await this.getUserIP();
-    const sessionData = {
-      id: crypto.randomUUID(),
-      ip,
-      startTime: serverTimestamp(),
-      status: 'active',
-      completedTasks: {},
-      events: [],
-      chatHistory: [],
-      numPrompts: 0,
-      bonusPrompts: 0,
-      practiceCompleted: false,
-      userAgent: navigator.userAgent,
-      screenResolution: `${window.screen.width}x${window.screen.height}`
-    };
-    
-    const docRef = await addDoc(collection(db, 'sessions'), sessionData);
-    localStorage.setItem('sessionId', docRef.id);
-    
-    // Set up beforeunload handler
-    window.addEventListener('beforeunload', async (e) => {
-      await this.handleSessionAbandonment();
-    });
-    
-    return docRef.id;
+    try {
+      // TEMPORARY: Create local session only
+      const sessionId = 'local-session-' + Date.now();
+      localStorage.setItem('sessionId', sessionId);
+      console.log('Created local session:', sessionId);
+      return sessionId;
+      
+      /* Original code - commented out
+      const ip = await this.getUserIP();
+      const sessionData = {
+        id: crypto.randomUUID(),
+        ip,
+        startTime: serverTimestamp(),
+        status: 'active',
+        completedTasks: {},
+        events: [],
+        chatHistory: [],
+        numPrompts: 0,
+        bonusPrompts: 0,
+        practiceCompleted: false,
+        userAgent: navigator.userAgent,
+        screenResolution: `${window.screen.width}x${window.screen.height}`
+      };
+      
+      const docRef = await addDoc(collection(db, 'sessions'), sessionData);
+      localStorage.setItem('sessionId', docRef.id);
+      
+      window.addEventListener('beforeunload', async (e) => {
+        await this.handleSessionAbandonment();
+      });
+      
+      return docRef.id;
+      */
+    } catch (error) {
+      console.error('Error creating session:', error);
+      return 'fallback-session-' + Date.now();
+    }
   },
   
   async handleSessionAbandonment() {
-    const sessionId = localStorage.getItem('sessionId');
-    if (sessionId) {
-      try {
-        await updateDoc(doc(db, 'sessions', sessionId), {
-          status: 'abandoned',
-          abandonedAt: serverTimestamp()
-        });
-      } catch (error) {
-        console.error('Error marking session as abandoned:', error);
-      }
-    }
+    console.log('Session abandonment - skipped for local testing');
   },
   
   async getUserIP() {
@@ -100,7 +105,6 @@ export const sessionManager = {
       const data = await response.json();
       return data.ip;
     } catch (error) {
-      // Fallback to a unique identifier if IP service fails
       return 'unknown-' + Date.now();
     }
   }
