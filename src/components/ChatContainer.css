@@ -138,6 +138,7 @@
   border: 1px solid #e0e0e0;
   align-self: flex-start;
   margin-right: 20px;
+  text-align: left;
 }
 
 .messages-sidebar .message.system {
