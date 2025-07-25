@@ -1,4 +1,4 @@
-// src/components/ChatContainer.jsx - Updated with preset response system
+// src/components/ChatContainer.jsx - Fixed version
 import React, { useState, useEffect, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import './ChatContainer.css';
@@ -28,23 +28,19 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
 
   const loadResponseData = async () => {
     try {
-      // Try local first, then GitHub
-      let response = await fetch('/data/chat-responses.json');
-      
-      if (!response.ok) {
-        // Fallback to GitHub raw content (update with your repo URL)
-        response = await fetch('https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/public/data/chat-responses.json');
-      }
+      // Try local first
+      const response = await fetch('/data/chat-responses.json');
       
       if (!response.ok) {
         throw new Error('Failed to load response data');
       }
       
-      responseDataRef.current = await response.json();
-      console.log('Loaded response data:', responseDataRef.current.metadata);
+      const data = await response.json();
+      responseDataRef.current = data;
+      console.log('Loaded response data successfully');
     } catch (error) {
       console.error('Error loading response data:', error);
-      // Fallback to embedded minimal responses
+      // Use embedded fallback responses
       responseDataRef.current = {
         responses: {
           counting: {
@@ -136,16 +132,16 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
       });
     }
 
-    console.log('Found matches:', matches.length, matches);
+    console.log('Found matches:', matches.length);
 
     // Sort by score (highest first)
     matches.sort((a, b) => b.score - a.score);
 
     // If we have good matches, select based on score
-    if (matches.length > 0 && matches[0].score > 0.3) {
+    if (matches.length > 0 && matches[0].score > 0.1) {
       // Get all top-scoring matches
       const topScore = matches[0].score;
-      const topMatches = matches.filter(m => m.score === topScore);
+      const topMatches = matches.filter(m => Math.abs(m.score - topScore) < 0.01);
       
       // Randomly select from top matches
       const selected = topMatches[Math.floor(Math.random() * topMatches.length)];
@@ -189,7 +185,7 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
         if (!gameResponses[level][type]) return;
         
         gameResponses[level][type].forEach(response => {
-          const { score, matchedTriggers } = calculateTriggerScore(response.triggers, input);
+          const { score, matchedTriggers } = calculateTriggerScore(response.triggers || [], input);
           
           if (score > 0) {
             matches.push({
@@ -209,7 +205,7 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
     Object.keys(generalResponses).forEach(category => {
       if (Array.isArray(generalResponses[category])) {
         generalResponses[category].forEach(response => {
-          const { score, matchedTriggers } = calculateTriggerScore(response.triggers, input);
+          const { score, matchedTriggers } = calculateTriggerScore(response.triggers || [], input);
           
           if (score > 0) {
             matches.push({
@@ -230,19 +226,35 @@ export default function ChatContainer({ bonusPrompts = 0, currentTask = '' }) {
     
     let totalScore = 0;
     const matchedTriggers = [];
+    const inputWords = input.toLowerCase().split(/\s+/);
     
     triggers.forEach(trigger => {
-      // Count occurrences of trigger in input
-      const regex = new RegExp(`\\b${trigger}\\b`, 'gi');
-      const matches = input.match(regex);
+      const triggerLower = trigger.toLowerCase();
       
-      if (matches) {
-        // Score based on trigger length and frequency
-        const triggerScore = (trigger.length / input.length) * matches.length;
-        totalScore += triggerScore;
-        matchedTriggers.push({ trigger, count: matches.length });
+      // Check for exact word match
+      let found = false;
+      inputWords.forEach(word => {
+        if (word === triggerLower || word.includes(triggerLower) || triggerLower.includes(word)) {
+          found = true;
+          matchedTriggers.push({ trigger, type: 'word' });
+        }
+      });
+      
+      // Check for substring match
+      if (!found && input.includes(triggerLower)) {
+        found = true;
+        matchedTriggers.push({ trigger, type: 'substring' });
+      }
+      
+      if (found) {
+        // Give higher score for longer triggers and exact matches
+        const baseScore = trigger.length / Math.max(input.length, 1);
+        totalScore += baseScore;
       }
     });
+    
+    // Normalize score
+    totalScore = totalScore / Math.max(triggers.length, 1);
     
     return { score: totalScore, matchedTriggers };
   };
