@@ -18,6 +18,7 @@ import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './App.css';
 import AdminPage from './AdminPage';
 import GameModeSelector from './components/GameModeSelector';
+import CompletionCodeDisplay from './components/CompletionCodeDisplay'; 
 
 function App() {
   // Admin page (hidden route)
@@ -847,314 +848,411 @@ function App() {
   }
   
   // Completion screen - UPDATED with strategy analysis
-  if (mode === 'complete') {
-    const minutes = Math.floor(globalTimer / 60);
-    const seconds = globalTimer % 60;
-    
-    // Calculate strategy metrics
-    const countingLevels = Object.keys(completed).filter(id => id.startsWith('g1')).length;
-    const sliderLevels = Object.keys(completed).filter(id => id.startsWith('g2')).length;
-    const typingLevels = Object.keys(completed).filter(id => id.startsWith('g3')).length;
-    
-    return (
-      <div className="app">
-        <div style={{ textAlign: 'center', padding: '40px', background: '#f0f8ff', borderRadius: '8px', marginTop: '20px' }}>
-          <h2>🎉 Challenge Complete!</h2>
-          <p>
+if (mode === 'complete') {
+  const minutes = Math.floor(globalTimer / 60);
+  const seconds = globalTimer % 60;
+  
+  // Calculate strategy metrics
+  const countingLevels = Object.keys(completed).filter(id => id.startsWith('g1')).length;
+  const sliderLevels = Object.keys(completed).filter(id => id.startsWith('g2')).length;
+  const typingLevels = Object.keys(completed).filter(id => id.startsWith('g3')).length;
+  const totalCompleted = Object.keys(completed).length;
+  
+  return (
+    <div className="app">
+      <div style={{ 
+        maxWidth: '800px', 
+        margin: '0 auto',
+        padding: '20px'
+      }}>
+        {/* Completion Code - MOST PROMINENT */}
+        <CompletionCodeDisplay 
+          sessionId={sessionId}
+          completedLevels={totalCompleted}
+          totalTime={globalTimer}
+          gameMode={gameMode}
+        />
+        
+        {/* Performance Summary */}
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '40px', 
+          background: 'white', 
+          borderRadius: '12px',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+          marginTop: '20px'
+        }}>
+          <h2 style={{ color: '#333', marginBottom: '20px' }}>
+            📊 Performance Summary
+          </h2>
+          
+          <p style={{ fontSize: '18px', color: '#666', marginBottom: '30px' }}>
             {gameMode?.limit === 'time' 
-              ? "Time's up! Let's see how you did." 
+              ? "Time's up! Here's how you performed." 
               : gameMode?.limit === 'tasks'
-              ? "You've used all 12 task attempts!"
+              ? "All task attempts used! Here's your summary."
               : "Incredible! You completed all 45 levels!"}
           </p>
           
-          <div style={{ marginTop: '20px', background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-            <h3>Performance Summary</h3>
-            
-            <div style={{ margin: '10px 0' }}>
-              <span style={{ fontWeight: 'bold', color: '#666' }}>Total Time: </span>
-              <span style={{ fontSize: '24px', color: '#333', marginLeft: '10px' }}>
+          {/* Key metrics */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '15px',
+            marginBottom: '30px'
+          }}>
+            <div style={{ 
+              background: '#f8f9fa', 
+              padding: '20px', 
+              borderRadius: '8px',
+              border: '2px solid #e0e0e0'
+            }}>
+              <div style={{ fontSize: '14px', color: '#666', marginBottom: '5px' }}>
+                Total Time
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>
                 {minutes}m {seconds}s
-              </span>
+              </div>
             </div>
             
-            <div style={{ margin: '10px 0' }}>
-              <span style={{ fontWeight: 'bold', color: '#666' }}>Levels Completed: </span>
-              <span style={{ fontSize: '24px', color: '#333', marginLeft: '10px' }}>
-                {Object.keys(completed).length}/45
-              </span>
+            <div style={{ 
+              background: '#f8f9fa', 
+              padding: '20px', 
+              borderRadius: '8px',
+              border: '2px solid #e0e0e0'
+            }}>
+              <div style={{ fontSize: '14px', color: '#666', marginBottom: '5px' }}>
+                Levels Complete
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>
+                {totalCompleted}/45
+              </div>
             </div>
             
-            <div style={{ margin: '10px 0' }}>
-              <span style={{ fontWeight: 'bold', color: '#666' }}>Task Switches: </span>
-              <span style={{ fontSize: '24px', color: '#333', marginLeft: '10px' }}>
+            <div style={{ 
+              background: '#f8f9fa', 
+              padding: '20px', 
+              borderRadius: '8px',
+              border: '2px solid #e0e0e0'
+            }}>
+              <div style={{ fontSize: '14px', color: '#666', marginBottom: '5px' }}>
+                Task Switches
+              </div>
+              <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>
                 {switches}
-              </span>
-            </div>
-            
-            <h4 style={{ marginTop: '20px', color: '#666' }}>Strategy Analysis</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '15px' }}>
-              <div style={{ background: '#f8f0ff', padding: '15px', borderRadius: '6px' }}>
-                <div style={{ color: '#9C27B0', fontWeight: 'bold' }}>Counting</div>
-                <div style={{ fontSize: '20px' }}>{countingLevels} levels</div>
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  Max: Level {Math.max(...Object.keys(completed).filter(id => id.startsWith('g1')).map(id => parseInt(id.substring(3))), 0)}
-                </div>
               </div>
-              
-              <div style={{ background: '#f0f8f0', padding: '15px', borderRadius: '6px' }}>
-                <div style={{ color: '#4CAF50', fontWeight: 'bold' }}>Slider</div>
-                <div style={{ fontSize: '20px' }}>{sliderLevels} levels</div>
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  Max: Level {Math.max(...Object.keys(completed).filter(id => id.startsWith('g2')).map(id => parseInt(id.substring(3))), 0)}
-                </div>
-              </div>
-              
-              <div style={{ background: '#fff0f0', padding: '15px', borderRadius: '6px' }}>
-                <div style={{ color: '#f44336', fontWeight: 'bold' }}>Typing</div>
-                <div style={{ fontSize: '20px' }}>{typingLevels} levels</div>
-                <div style={{ fontSize: '12px', color: '#666' }}>
-                  Max: Level {Math.max(...Object.keys(completed).filter(id => id.startsWith('g3')).map(id => parseInt(id.substring(3))), 0)}
-                </div>
-              </div>
-            </div>
-            
-            <div style={{ marginTop: '20px', padding: '15px', background: '#e3f2fd', borderRadius: '6px' }}>
-              <strong>Strategy Type: </strong>
-              {countingLevels > sliderLevels && countingLevels > typingLevels ? '📚 Counting Specialist' :
-               sliderLevels > countingLevels && sliderLevels > typingLevels ? '🎯 Precision Master' :
-               typingLevels > countingLevels && typingLevels > sliderLevels ? '⚡ Speed Typist' :
-               '⚖️ Balanced Approach'}
             </div>
           </div>
           
-          <p style={{ marginTop: '30px', color: '#666' }}>
-            Thank you for participating! Your results have been saved.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Main challenge mode
-  return (
-    <div className="app">
-      {/* NEW: Timer for time limit mode */}
-      {mode === 'challenge' && gameMode?.limit === 'time' && !timeUp && (
-        <GameTimer 
-          duration={900} // 15 minutes
-          onTimeUp={handleTimeUp}
-          isPaused={isInBreak || gameBlocked}
-        />
-      )}
-      
-      {/* Game blocked overlay */}
-      {gameBlocked && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'rgba(0, 0, 0, 0.9)',
-          zIndex: 999999,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '40px',
-            borderRadius: '10px',
-            textAlign: 'center',
-            maxWidth: '500px'
+          {/* Strategy breakdown */}
+          <h3 style={{ color: '#666', marginBottom: '15px' }}>Strategy Analysis</h3>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '1fr 1fr 1fr', 
+            gap: '15px',
+            marginBottom: '30px'
           }}>
-            <h2 style={{ color: '#f44336', marginBottom: '20px' }}>Game Session Ended</h2>
-            <p style={{ marginBottom: '30px' }}>
-              Your session has been terminated due to inactivity or switching away from the game.
-            </p>
-            <button 
-              onClick={() => window.location.reload()}
-              style={{
-                padding: '12px 30px',
-                background: '#2196F3',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              Restart Game
-            </button>
+            <div style={{ 
+              background: '#f8f0ff', 
+              padding: '15px', 
+              borderRadius: '6px',
+              border: '2px solid #9C27B020'
+            }}>
+              <div style={{ color: '#9C27B0', fontWeight: 'bold', marginBottom: '5px' }}>
+                🔢 Counting
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{countingLevels}</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                Max Level: {Math.max(...Object.keys(completed).filter(id => id.startsWith('g1')).map(id => parseInt(id.substring(3))), 0)}
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: '#f0f8f0', 
+              padding: '15px', 
+              borderRadius: '6px',
+              border: '2px solid #4CAF5020'
+            }}>
+              <div style={{ color: '#4CAF50', fontWeight: 'bold', marginBottom: '5px' }}>
+                🎯 Slider
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{sliderLevels}</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                Max Level: {Math.max(...Object.keys(completed).filter(id => id.startsWith('g2')).map(id => parseInt(id.substring(3))), 0)}
+              </div>
+            </div>
+            
+            <div style={{ 
+              background: '#fff0f0', 
+              padding: '15px', 
+              borderRadius: '6px',
+              border: '2px solid #f4433620'
+            }}>
+              <div style={{ color: '#f44336', fontWeight: 'bold', marginBottom: '5px' }}>
+                ⌨️ Typing
+              </div>
+              <div style={{ fontSize: '20px', fontWeight: 'bold' }}>{typingLevels}</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                Max Level: {Math.max(...Object.keys(completed).filter(id => id.startsWith('g3')).map(id => parseInt(id.substring(3))), 0)}
+              </div>
+            </div>
           </div>
-        </div>
-      )}
-      
-      {/* Out of focus warning */}
-      {isOutOfFocus && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          background: '#ff9800',
-          color: 'white',
-          padding: '15px 20px',
-          borderRadius: '8px',
-          zIndex: 10000,
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-        }}>
-          <strong>⚠️ Focus Warning</strong>
-          <br />
-          Game will be blocked in {outOfFocusCountdown} seconds
-        </div>
-      )}
-      
-      {/* Idle warning */}
-      {isIdle && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'rgba(0, 0, 0, 0.7)',
-          zIndex: 10000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
-          <div style={{
-            background: 'white',
-            padding: '30px',
-            borderRadius: '10px',
-            textAlign: 'center',
-            maxWidth: '400px'
+          
+          {/* Strategy type badge */}
+          <div style={{ 
+            padding: '15px', 
+            background: '#e3f2fd', 
+            borderRadius: '6px',
+            fontSize: '16px'
           }}>
-            <h3 style={{ color: '#ff9800', marginBottom: '15px' }}>Are you still there?</h3>
-            <p style={{ marginBottom: '20px' }}>
-              Auto-closing in {idleCountdown} seconds due to inactivity
-            </p>
-            <button 
-              onClick={handleIdleResponse}
-              style={{
-                padding: '10px 20px',
-                background: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer'
-              }}
-            >
-              Continue Playing
-            </button>
-          </div>
-        </div>
-      )}
-
-      <h1>Multi-Task Challenge</h1>
-
-      {/* Game mode indicator - UPDATED */}
-      {gameMode && (
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
-          background: gameMode.accuracy === 'strict' ? '#f44336' : '#4CAF50',
-          color: 'white',
-          padding: '5px 10px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          fontWeight: 'bold'
-        }}>
-          {gameMode.accuracy === 'strict' ? '100% Mode' : 'Pass All Mode'}
-        </div>
-      )}
-      
-      {/* Timer display - only show if not in time mode (timer shown separately) */}
-      {gameMode?.limit !== 'time' && (
-        <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: 'bold', marginBottom: '20px' }}>
-          Time: {Math.floor(globalTimer / 60)}:{(globalTimer % 60).toString().padStart(2, '0')}
-        </div>
-      )}
-      
-      {/* Mode switch - removed chat button */}
-      <div className="mode-switch">
-        <button disabled={true}>Challenge</button>
-      </div>
-      
-      {/* CHANGED: Use NavTabsEnhanced instead of NavTabs */}
-      <NavTabsEnhanced
-        current={currentTab}
-        completed={completed}
-        onSwitch={handleTabSwitch}
-        remainingTasks={gameMode?.limit === 'tasks' ? remainingTasks : null}
-        limitMode={gameMode?.limit}
-      />
-      
-      {/* Progress bar - UPDATED for 45 levels */}
-      <div className="progress-container">
-        <div 
-          className="progress-bar" 
-          style={{ width: `${(Object.keys(completed).length / 45) * 100}%` }}
-        />
-      </div>
-      
-      {/* Side-by-side layout: Game + Chat */}
-      <div style={{ 
-        display: 'flex', 
-        gap: '20px', 
-        alignItems: 'stretch',
-        marginTop: '20px',
-        minHeight: '650px',
-        width: '100%'
-      }}>
-        {/* Game area - 2/3 width */}
-        <div style={{ 
-          flex: '0 0 66.666%', 
-          minHeight: '650px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'white',
-          borderRadius: '8px',
-          border: '1px solid #e0e0e0',
-          overflow: 'visible'
-        }}>
-          <div className="task-container" style={{ 
-            width: '100%',
-            minHeight: '650px',
-            padding: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            overflow: 'visible'
-          }}>
-            {renderTask()}
+            <strong>Strategy Type: </strong>
+            {countingLevels > sliderLevels && countingLevels > typingLevels ? '📚 Counting Specialist' :
+             sliderLevels > countingLevels && sliderLevels > typingLevels ? '🎯 Precision Master' :
+             typingLevels > countingLevels && typingLevels > sliderLevels ? '⚡ Speed Typist' :
+             '⚖️ Balanced Approach'}
           </div>
         </div>
         
-        {/* Chat area - 1/3 width */}
-        <div style={{ 
-          flex: '0 0 33.333%', 
-          background: 'white',
+        {/* Return to survey reminder */}
+        <div style={{
+          marginTop: '30px',
+          padding: '20px',
+          background: '#fff3cd',
+          border: '2px solid #ffc107',
           borderRadius: '8px',
-          border: '1px solid #e0e0e0',
-          overflow: 'hidden',
-          height: '650px'
+          textAlign: 'center'
         }}>
-          <ChatContainer 
-            bonusPrompts={bonusPrompts}
-            currentTask={currentTab}
-          />
+          <h3 style={{ color: '#856404', marginBottom: '10px' }}>
+            ⚠️ Don't forget!
+          </h3>
+          <p style={{ color: '#856404', marginBottom: '0' }}>
+            Return to the Qualtrics survey and enter your completion code to finish the study.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main challenge mode
+return (
+  <div className="app">
+    {/* NEW: Timer for time limit mode */}
+    {mode === 'challenge' && gameMode?.limit === 'time' && !timeUp && (
+      <GameTimer 
+        duration={900} // 15 minutes
+        onTimeUp={handleTimeUp}
+        isPaused={isInBreak || gameBlocked}
+      />
+    )}
+    
+    {/* Game blocked overlay */}
+    {gameBlocked && (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0, 0, 0, 0.9)',
+        zIndex: 999999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '40px',
+          borderRadius: '10px',
+          textAlign: 'center',
+          maxWidth: '500px'
+        }}>
+          <h2 style={{ color: '#f44336', marginBottom: '20px' }}>Game Session Ended</h2>
+          <p style={{ marginBottom: '30px' }}>
+            Your session has been terminated due to inactivity or switching away from the game.
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '12px 30px',
+              background: '#2196F3',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Restart Game
+          </button>
+        </div>
+      </div>
+    )}
+    
+    {/* Out of focus warning */}
+    {isOutOfFocus && (
+      <div style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        background: '#ff9800',
+        color: 'white',
+        padding: '15px 20px',
+        borderRadius: '8px',
+        zIndex: 10000,
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+      }}>
+        <strong>⚠️ Focus Warning</strong>
+        <br />
+        Game will be blocked in {outOfFocusCountdown} seconds
+      </div>
+    )}
+    
+    {/* Idle warning */}
+    {isIdle && (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0, 0, 0, 0.7)',
+        zIndex: 10000,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <div style={{
+          background: 'white',
+          padding: '30px',
+          borderRadius: '10px',
+          textAlign: 'center',
+          maxWidth: '400px'
+        }}>
+          <h3 style={{ color: '#ff9800', marginBottom: '15px' }}>Are you still there?</h3>
+          <p style={{ marginBottom: '20px' }}>
+            Auto-closing in {idleCountdown} seconds due to inactivity
+          </p>
+          <button 
+            onClick={handleIdleResponse}
+            style={{
+              padding: '10px 20px',
+              background: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            Continue Playing
+          </button>
+        </div>
+      </div>
+    )}
+
+    <h1>Multi-Task Challenge</h1>
+
+    {/* Game mode indicator - UPDATED */}
+    {gameMode && (
+      <div style={{
+        position: 'absolute',
+        top: '10px',
+        right: '10px',
+        background: gameMode.accuracy === 'strict' ? '#f44336' : '#4CAF50',
+        color: 'white',
+        padding: '5px 10px',
+        borderRadius: '4px',
+        fontSize: '12px',
+        fontWeight: 'bold'
+      }}>
+        {gameMode.accuracy === 'strict' ? '100% Mode' : 'Pass All Mode'}
+      </div>
+    )}
+    
+    {/* Timer display - only show if not in time mode (timer shown separately) */}
+    {gameMode?.limit !== 'time' && (
+      <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: 'bold', marginBottom: '20px' }}>
+        Time: {Math.floor(globalTimer / 60)}:{(globalTimer % 60).toString().padStart(2, '0')}
+      </div>
+    )}
+    
+    {/* Mode switch - removed chat button */}
+    <div className="mode-switch">
+      <button disabled={true}>Challenge</button>
+    </div>
+    
+    {/* CHANGED: Use NavTabsEnhanced instead of NavTabs */}
+    <NavTabsEnhanced
+      current={currentTab}
+      completed={completed}
+      onSwitch={handleTabSwitch}
+      remainingTasks={gameMode?.limit === 'tasks' ? remainingTasks : null}
+      limitMode={gameMode?.limit}
+    />
+    
+    {/* Progress bar - UPDATED for 45 levels */}
+    <div className="progress-container">
+      <div 
+        className="progress-bar" 
+        style={{ width: `${(Object.keys(completed).length / 45) * 100}%` }}
+      />
+    </div>
+    
+    {/* Side-by-side layout: Game + Chat */}
+    <div style={{ 
+      display: 'flex', 
+      gap: '20px', 
+      alignItems: 'stretch',
+      marginTop: '20px',
+      minHeight: '650px',
+      width: '100%'
+    }}>
+      {/* Game area - 2/3 width */}
+      <div style={{ 
+        flex: '0 0 66.666%', 
+        minHeight: '650px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'white',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        overflow: 'visible'
+      }}>
+        <div className="task-container" style={{ 
+          width: '100%',
+          minHeight: '650px',
+          padding: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'visible'
+        }}>
+          {renderTask()}
         </div>
       </div>
       
-      {/* REMOVED: ProgressSummary - not needed with 45 levels */}
-      
-      {/* Break overlay */}
-      {renderBreakOverlay()}
+      {/* Chat area - 1/3 width */}
+      <div style={{ 
+        flex: '0 0 33.333%', 
+        background: 'white',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        overflow: 'hidden',
+        height: '650px'
+      }}>
+        <ChatContainer 
+          bonusPrompts={bonusPrompts}
+          currentTask={currentTab}
+        />
+      </div>
     </div>
-  );
+    
+    {/* REMOVED: ProgressSummary - not needed with 45 levels */}
+    
+    {/* Break overlay */}
+    {renderBreakOverlay()}
+  </div>
+);
 }
 
 export default App;
