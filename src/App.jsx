@@ -15,6 +15,7 @@ import { db } from './firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './App.css';
 import AdminPage from './AdminPage';
+import GameModeSelector from './components/GameModeSelector';
 
 function App() {
   // Admin page (hidden route)
@@ -24,6 +25,7 @@ function App() {
 
   // State management
   const [mode, setMode] = useState('landing');
+  const [gameAccuracyMode, setGameAccuracyMode] = useState(null);
   const [practiceChoice, setPracticeChoice] = useState(null);
   const [currentTab, setCurrentTab] = useState('g1t1');
   const [completed, setCompleted] = useState({});
@@ -524,33 +526,36 @@ function App() {
   
   // Render current task
   const renderTask = () => {
-    const game = currentTab[1];
-    const taskNum = Number(currentTab[3]);
-    
-    if (game === '1') {
-      return (
-        <CountingTask
-          taskNum={taskNum}
-          textSections={rulesDataRef.current.textSections}
-          onComplete={handleComplete}
-        />
-      );
-    }
-    if (game === '2') {
-      return (
-        <SliderTask
-          taskNum={taskNum}
-          onComplete={handleComplete}
-        />
-      );
-    }
+  const game = currentTab[1];
+  const taskNum = Number(currentTab[3]);
+  
+  if (game === '1') {
     return (
-      <TypingTask
+      <CountingTask
         taskNum={taskNum}
+        textSections={rulesDataRef.current.textSections}
         onComplete={handleComplete}
+        gameAccuracyMode={gameAccuracyMode}
       />
     );
-  };
+  }
+  if (game === '2') {
+    return (
+      <SliderTask
+        taskNum={taskNum}
+        onComplete={handleComplete}
+        gameAccuracyMode={gameAccuracyMode}
+      />
+    );
+  }
+  return (
+    <TypingTask
+      taskNum={taskNum}
+      onComplete={handleComplete}
+      gameAccuracyMode={gameAccuracyMode}
+    />
+  );
+};
   
   // Render break overlay
   const renderBreakOverlay = () => {
@@ -662,59 +667,79 @@ function App() {
   }
   
   // Landing page
-  if (mode === 'landing') {
-    return (
-      <div className="app">
-        <div className="landing-container">
-          <div className="landing-card">
-            <h1 style={{ color: '#333', marginBottom: '20px', fontSize: '28px' }}>
-              Multi-Task Challenge
-            </h1>
+if (mode === 'landing') {
+  return (
+    <div className="app">
+      <div className="landing-container">
+        <div className="landing-card">
+          <h1 style={{ color: '#333', marginBottom: '20px', fontSize: '28px' }}>
+            Multi-Task Challenge
+          </h1>
+          
+          <div className="game-info">
+            <h2 style={{ color: '#555', fontSize: '20px', marginBottom: '15px' }}>
+              Welcome! Complete 9 tasks across 3 games:
+            </h2>
             
-            <div className="game-info">
-              <h2 style={{ color: '#555', fontSize: '20px', marginBottom: '15px' }}>
-                Welcome! Complete 9 tasks across 3 games:
-              </h2>
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{ color: '#9C27B0' }}>🔢 Counting Game</h3>
+              <p>Count words or letters in text passages.</p>
               
-              <div style={{ marginBottom: '20px' }}>
-                <h3 style={{ color: '#9C27B0' }}>🔢 Counting Game</h3>
-                <p>Count words or letters in text passages.</p>
-                
-                <h3 style={{ color: '#4CAF50' }}>🎯 Slider Game</h3>
-                <p>Match target values with increasing precision.</p>
-                
-                <h3 style={{ color: '#f44336' }}>⌨️ Typing Game</h3>
-                <p>Type patterns exactly as shown.</p>
-              </div>
+              <h3 style={{ color: '#4CAF50' }}>🎯 Slider Game</h3>
+              <p>Match target values with increasing precision.</p>
               
-              <div style={{ background: '#f8f9fa', borderRadius: '6px', padding: '15px', marginBottom: '20px' }}>
-                <h3 style={{ color: '#333', fontSize: '16px', marginBottom: '10px' }}>
-                  How It Works:
-                </h3>
-                <ul style={{ color: '#666', lineHeight: '1.6', margin: '0', paddingLeft: '20px', fontSize: '14px' }}>
-                  <li>Tasks auto-advance after completion</li>
-                  <li>Switch manually using navigation buttons</li>
-                  <li>Complete tasks to earn bonus prompts (+1 each)</li>
-                  <li>Tasks affect each other - experiment with different orders!</li>
-                </ul>
-              </div>
+              <h3 style={{ color: '#f44336' }}>⌨️ Typing Game</h3>
+              <p>Type patterns exactly as shown.</p>
             </div>
             
-            <button 
-              className="start-button"
-              onClick={() => setMode('practiceChoice')}
-            >
-              Start Game
-            </button>
-            
-            <p style={{ color: '#999', fontSize: '13px', marginTop: '15px' }}>
-              Timer starts when you begin the main game
-            </p>
+            <div style={{ background: '#f8f9fa', borderRadius: '6px', padding: '15px', marginBottom: '20px' }}>
+              <h3 style={{ color: '#333', fontSize: '16px', marginBottom: '10px' }}>
+                How It Works:
+              </h3>
+              <ul style={{ color: '#666', lineHeight: '1.6', margin: '0', paddingLeft: '20px', fontSize: '14px' }}>
+                <li>Tasks auto-advance after completion</li>
+                <li>Switch manually using navigation buttons</li>
+                <li>Complete tasks to earn bonus prompts (+1 each)</li>
+                <li>Tasks affect each other - experiment with different orders!</li>
+              </ul>
+            </div>
           </div>
+          
+          {/* Game Mode Selector */}
+          {!gameAccuracyMode ? (
+            <GameModeSelector onModeSelected={setGameAccuracyMode} />
+          ) : (
+            <div style={{ marginBottom: '20px' }}>
+              <p style={{ color: '#666', marginBottom: '10px' }}>
+                Selected Mode: <strong style={{ 
+                  color: gameAccuracyMode === 'strict' ? '#f44336' : '#4CAF50' 
+                }}>
+                  {gameAccuracyMode === 'strict' ? 'Strict (100% Required)' : 'Lenient (Pass All)'}
+                </strong>
+              </p>
+            </div>
+          )}
+          
+          <button 
+            className="start-button"
+            onClick={() => setMode('practiceChoice')}
+            disabled={!gameAccuracyMode}
+            style={{
+              opacity: gameAccuracyMode ? 1 : 0.5,
+              cursor: gameAccuracyMode ? 'pointer' : 'not-allowed'
+            }}
+          >
+            {gameAccuracyMode ? 'Start Game' : 'Select Mode First'}
+          </button>
+          
+          <p style={{ color: '#999', fontSize: '13px', marginTop: '15px' }}>
+            Timer starts when you begin the main game
+          </p>
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
   
   // Practice choice
   if (mode === 'practiceChoice') {
@@ -760,10 +785,10 @@ function App() {
         <PracticeMode 
           rulesData={rulesDataRef.current} 
           onStartMainGame={() => {
-            // Clear dependencies and start main game directly
             taskDependencies.clearAllDependencies();
             startMainGame();
           }}
+          gameAccuracyMode={gameAccuracyMode}
         />
       </div>
     );
@@ -933,6 +958,23 @@ function App() {
       )}
 
       <h1>Multi-Task Challenge</h1>
+
+      {/* Game mode indicator */}
+      {gameAccuracyMode && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          background: gameAccuracyMode === 'strict' ? '#f44336' : '#4CAF50',
+          color: 'white',
+          padding: '5px 10px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          fontWeight: 'bold'
+        }}>
+          {gameAccuracyMode === 'strict' ? '100% Mode' : 'Pass All Mode'}
+        </div>
+      )}
       
       {/* Timer display */}
       <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: 'bold', marginBottom: '20px' }}>

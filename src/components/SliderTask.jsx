@@ -6,7 +6,7 @@ import { db } from '../firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './SliderTask.css';
 
-export default function SliderTask({ taskNum, onComplete, isPractice = false }) {
+export default function SliderTask({ taskNum, onComplete, isPractice = false, gameAccuracyMode = 'strict' }) {
   const [target, setTarget] = useState(5);
   const [input, setInput] = useState(5.0);
   const [feedback, setFeedback] = useState(null);
@@ -41,60 +41,64 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false }) 
   };
 
   const handleSubmit = async () => {
-    const timeTaken = Date.now() - startTime;
-    const userValue = parseFloat(input);
-    const accuracy = calculateAccuracy(userValue, target);
-    const passThreshold = 90;
-    const passed = accuracy >= passThreshold;
-    
-    attemptsRef.current += 1;
-    
-    await eventTracker.trackTaskAttempt(
-      `g2t${taskNum}`,
-      attemptsRef.current,
-      passed,
-      timeTaken,
-      userValue,
-      target
-    );
-    
-    // Store accuracy to database
-    const sessionId = localStorage.getItem('sessionId');
-    if (sessionId && !sessionId.startsWith('offline-')) {
-      try {
-        await updateDoc(doc(db, 'sessions', sessionId), {
-          [`taskAccuracies.g2t${taskNum}`]: accuracy,
-          [`taskTimes.g2t${taskNum}`]: timeTaken,
-          lastActivity: serverTimestamp()
-        });
-      } catch (error) {
-        console.error('Error storing accuracy:', error);
-      }
+  const timeTaken = Date.now() - startTime;
+  const userValue = parseFloat(input);
+  const accuracy = calculateAccuracy(userValue, target);
+  
+  // Different pass thresholds based on game mode
+  const passThreshold = gameAccuracyMode === 'strict' ? 100 : 0;
+  const passed = gameAccuracyMode === 'lenient' ? true : accuracy >= passThreshold;
+  
+  attemptsRef.current += 1;
+  
+  await eventTracker.trackTaskAttempt(
+    `g2t${taskNum}`,
+    attemptsRef.current,
+    passed,
+    timeTaken,
+    userValue,
+    target
+  );
+  
+  // Store accuracy to database
+  const sessionId = localStorage.getItem('sessionId');
+  if (sessionId && !sessionId.startsWith('offline-')) {
+    try {
+      await updateDoc(doc(db, 'sessions', sessionId), {
+        [`taskAccuracies.g2t${taskNum}`]: accuracy,
+        [`taskTimes.g2t${taskNum}`]: timeTaken,
+        [`gameMode`]: gameAccuracyMode,
+        lastActivity: serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Error storing accuracy:', error);
     }
-    
-    if (passed) {
-      if (userValue === target) {
-        setFeedback('✓ Flawless!');
-      } else {
-        setFeedback('✓ Good job!');
-      }
-      
-      setTimeout(() => {
-        onComplete(`g2t${taskNum}`, {
-          attempts: attemptsRef.current,
-          totalTime: timeTaken,
-          accuracy: accuracy
-        });
-      }, 1500);
+  }
+  
+  if (passed) {
+    if (userValue === target) {
+      setFeedback('✓ Flawless!');
+    } else if (gameAccuracyMode === 'lenient') {
+      setFeedback(`✓ Passed! (${accuracy}% accuracy)`);
     } else {
-      // Show feedback but allow retry - don't show accuracy percentage
-      if (isPractice) {
-        setFeedback(`✗ Target was ${target}. Try again!`);
-      } else {
-        setFeedback('✗ Try again!');
-      }
+      setFeedback('✓ Good job!');
     }
-  };
+    
+    setTimeout(() => {
+      onComplete(`g2t${taskNum}`, {
+        attempts: attemptsRef.current,
+        totalTime: timeTaken,
+        accuracy: accuracy
+      });
+    }, 1500);
+  } else {
+    if (isPractice) {
+      setFeedback(`✗ Target was ${target}. Try again!`);
+    } else {
+      setFeedback(`✗ Try again! (${accuracy}% accuracy - need 100%)`);
+    }
+  }
+};
 
   const isEnhanced = taskDependencies.getActiveDependency(`g2t${taskNum}`);
   const step = taskNum === 1 ? 1 : (taskNum === 2 ? 0.1 : 0.01);

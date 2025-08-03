@@ -6,7 +6,7 @@ import SliderTask from './SliderTask';
 import TypingTask from './TypingTask';
 import './PracticeMode.css';
 
-export default function PracticeMode({ rulesData, onStartMainGame }) {
+export default function PracticeMode({ rulesData, onStartMainGame, gameAccuracyMode = 'strict' }) {
   const [currentPractice, setCurrentPractice] = useState(null);
   const [completedPractice, setCompletedPractice] = useState({});
   
@@ -113,40 +113,42 @@ export default function PracticeMode({ rulesData, onStartMainGame }) {
   const taskNum = Number(currentPractice[3]);
   
   return (
-    <div className="practice-container">
-      <button 
-        className="back-to-menu"
-        onClick={() => setCurrentPractice(null)}
-      >
-        ← Back to Practice Menu
-      </button>
+  <div className="practice-container">
+    <button 
+      className="back-to-menu"
+      onClick={() => setCurrentPractice(null)}
+    >
+      ← Back to Practice Menu
+    </button>
+    
+    <div className="practice-task-wrapper">
+      {game === '1' && (
+        <CountingTask
+          taskNum={taskNum}
+          textSections={rulesData.textSections || ['Practice text for counting...']}
+          onComplete={handlePracticeComplete}
+          isPractice={true}
+          gameAccuracyMode={gameAccuracyMode}
+        />
+      )}
       
-      <div className="practice-task-wrapper">
-        {game === '1' && (
-          <CountingTask
-            taskNum={taskNum}
-            textSections={rulesData.textSections || ['Practice text for counting...']}
-            onComplete={handlePracticeComplete}
-            isPractice={true}
-          />
-        )}
-        
-        {game === '2' && (
-          <SliderTask
-            taskNum={taskNum}
-            onComplete={handlePracticeComplete}
-            isPractice={true}
-          />
-        )}
-        
-        {game === '3' && (
-          <TypingTask
-            taskNum={taskNum}
-            onComplete={handlePracticeComplete}
-            isPractice={true}
-          />
-        )}
-      </div>
+      {game === '2' && (
+        <SliderTask
+          taskNum={taskNum}
+          onComplete={handlePracticeComplete}
+          isPractice={true}
+          gameAccuracyMode={gameAccuracyMode}
+        />
+      )}
+      
+      {game === '3' && (
+        <TypingTask
+          taskNum={taskNum}
+          onComplete={handlePracticeComplete}
+          isPractice={true}
+          gameAccuracyMode={gameAccuracyMode}
+        />
+      )}
     </div>
-  );
-}
+  </div>
+)};

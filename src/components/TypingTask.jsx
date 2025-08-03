@@ -12,7 +12,7 @@ const patterns = {
   hard: ['a@1 B#2 c$3', 'Qw3$ Er4# Ty5@', 'X9% Y8& Z7*', 'P6! Q5? R4+', 'Z1@ Y2# X3$', 'M7& N8* O9!', 'J4% K5^ L6&', 'D1! E2@ F3#']
 };
 
-export default function TypingTask({ taskNum, onComplete, isPractice = false }) {
+export default function TypingTask({ taskNum, onComplete, isPractice = false, gameAccuracyMode = 'strict' }) {
   const [pattern, setPattern] = useState('');
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState(null);
@@ -84,29 +84,32 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
   };
 
   const handleSubmit = async () => {
-    const timeTaken = Date.now() - startTime;
-    const accuracy = calculateAccuracy(input, pattern);
-    const passThreshold = 90;
-    const passed = accuracy >= passThreshold;
-    
-    attemptsRef.current += 1;
-    
-    await eventTracker.trackTaskAttempt(
-      `g3t${taskNum}`,
-      attemptsRef.current,
-      passed,
-      timeTaken,
-      input,
-      pattern
-    );
-    
-    // Store accuracy to database
-    const sessionId = localStorage.getItem('sessionId');
+  const timeTaken = Date.now() - startTime;
+  const accuracy = calculateAccuracy(input, pattern);
+  
+  // Different pass thresholds based on game mode
+  const passThreshold = gameAccuracyMode === 'strict' ? 100 : 0;
+  const passed = gameAccuracyMode === 'lenient' ? true : accuracy >= passThreshold;
+  
+  attemptsRef.current += 1;
+  
+  await eventTracker.trackTaskAttempt(
+    `g3t${taskNum}`,
+    attemptsRef.current,
+    passed,
+    timeTaken,
+    input,
+    pattern
+  );
+  
+  // Store accuracy to database
+  const sessionId = localStorage.getItem('sessionId');
     if (sessionId && !sessionId.startsWith('offline-')) {
       try {
         await updateDoc(doc(db, 'sessions', sessionId), {
           [`taskAccuracies.g3t${taskNum}`]: accuracy,
           [`taskTimes.g3t${taskNum}`]: timeTaken,
+          [`gameMode`]: gameAccuracyMode,
           lastActivity: serverTimestamp()
         });
       } catch (error) {
@@ -117,6 +120,8 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
     if (passed) {
       if (input === pattern) {
         setFeedback('✓ Flawless!');
+      } else if (gameAccuracyMode === 'lenient') {
+        setFeedback(`✓ Passed! (${accuracy}% accuracy)`);
       } else {
         setFeedback('✓ Good job!');
       }
@@ -129,11 +134,10 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false }) 
         });
       }, 1500);
     } else {
-      // Show feedback but allow retry - don't show accuracy percentage
       if (isPractice) {
         setFeedback(`✗ Correct pattern: "${pattern}". Try again!`);
       } else {
-        setFeedback('✗ Try again!');
+        setFeedback(`✗ Try again! (${accuracy}% accuracy - need 100%)`);
       }
     }
   };
