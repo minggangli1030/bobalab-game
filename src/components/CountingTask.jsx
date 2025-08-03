@@ -1,12 +1,13 @@
-// src/components/CountingTask.jsx - Updated with 90% accuracy threshold
+// src/components/CountingTask.jsx - Updated for 15 levels
 import React, { useEffect, useState, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import { taskDependencies } from '../utils/taskDependencies';
+import { patternGenerator } from '../utils/patternGenerator'; // NEW IMPORT
 import { db } from '../firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './CountingTask.css';
 
-export default function CountingTask({ taskNum, textSections, onComplete, isPractice = false, gameAccuracyMode = 'strict' }) {
+export default function CountingTask({ taskNum, onComplete, isPractice = false, gameAccuracyMode = 'strict' }) {
   const [target, setTarget] = useState('');
   const [instruction, setInstruction] = useState('');
   const [answer, setAnswer] = useState(null);
@@ -80,8 +81,8 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
         // Draw with highlights
         let x = padding;
         
-        if (taskNum === 1) {
-          // Task 1: Highlight whole words
+        if (taskNum <= 5) { // CHANGED: Word highlighting for levels 1-5
+          // Highlight whole words
           const words = line.split(' ');
           
           words.forEach((word, wordIndex) => {
@@ -102,7 +103,7 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
             x += ctx.measureText(word + ' ').width;
           });
         } else {
-          // Tasks 2 & 3: Highlight individual letters only
+          // Levels 6+: Highlight individual letters only
           for (let i = 0; i < line.length; i++) {
             const char = line[i];
             const charWidth = ctx.measureText(char).width;
@@ -133,103 +134,76 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
   };
   
   useEffect(() => {
-    // Always randomly select text from available sections
-    const randomIndex = Math.floor(Math.random() * textSections.length);
-    const selectedText = textSections[randomIndex];
+    // CHANGED: Use pattern generator for 15 levels
+    const pattern = patternGenerator.generateCountingPattern(taskNum);
+    const selectedText = patternGenerator.getTextPassage(taskNum);
+    
     setText(selectedText);
+    setInstruction(pattern.instruction);
+    
+    // Calculate the correct answer based on pattern type
+    let correctAnswer;
+    if (pattern.type === 'word') {
+      correctAnswer = (selectedText.match(new RegExp(`\\b${pattern.target}\\b`, 'gi')) || []).length;
+    } else if (pattern.type === 'letter') {
+      correctAnswer = (selectedText.match(new RegExp(pattern.target, 'gi')) || []).length;
+    } else { // multi-letter
+      correctAnswer = (selectedText.match(new RegExp(pattern.targets[0], 'gi')) || []).length + 
+                     (selectedText.match(new RegExp(pattern.targets[1], 'gi')) || []).length;
+    }
+    
+    setAnswer(correctAnswer);
+    setTarget(pattern.target || pattern.targets);
     
     // Check for dependency enhancement
     const dependency = taskDependencies.getActiveDependency(`g1t${taskNum}`);
     const hasHighlight = dependency && dependency.type === 'highlight';
     
-    let targetWord, instructionText, correctAnswer, highlights = null;
-    
-    if (taskNum === 1) {
-      // Find words that appear at least 3 times in the text
-      const wordFrequency = {};
-      const textWords = selectedText.toLowerCase().match(/\b\w+\b/g) || [];
-      
-      // Count frequency of each word
-      textWords.forEach(word => {
-        if (word.length >= 2) { // Skip single letters
-          wordFrequency[word] = (wordFrequency[word] || 0) + 1;
-        }
-      });
-      
-      // Filter for common words that appear >= 3 times
-      const commonWords = Object.keys(wordFrequency).filter(word => 
-        wordFrequency[word] >= 3 && ['the', 'of', 'and', 'in', 'to', 'a', 'is', 'was', 'were', 'are'].includes(word)
-      );
-      
-      // If no common words found, fall back to default list
-      const candidateWords = commonWords.length > 0 ? commonWords : ['the', 'of', 'and', 'in'];
-      targetWord = candidateWords[Math.floor(Math.random() * candidateWords.length)];
-      
-      instructionText = `Count how many times the word "${targetWord}" appears:`;
-      correctAnswer = (selectedText.match(new RegExp(`\\b${targetWord}\\b`, 'gi')) || []).length;
-      
-      if (hasHighlight) {
-        highlights = [targetWord];
-      }
-    } else if (taskNum === 2) {
-      const letters = ['e', 'a', 'i', 'o'];
-      targetWord = letters[Math.floor(Math.random() * letters.length)];
-      instructionText = `Count how many times the letter "${targetWord}" appears (case-insensitive):`;
-      correctAnswer = (selectedText.match(new RegExp(targetWord, 'gi')) || []).length;
-      
-      if (hasHighlight) {
-        highlights = [targetWord];
-      }
-    } else {
-      const letter1 = ['a', 'e', 'i'][Math.floor(Math.random() * 3)];
-      const letter2 = ['n', 't', 's'][Math.floor(Math.random() * 3)];
-      targetWord = `${letter1}" and "${letter2}`;
-      instructionText = `Count how many times the letters "${letter1}" and "${letter2}" appear in total:`;
-      correctAnswer = (selectedText.match(new RegExp(letter1, 'gi')) || []).length + 
-                     (selectedText.match(new RegExp(letter2, 'gi')) || []).length;
-      
-      if (hasHighlight) {
-        highlights = [letter1, letter2];
+    // Prepare highlights
+    let highlights = null;
+    if (hasHighlight) {
+      if (pattern.type === 'word') {
+        highlights = [pattern.target];
+      } else if (pattern.type === 'letter') {
+        highlights = [pattern.target];
+      } else {
+        highlights = pattern.targets;
       }
     }
-    
-    setTarget(targetWord);
-    setInstruction(instructionText);
-    setAnswer(correctAnswer);
     
     // Generate text image
     const imageUrl = generateTextImage(selectedText, highlights);
     setTextImageUrl(imageUrl);
     
-    // For copyable display (only used if image fails to load)
+    // For copyable display (fallback only)
     if (hasHighlight) {
       let highlighted = selectedText;
-      if (taskNum === 1) {
-        const regex = new RegExp(`\\b${targetWord}\\b`, 'gi');
+      if (pattern.type === 'word') {
+        const regex = new RegExp(`\\b${pattern.target}\\b`, 'gi');
         highlighted = selectedText.replace(regex, match => 
           `<span class="highlighted-word">${match}</span>`
         );
-      } else if (taskNum === 2) {
-        const regex = new RegExp(targetWord, 'gi');
+      } else if (pattern.type === 'letter') {
+        const regex = new RegExp(pattern.target, 'gi');
         highlighted = selectedText.replace(regex, match => 
           `<span class="highlighted-letter">${match}</span>`
         );
       } else {
-        const [letter1, letter2] = targetWord.split('" and "');
-        // Only highlight individual letters, not within words
-        highlighted = selectedText.split('').map(char => {
-          if (char.toLowerCase() === letter1.toLowerCase() || 
-              char.toLowerCase() === letter2.toLowerCase()) {
-            return `<span class="highlighted-letter">${char}</span>`;
-          }
-          return char;
-        }).join('');
+        // Multi-letter highlighting
+        pattern.targets.forEach(letter => {
+          highlighted = highlighted.split('').map(char => {
+            if (char.toLowerCase() === letter.toLowerCase()) {
+              return `<span class="highlighted-letter">${char}</span>`;
+            }
+            return char;
+          }).join('');
+        });
       }
       setDisplayText(highlighted);
     } else {
       setDisplayText(selectedText);
     }
-  }, [taskNum, textSections]);
+  }, [taskNum]);
   
   const calculateAccuracy = (userAnswer, correctAnswer) => {
     if (userAnswer === correctAnswer) return 100;
@@ -243,72 +217,77 @@ export default function CountingTask({ taskNum, textSections, onComplete, isPrac
   };
   
   const handleSubmit = async () => {
-  const timeTaken = Date.now() - startTime;
-  const userAnswer = parseInt(input, 10) || 0;
-  const accuracy = calculateAccuracy(userAnswer, answer);
-  
-  // Different pass thresholds based on game mode
-  const passThreshold = gameAccuracyMode === 'strict' ? 100 : 0;
-  const passed = gameAccuracyMode === 'lenient' ? true : accuracy >= passThreshold;
-  
-  attemptsRef.current += 1;
-  
-  await eventTracker.trackTaskAttempt(
-    `g1t${taskNum}`,
-    attemptsRef.current,
-    passed,
-    timeTaken,
-    userAnswer,
-    answer
-  );
-  
-  // Store accuracy to database
-  const sessionId = localStorage.getItem('sessionId');
-  if (sessionId && !sessionId.startsWith('offline-')) {
-    try {
-      await updateDoc(doc(db, 'sessions', sessionId), {
-        [`taskAccuracies.g1t${taskNum}`]: accuracy,
-        [`taskTimes.g1t${taskNum}`]: timeTaken,
-        [`gameMode`]: gameAccuracyMode,
-        lastActivity: serverTimestamp()
-      });
-    } catch (error) {
-      console.error('Error storing accuracy:', error);
-    }
-  }
-  
-  if (passed) {
-    if (accuracy === 100) {
-      setFeedback('✓ Flawless!');
-    } else if (gameAccuracyMode === 'lenient') {
-      setFeedback(`✓ Passed! (${accuracy}% accuracy)`);
-    } else {
-      setFeedback('✓ Good job!');
+    const timeTaken = Date.now() - startTime;
+    const userAnswer = parseInt(input, 10) || 0;
+    const accuracy = calculateAccuracy(userAnswer, answer);
+    
+    // Different pass thresholds based on game mode
+    const passThreshold = gameAccuracyMode === 'strict' ? 100 : 0;
+    const passed = gameAccuracyMode === 'lenient' ? true : accuracy >= passThreshold;
+    
+    attemptsRef.current += 1;
+    
+    await eventTracker.trackTaskAttempt(
+      `g1t${taskNum}`,
+      attemptsRef.current,
+      passed,
+      timeTaken,
+      userAnswer,
+      answer
+    );
+    
+    // Store accuracy to database
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId && !sessionId.startsWith('offline-')) {
+      try {
+        await updateDoc(doc(db, 'sessions', sessionId), {
+          [`taskAccuracies.g1t${taskNum}`]: accuracy,
+          [`taskTimes.g1t${taskNum}`]: timeTaken,
+          [`gameMode`]: gameAccuracyMode,
+          lastActivity: serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error storing accuracy:', error);
+      }
     }
     
-    setTimeout(() => {
-      onComplete(`g1t${taskNum}`, {
-        attempts: attemptsRef.current,
-        totalTime: timeTaken,
-        accuracy: accuracy
-      });
-    }, 1500);
-  } else {
-    if (isPractice) {
-      setFeedback(`✗ Incorrect. The correct answer is ${answer}. Try again!`);
+    if (passed) {
+      if (accuracy === 100) {
+        setFeedback('✓ Flawless!');
+      } else if (gameAccuracyMode === 'lenient') {
+        setFeedback(`✓ Passed! (${accuracy}% accuracy)`);
+      } else {
+        setFeedback('✓ Good job!');
+      }
+      
+      setTimeout(() => {
+        onComplete(`g1t${taskNum}`, {
+          attempts: attemptsRef.current,
+          totalTime: timeTaken,
+          accuracy: accuracy
+        });
+      }, 1500);
     } else {
-      setFeedback(`✗ Try again! (${accuracy}% accuracy - need 100%)`);
+      if (isPractice) {
+        setFeedback(`✗ Incorrect. The correct answer is ${answer}. Try again!`);
+      } else {
+        setFeedback(`✗ Try again! (${accuracy}% accuracy - need 100%)`);
+      }
     }
-  }
-};
+  };
   
   const isEnhanced = taskDependencies.getActiveDependency(`g1t${taskNum}`);
   
+  // CHANGED: Get difficulty label from pattern generator
+  const pattern = patternGenerator.generateCountingPattern(taskNum);
+  const difficultyLabel = pattern.difficultyLabel;
+  const difficultyColor = taskNum <= 5 ? 'easy' : taskNum <= 10 ? 'medium' : 'hard';
+  
   return (
     <div className={`task counting ${isEnhanced ? 'enhanced-task' : ''}`}>
-      <h3>Counting Task {taskNum}</h3>
-      <div className={`difficulty-badge ${['easy', 'medium', 'hard'][taskNum - 1]}`}>
-        {['Easy', 'Medium', 'Hard'][taskNum - 1]}
+      <h3>Counting Task - Level {taskNum}</h3>
+      <div className={`difficulty-badge ${difficultyColor}`}>
+        {difficultyLabel}
       </div>
       
       <p className="instruction">

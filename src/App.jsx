@@ -1,16 +1,18 @@
-// src/App.jsx - Complete version with enhanced tracking
+// src/App.jsx - Complete version with 15 levels and time/task limits
 import React, { useState, useEffect, useRef } from 'react';
 import CountingTask from './components/CountingTask';
 import SliderTask from './components/SliderTask';
 import TypingTask from './components/TypingTask';
-import NavTabs from './components/NavTabs';
+import NavTabsEnhanced from './components/NavTabsEnhanced'; // CHANGED: Using enhanced version
 import PracticeMode from './components/PracticeMode';
 import ChatContainer from './components/ChatContainer';
 import ProgressSummary from './components/ProgressSummary';
 import StudentLogin from './components/StudentLogin';
+import GameTimer from './components/GameTimer'; // NEW: Timer component
 import { sessionManager } from './utils/sessionManager';
 import { eventTracker } from './utils/eventTracker';
 import { taskDependencies } from './utils/taskDependencies';
+import { patternGenerator } from './utils/patternGenerator'; // NEW: Pattern generator
 import { db } from './firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './App.css';
@@ -25,7 +27,7 @@ function App() {
 
   // State management
   const [mode, setMode] = useState('landing');
-  const [gameAccuracyMode, setGameAccuracyMode] = useState(null);
+  const [gameMode, setGameMode] = useState(null); // CHANGED: Now stores {accuracy: 'strict'|'lenient', limit: 'time'|'tasks'}
   const [practiceChoice, setPracticeChoice] = useState(null);
   const [currentTab, setCurrentTab] = useState('g1t1');
   const [completed, setCompleted] = useState({});
@@ -46,6 +48,10 @@ function App() {
   const [gameBlocked, setGameBlocked] = useState(false);
   const [pausedTime, setPausedTime] = useState(0);
   
+  // NEW: States for 15-level mode
+  const [remainingTasks, setRemainingTasks] = useState(12);
+  const [timeUp, setTimeUp] = useState(false);
+  
   // Refs
   const startTimeRef = useRef(Date.now());
   const timerIntervalRef = useRef(null);
@@ -53,16 +59,6 @@ function App() {
   const outOfFocusTimerRef = useRef(null);
   const idleTimerRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
-  const rulesDataRef = useRef({
-    textSections: [
-      'The University of California, Berkeley (UC Berkeley, Berkeley, Cal, or California) is a public land-grant research university in Berkeley, California, United States. Founded in 1868 and named after the Anglo-Irish philosopher George Berkeley, it is the state\'s first land-grant university and is the founding campus of the University of California system.',
-      'Ten faculty members and forty male students made up the fledgling university when it opened in Oakland in 1869. Frederick Billings, a trustee of the College of California, suggested that a new campus site north of Oakland be named in honor of Anglo-Irish philosopher George Berkeley.',
-      'Berkeley has an enrollment of more than 45,000 students. The university is organized around fifteen schools of study on the same campus, including the College of Chemistry, the College of Engineering, College of Letters and Science, and the Haas School of Business.',
-      'Oski the Bear (Oski) is the official mascot of the University of California, Berkeley ("Cal"), representing the California Golden Bears. Named after the Oski Yell, he made his debut at a freshman rally in the Greek Theatre on September 25, 1941. Prior to his debut, live bears were used as Cal mascots. Oski\'s name, design, and character were developed by William "Rocky" Rockwell, who was the first student to play the role, and Warrington Colescott, an editor of The Daily Californian and famed satirist.',
-      'Since his debut, Oski\'s activities have been managed by the Oski Committee, which also appoints a new Oski whenever a replacement is required. Historically, persons who played Oski were male and of short stature (under 5\'7"), although the gender requirement was dropped around 1974.',
-      'Oski\'s identity is protected by the Committee, and wearers of the suit generally do not disclose their identity to the public. There is a volunteer advisor that can provide guidance to the committee. To that end, there may be multiple members of the Committee who wear the suit, depending on their schedules.'
-    ]
-  });
   
   // Initialize session on mount
   useEffect(() => {
@@ -330,17 +326,35 @@ function App() {
     eventTracker.setPageStartTime('g1t1');
     eventTracker.logEvent('game_start', { 
       practiceCompleted: practiceChoice === 'yes',
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      gameMode: gameMode // NEW: Track game mode
     });
   };
   
-  // Handle task completion
+  // NEW: Handle time up
+  const handleTimeUp = () => {
+    setTimeUp(true);
+    handleGameComplete('time_limit_reached');
+  };
+  
+  // Handle task completion - UPDATED for 15 levels
   const handleComplete = async (tabId, data) => {
     // Reset idle timer on task completion
     lastActivityRef.current = Date.now();
     
     setCompleted(prev => ({ ...prev, [tabId]: true }));
     setBonusPrompts(prev => prev + 1);
+    
+    // NEW: Decrement remaining tasks if in task limit mode
+    if (gameMode?.limit === 'tasks') {
+      setRemainingTasks(prev => {
+        const newCount = prev - 1;
+        if (newCount <= 0) {
+          setTimeout(() => handleGameComplete('task_limit_reached'), 1500);
+        }
+        return newCount;
+      });
+    }
     
     // Check and activate dependencies
     const activatedDeps = taskDependencies.checkDependencies(tabId, mode === 'practice');
@@ -357,7 +371,8 @@ function App() {
         totalTasksCompleted: Object.keys(completed).length + 1,
         currentGameTime: globalTimer,
         switchesBeforeCompletion: switches,
-        bonusPromptsEarned: bonusPrompts + 1
+        bonusPromptsEarned: bonusPrompts + 1,
+        remainingTasks: gameMode?.limit === 'tasks' ? remainingTasks - 1 : 'unlimited' // NEW
       }
     });
     
@@ -373,13 +388,18 @@ function App() {
     // Show completion notification
     showNotification(`Task Complete! +1 Chat Prompt Earned!`);
     
-    // Check if all tasks complete
-    const allTabs = ['g1t1', 'g1t2', 'g1t3', 'g2t1', 'g2t2', 'g2t3', 'g3t1', 'g3t2', 'g3t3'];
+    // CHANGED: Check for 45 levels instead of 9
+    const allLevels = [];
+    for (let g = 1; g <= 3; g++) {
+      for (let t = 1; t <= 15; t++) {
+        allLevels.push(`g${g}t${t}`);
+      }
+    }
     const completedCount = Object.keys({ ...completed, [tabId]: true }).length;
     
-    if (completedCount === 9) {
-      handleGameComplete();
-    } else {
+    if (completedCount === 45) { // CHANGED: 45 instead of 9
+      handleGameComplete('all_levels_complete');
+    } else if (gameMode?.limit !== 'tasks' || remainingTasks > 1) {
       // Start break and auto-advance
       startMandatoryBreak(tabId);
     }
@@ -432,23 +452,28 @@ function App() {
     eventTracker.setPageStartTime(newTab);
   };
   
-  // Mandatory break between tasks
+  // Mandatory break between tasks - UPDATED for 15 levels
   const startMandatoryBreak = (completedTabId) => {
     setIsInBreak(true);
     
     // Pause the timer by recording when break started
     pauseStartRef.current = Date.now();
     
-    // Determine next task
+    // Determine next task - UPDATED logic for 15 levels
     const game = parseInt(completedTabId[1]);
-    const task = parseInt(completedTabId[3]);
+    const task = parseInt(completedTabId.substring(3)); // Handle 2-digit task numbers
     let nextTab = null;
     
-    if (task < 3) {
+    if (task < 15) { // CHANGED: 15 instead of 3
       nextTab = `g${game}t${task + 1}`;
     } else {
-      // Find next incomplete task
-      const allTabs = ['g1t1', 'g1t2', 'g1t3', 'g2t1', 'g2t2', 'g2t3', 'g3t1', 'g3t2', 'g3t3'];
+      // Find next incomplete task across all 45 levels
+      const allTabs = [];
+      for (let g = 1; g <= 3; g++) {
+        for (let t = 1; t <= 15; t++) {
+          allTabs.push(`g${g}t${t}`);
+        }
+      }
       nextTab = allTabs.find(t => !completed[t] && t !== completedTabId);
     }
     
@@ -493,22 +518,42 @@ function App() {
     }, 2000);
   };
   
-  // Handle game completion
-  const handleGameComplete = async () => {
+  // Handle game completion - UPDATED with new completion reasons
+  const handleGameComplete = async (reason = 'all_levels_complete') => {
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
     }
     
     const finalTime = Math.floor((Date.now() - startTimeRef.current - pausedTime) / 1000);
     
+    // NEW: Calculate strategy metrics
+    const countingLevels = Object.keys(completed).filter(id => id.startsWith('g1')).length;
+    const sliderLevels = Object.keys(completed).filter(id => id.startsWith('g2')).length;
+    const typingLevels = Object.keys(completed).filter(id => id.startsWith('g3')).length;
+    
     await eventTracker.logEvent('game_complete', {
       totalTime: finalTime,
       totalSwitches: switches,
       completedTasks: Object.keys(completed).length,
+      completionReason: reason, // NEW: Track why game ended
+      gameMode: gameMode, // NEW: Track game mode
+      
+      // NEW: Strategy analysis
+      taskDistribution: {
+        countingLevels,
+        sliderLevels,
+        typingLevels,
+        maxLevelReached: {
+          counting: Math.max(...Object.keys(completed).filter(id => id.startsWith('g1')).map(id => parseInt(id.substring(3))), 0),
+          slider: Math.max(...Object.keys(completed).filter(id => id.startsWith('g2')).map(id => parseInt(id.substring(3))), 0),
+          typing: Math.max(...Object.keys(completed).filter(id => id.startsWith('g3')).map(id => parseInt(id.substring(3))), 0)
+        }
+      },
+      
       finalContext: {
         practiceCompleted: practiceChoice === 'yes',
         totalPrompts: 3 + bonusPrompts,
-        promptsUsed: 3 + bonusPrompts - (3 + bonusPrompts) // Calculate from chat usage
+        promptsUsed: 3 + bonusPrompts // Calculate from chat usage
       }
     });
     
@@ -517,51 +562,53 @@ function App() {
         status: 'completed',
         completedAt: serverTimestamp(),
         finalTime,
-        totalSwitches: switches
+        totalSwitches: switches,
+        completionReason: reason // NEW
       });
     }
     
     setMode('complete');
   };
   
-  // Render current task
+  // Render current task - UPDATED to use pattern generator
   const renderTask = () => {
-  const game = currentTab[1];
-  const taskNum = Number(currentTab[3]);
-  
-  if (game === '1') {
+    const game = currentTab[1];
+    const taskNum = parseInt(currentTab.substring(3)); // Handle 2-digit task numbers
+    
+    if (game === '1') {
+      return (
+        <CountingTask
+          taskNum={taskNum}
+          onComplete={handleComplete}
+          gameAccuracyMode={gameMode?.accuracy} // CHANGED: Use gameMode.accuracy
+        />
+      );
+    }
+    if (game === '2') {
+      return (
+        <SliderTask
+          taskNum={taskNum}
+          onComplete={handleComplete}
+          gameAccuracyMode={gameMode?.accuracy} // CHANGED: Use gameMode.accuracy
+        />
+      );
+    }
     return (
-      <CountingTask
+      <TypingTask
         taskNum={taskNum}
-        textSections={rulesDataRef.current.textSections}
         onComplete={handleComplete}
-        gameAccuracyMode={gameAccuracyMode}
+        gameAccuracyMode={gameMode?.accuracy} // CHANGED: Use gameMode.accuracy
       />
     );
-  }
-  if (game === '2') {
-    return (
-      <SliderTask
-        taskNum={taskNum}
-        onComplete={handleComplete}
-        gameAccuracyMode={gameAccuracyMode}
-      />
-    );
-  }
-  return (
-    <TypingTask
-      taskNum={taskNum}
-      onComplete={handleComplete}
-      gameAccuracyMode={gameAccuracyMode}
-    />
-  );
-};
+  };
   
   // Render break overlay
   const renderBreakOverlay = () => {
     if (!isInBreak) return null;
     
-    const tasksRemaining = 9 - Object.keys(completed).length;
+    const tasksRemaining = gameMode?.limit === 'tasks' 
+      ? remainingTasks 
+      : `${Object.keys(completed).length}/45 levels`; // CHANGED: Show level count
     const promptsAvailable = 3 + bonusPrompts;
     
     // Calculate current overall accuracy
@@ -605,8 +652,8 @@ function App() {
           
           <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', margin: '30px 0', flexWrap: 'wrap' }}>
             <div style={{ background: '#f0f0f0', padding: '10px 20px', borderRadius: '6px' }}>
-              <span style={{ color: '#666', fontSize: '14px' }}>Tasks Remaining: </span>
-              <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{tasksRemaining}/9</span>
+              <span style={{ color: '#666', fontSize: '14px' }}>Progress: </span>
+              <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{tasksRemaining}</span>
             </div>
             <div style={{ background: '#f0f0f0', padding: '10px 20px', borderRadius: '6px' }}>
               <span style={{ color: '#666', fontSize: '14px' }}>Prompts Available: </span>
@@ -666,80 +713,86 @@ function App() {
     );
   }
   
-  // Landing page
-if (mode === 'landing') {
-  return (
-    <div className="app">
-      <div className="landing-container">
-        <div className="landing-card">
-          <h1 style={{ color: '#333', marginBottom: '20px', fontSize: '28px' }}>
-            Multi-Task Challenge
-          </h1>
-          
-          <div className="game-info">
-            <h2 style={{ color: '#555', fontSize: '20px', marginBottom: '15px' }}>
-              Welcome! Complete 9 tasks across 3 games:
-            </h2>
+  // Landing page - UPDATED with new GameModeSelector
+  if (mode === 'landing') {
+    return (
+      <div className="app">
+        <div className="landing-container">
+          <div className="landing-card">
+            <h1 style={{ color: '#333', marginBottom: '20px', fontSize: '28px' }}>
+              Multi-Task Challenge
+            </h1>
             
-            <div style={{ marginBottom: '20px' }}>
-              <h3 style={{ color: '#9C27B0' }}>🔢 Counting Game</h3>
-              <p>Count words or letters in text passages.</p>
+            <div className="game-info">
+              <h2 style={{ color: '#555', fontSize: '20px', marginBottom: '15px' }}>
+                Welcome! Complete tasks across 3 games:
+              </h2>
               
-              <h3 style={{ color: '#4CAF50' }}>🎯 Slider Game</h3>
-              <p>Match target values with increasing precision.</p>
+              <div style={{ marginBottom: '20px' }}>
+                <h3 style={{ color: '#9C27B0' }}>🔢 Counting Game</h3>
+                <p>Count words or letters in text passages. 15 levels of increasing difficulty!</p>
+                
+                <h3 style={{ color: '#4CAF50' }}>🎯 Slider Game</h3>
+                <p>Match target values with increasing precision. Progress through 15 levels!</p>
+                
+                <h3 style={{ color: '#f44336' }}>⌨️ Typing Game</h3>
+                <p>Type patterns exactly as shown. Master 15 different patterns!</p>
+              </div>
               
-              <h3 style={{ color: '#f44336' }}>⌨️ Typing Game</h3>
-              <p>Type patterns exactly as shown.</p>
+              <div style={{ background: '#f8f9fa', borderRadius: '6px', padding: '15px', marginBottom: '20px' }}>
+                <h3 style={{ color: '#333', fontSize: '16px', marginBottom: '10px' }}>
+                  How It Works:
+                </h3>
+                <ul style={{ color: '#666', lineHeight: '1.6', margin: '0', paddingLeft: '20px', fontSize: '14px' }}>
+                  <li>Choose between time limit (15 min) or task limit (12 attempts)</li>
+                  <li>Each game has 15 levels - complete as many as you can!</li>
+                  <li>Complete tasks to earn bonus prompts (+1 each)</li>
+                  <li>Tasks affect each other - discover the best strategy!</li>
+                </ul>
+              </div>
             </div>
             
-            <div style={{ background: '#f8f9fa', borderRadius: '6px', padding: '15px', marginBottom: '20px' }}>
-              <h3 style={{ color: '#333', fontSize: '16px', marginBottom: '10px' }}>
-                How It Works:
-              </h3>
-              <ul style={{ color: '#666', lineHeight: '1.6', margin: '0', paddingLeft: '20px', fontSize: '14px' }}>
-                <li>Tasks auto-advance after completion</li>
-                <li>Switch manually using navigation buttons</li>
-                <li>Complete tasks to earn bonus prompts (+1 each)</li>
-                <li>Tasks affect each other - experiment with different orders!</li>
-              </ul>
-            </div>
+            {/* Game Mode Selector - UPDATED */}
+            {!gameMode ? (
+              <GameModeSelector onModeSelected={setGameMode} />
+            ) : (
+              <div style={{ marginBottom: '20px' }}>
+                <p style={{ color: '#666', marginBottom: '10px' }}>
+                  Selected Mode: <strong style={{ 
+                    color: gameMode.accuracy === 'strict' ? '#f44336' : '#4CAF50' 
+                  }}>
+                    {gameMode.accuracy === 'strict' ? 'Strict (100% Required)' : 'Lenient (Pass All)'}
+                  </strong>
+                  {' | '}
+                  <strong style={{ 
+                    color: gameMode.limit === 'time' ? '#2196F3' : '#9C27B0' 
+                  }}>
+                    {gameMode.limit === 'time' ? '15 Minute Timer' : '12 Task Attempts'}
+                  </strong>
+                </p>
+              </div>
+            )}
+            
+            <button 
+              className="start-button"
+              onClick={() => setMode('practiceChoice')}
+              disabled={!gameMode}
+              style={{
+                opacity: gameMode ? 1 : 0.5,
+                cursor: gameMode ? 'pointer' : 'not-allowed'
+              }}
+            >
+              {gameMode ? 'Start Game' : 'Select Mode First'}
+            </button>
+            
+            <p style={{ color: '#999', fontSize: '13px', marginTop: '15px' }}>
+              Timer starts when you begin the main game
+            </p>
           </div>
-          
-          {/* Game Mode Selector */}
-          {!gameAccuracyMode ? (
-            <GameModeSelector onModeSelected={setGameAccuracyMode} />
-          ) : (
-            <div style={{ marginBottom: '20px' }}>
-              <p style={{ color: '#666', marginBottom: '10px' }}>
-                Selected Mode: <strong style={{ 
-                  color: gameAccuracyMode === 'strict' ? '#f44336' : '#4CAF50' 
-                }}>
-                  {gameAccuracyMode === 'strict' ? 'Strict (100% Required)' : 'Lenient (Pass All)'}
-                </strong>
-              </p>
-            </div>
-          )}
-          
-          <button 
-            className="start-button"
-            onClick={() => setMode('practiceChoice')}
-            disabled={!gameAccuracyMode}
-            style={{
-              opacity: gameAccuracyMode ? 1 : 0.5,
-              cursor: gameAccuracyMode ? 'pointer' : 'not-allowed'
-            }}
-          >
-            {gameAccuracyMode ? 'Start Game' : 'Select Mode First'}
-          </button>
-          
-          <p style={{ color: '#999', fontSize: '13px', marginTop: '15px' }}>
-            Timer starts when you begin the main game
-          </p>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
   
   // Practice choice
   if (mode === 'practiceChoice') {
@@ -783,63 +836,95 @@ if (mode === 'landing') {
       <div className="app">
         <h1>Multi-Task Challenge - Practice Mode</h1>
         <PracticeMode 
-          rulesData={rulesDataRef.current} 
           onStartMainGame={() => {
             taskDependencies.clearAllDependencies();
             startMainGame();
           }}
-          gameAccuracyMode={gameAccuracyMode}
+          gameAccuracyMode={gameMode?.accuracy} // CHANGED: Use gameMode.accuracy
         />
       </div>
     );
   }
   
-  // Chat mode
-  if (mode === 'chat') {
-    return (
-      <div className="app">
-        <h1>Multi-Task Challenge</h1>
-        <div className="mode-switch">
-          <button onClick={() => setMode('challenge')}>Challenge</button>
-          <button disabled={true}>Chat</button>
-        </div>
-        <ChatContainer 
-          bonusPrompts={bonusPrompts}
-          currentTask={currentTab}
-        />
-      </div>
-    );
-  }
-  
-  // Completion screen
+  // Completion screen - UPDATED with strategy analysis
   if (mode === 'complete') {
     const minutes = Math.floor(globalTimer / 60);
     const seconds = globalTimer % 60;
     
+    // Calculate strategy metrics
+    const countingLevels = Object.keys(completed).filter(id => id.startsWith('g1')).length;
+    const sliderLevels = Object.keys(completed).filter(id => id.startsWith('g2')).length;
+    const typingLevels = Object.keys(completed).filter(id => id.startsWith('g3')).length;
+    
     return (
       <div className="app">
         <div style={{ textAlign: 'center', padding: '40px', background: '#f0f8ff', borderRadius: '8px', marginTop: '20px' }}>
-          <h2>🎉 All Tasks Complete!</h2>
-          <p>Great job! You've completed all 9 tasks.</p>
+          <h2>🎉 Challenge Complete!</h2>
+          <p>
+            {gameMode?.limit === 'time' 
+              ? "Time's up! Let's see how you did." 
+              : gameMode?.limit === 'tasks'
+              ? "You've used all 12 task attempts!"
+              : "Incredible! You completed all 45 levels!"}
+          </p>
           
           <div style={{ marginTop: '20px', background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+            <h3>Performance Summary</h3>
+            
             <div style={{ margin: '10px 0' }}>
               <span style={{ fontWeight: 'bold', color: '#666' }}>Total Time: </span>
               <span style={{ fontSize: '24px', color: '#333', marginLeft: '10px' }}>
                 {minutes}m {seconds}s
               </span>
             </div>
+            
+            <div style={{ margin: '10px 0' }}>
+              <span style={{ fontWeight: 'bold', color: '#666' }}>Levels Completed: </span>
+              <span style={{ fontSize: '24px', color: '#333', marginLeft: '10px' }}>
+                {Object.keys(completed).length}/45
+              </span>
+            </div>
+            
             <div style={{ margin: '10px 0' }}>
               <span style={{ fontWeight: 'bold', color: '#666' }}>Task Switches: </span>
               <span style={{ fontSize: '24px', color: '#333', marginLeft: '10px' }}>
                 {switches}
               </span>
             </div>
-            <div style={{ margin: '10px 0' }}>
-              <span style={{ fontWeight: 'bold', color: '#666' }}>Bonus Prompts Earned: </span>
-              <span style={{ fontSize: '24px', color: '#333', marginLeft: '10px' }}>
-                {bonusPrompts}
-              </span>
+            
+            <h4 style={{ marginTop: '20px', color: '#666' }}>Strategy Analysis</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '15px' }}>
+              <div style={{ background: '#f8f0ff', padding: '15px', borderRadius: '6px' }}>
+                <div style={{ color: '#9C27B0', fontWeight: 'bold' }}>Counting</div>
+                <div style={{ fontSize: '20px' }}>{countingLevels} levels</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  Max: Level {Math.max(...Object.keys(completed).filter(id => id.startsWith('g1')).map(id => parseInt(id.substring(3))), 0)}
+                </div>
+              </div>
+              
+              <div style={{ background: '#f0f8f0', padding: '15px', borderRadius: '6px' }}>
+                <div style={{ color: '#4CAF50', fontWeight: 'bold' }}>Slider</div>
+                <div style={{ fontSize: '20px' }}>{sliderLevels} levels</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  Max: Level {Math.max(...Object.keys(completed).filter(id => id.startsWith('g2')).map(id => parseInt(id.substring(3))), 0)}
+                </div>
+              </div>
+              
+              <div style={{ background: '#fff0f0', padding: '15px', borderRadius: '6px' }}>
+                <div style={{ color: '#f44336', fontWeight: 'bold' }}>Typing</div>
+                <div style={{ fontSize: '20px' }}>{typingLevels} levels</div>
+                <div style={{ fontSize: '12px', color: '#666' }}>
+                  Max: Level {Math.max(...Object.keys(completed).filter(id => id.startsWith('g3')).map(id => parseInt(id.substring(3))), 0)}
+                </div>
+              </div>
+            </div>
+            
+            <div style={{ marginTop: '20px', padding: '15px', background: '#e3f2fd', borderRadius: '6px' }}>
+              <strong>Strategy Type: </strong>
+              {countingLevels > sliderLevels && countingLevels > typingLevels ? '📚 Counting Specialist' :
+               sliderLevels > countingLevels && sliderLevels > typingLevels ? '🎯 Precision Master' :
+               typingLevels > countingLevels && typingLevels > sliderLevels ? '⚡ Speed Typist' :
+               '⚖️ Balanced Approach'}
             </div>
           </div>
           
@@ -854,6 +939,15 @@ if (mode === 'landing') {
   // Main challenge mode
   return (
     <div className="app">
+      {/* NEW: Timer for time limit mode */}
+      {mode === 'challenge' && gameMode?.limit === 'time' && !timeUp && (
+        <GameTimer 
+          duration={900} // 15 minutes
+          onTimeUp={handleTimeUp}
+          isPaused={isInBreak || gameBlocked}
+        />
+      )}
+      
       {/* Game blocked overlay */}
       {gameBlocked && (
         <div style={{
@@ -959,44 +1053,49 @@ if (mode === 'landing') {
 
       <h1>Multi-Task Challenge</h1>
 
-      {/* Game mode indicator */}
-      {gameAccuracyMode && (
+      {/* Game mode indicator - UPDATED */}
+      {gameMode && (
         <div style={{
           position: 'absolute',
           top: '10px',
           right: '10px',
-          background: gameAccuracyMode === 'strict' ? '#f44336' : '#4CAF50',
+          background: gameMode.accuracy === 'strict' ? '#f44336' : '#4CAF50',
           color: 'white',
           padding: '5px 10px',
           borderRadius: '4px',
           fontSize: '12px',
           fontWeight: 'bold'
         }}>
-          {gameAccuracyMode === 'strict' ? '100% Mode' : 'Pass All Mode'}
+          {gameMode.accuracy === 'strict' ? '100% Mode' : 'Pass All Mode'}
         </div>
       )}
       
-      {/* Timer display */}
-      <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: 'bold', marginBottom: '20px' }}>
-        Time: {Math.floor(globalTimer / 60)}:{(globalTimer % 60).toString().padStart(2, '0')}
-      </div>
+      {/* Timer display - only show if not in time mode (timer shown separately) */}
+      {gameMode?.limit !== 'time' && (
+        <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: 'bold', marginBottom: '20px' }}>
+          Time: {Math.floor(globalTimer / 60)}:{(globalTimer % 60).toString().padStart(2, '0')}
+        </div>
+      )}
       
       {/* Mode switch - removed chat button */}
       <div className="mode-switch">
         <button disabled={true}>Challenge</button>
       </div>
       
-      <NavTabs
+      {/* CHANGED: Use NavTabsEnhanced instead of NavTabs */}
+      <NavTabsEnhanced
         current={currentTab}
         completed={completed}
         onSwitch={handleTabSwitch}
+        remainingTasks={gameMode?.limit === 'tasks' ? remainingTasks : null}
+        limitMode={gameMode?.limit}
       />
       
-      {/* Progress bar */}
+      {/* Progress bar - UPDATED for 45 levels */}
       <div className="progress-container">
         <div 
           className="progress-bar" 
-          style={{ width: `${(Object.keys(completed).length / 9) * 100}%` }}
+          style={{ width: `${(Object.keys(completed).length / 45) * 100}%` }}
         />
       </div>
       
@@ -1050,7 +1149,7 @@ if (mode === 'landing') {
         </div>
       </div>
       
-      <ProgressSummary completed={completed} />
+      {/* REMOVED: ProgressSummary - not needed with 45 levels */}
       
       {/* Break overlay */}
       {renderBreakOverlay()}

@@ -1,16 +1,11 @@
-// src/components/TypingTask.jsx - Updated with 90% accuracy threshold
+// src/components/TypingTask.jsx - Updated for 15 levels
 import React, { useEffect, useState, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import { taskDependencies } from '../utils/taskDependencies';
+import { patternGenerator } from '../utils/patternGenerator'; // NEW IMPORT
 import { db } from '../firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './TypingTask.css';
-
-const patterns = {
-  easy: ['hello world', 'easy typing', 'test input', 'simple text', 'quick brown', 'lazy dog', 'type this', 'good job'],
-  medium: ['HeLLo WoRLd', 'TeSt PaTTeRn', 'MiXeD cAsE', 'CaPiTaL lEtTeRs', 'QuIcK bRoWn', 'LaZy DoG', 'TyPe ThIs', 'GoOd JoB'],
-  hard: ['a@1 B#2 c$3', 'Qw3$ Er4# Ty5@', 'X9% Y8& Z7*', 'P6! Q5? R4+', 'Z1@ Y2# X3$', 'M7& N8* O9!', 'J4% K5^ L6&', 'D1! E2@ F3#']
-};
 
 export default function TypingTask({ taskNum, onComplete, isPractice = false, gameAccuracyMode = 'strict' }) {
   const [pattern, setPattern] = useState('');
@@ -46,22 +41,21 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false, ga
   };
 
   useEffect(() => {
-    const level = ['easy', 'medium', 'hard'][taskNum - 1];
-    let pset = patterns[level];
+    // CHANGED: Use pattern generator for 15 levels
+    const generatedPattern = patternGenerator.generateTypingPattern(taskNum);
     
     // Check for dependency that simplifies patterns
     const dependency = taskDependencies.getActiveDependency(`g3t${taskNum}`);
     if (dependency && dependency.type === 'simple_pattern') {
-      // Use easy patterns regardless of task number
-      pset = patterns.easy;
+      // Use easy pattern regardless of level
+      const easyPattern = patternGenerator.generateTypingPattern(Math.min(taskNum, 5));
+      setPattern(easyPattern.pattern);
+    } else {
+      setPattern(generatedPattern.pattern);
     }
     
-    const randomIndex = Math.floor(Math.random() * pset.length);
-    const selectedPattern = pset[randomIndex];
-    setPattern(selectedPattern);
-    
     // Generate pattern image
-    const imageUrl = generatePatternImage(selectedPattern);
+    const imageUrl = generatePatternImage(generatedPattern.pattern);
     setPatternImageUrl(imageUrl);
   }, [taskNum]);
 
@@ -84,26 +78,26 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false, ga
   };
 
   const handleSubmit = async () => {
-  const timeTaken = Date.now() - startTime;
-  const accuracy = calculateAccuracy(input, pattern);
-  
-  // Different pass thresholds based on game mode
-  const passThreshold = gameAccuracyMode === 'strict' ? 100 : 0;
-  const passed = gameAccuracyMode === 'lenient' ? true : accuracy >= passThreshold;
-  
-  attemptsRef.current += 1;
-  
-  await eventTracker.trackTaskAttempt(
-    `g3t${taskNum}`,
-    attemptsRef.current,
-    passed,
-    timeTaken,
-    input,
-    pattern
-  );
-  
-  // Store accuracy to database
-  const sessionId = localStorage.getItem('sessionId');
+    const timeTaken = Date.now() - startTime;
+    const accuracy = calculateAccuracy(input, pattern);
+    
+    // Different pass thresholds based on game mode
+    const passThreshold = gameAccuracyMode === 'strict' ? 100 : 0;
+    const passed = gameAccuracyMode === 'lenient' ? true : accuracy >= passThreshold;
+    
+    attemptsRef.current += 1;
+    
+    await eventTracker.trackTaskAttempt(
+      `g3t${taskNum}`,
+      attemptsRef.current,
+      passed,
+      timeTaken,
+      input,
+      pattern
+    );
+    
+    // Store accuracy to database
+    const sessionId = localStorage.getItem('sessionId');
     if (sessionId && !sessionId.startsWith('offline-')) {
       try {
         await updateDoc(doc(db, 'sessions', sessionId), {
@@ -143,12 +137,17 @@ export default function TypingTask({ taskNum, onComplete, isPractice = false, ga
   };
 
   const isEnhanced = taskDependencies.getActiveDependency(`g3t${taskNum}`);
+  
+  // CHANGED: Get difficulty info from pattern generator
+  const patternInfo = patternGenerator.generateTypingPattern(taskNum);
+  const difficultyLabel = patternInfo.difficultyLabel;
+  const difficultyColor = patternInfo.difficulty;
 
   return (
     <div className={`task typing ${isEnhanced ? 'enhanced-task' : ''}`}>
-      <h3>Typing Task {taskNum}</h3>
-      <div className={`difficulty-badge ${['easy', 'medium', 'hard'][taskNum - 1]}`}>
-        {['Easy', 'Medium', 'Hard'][taskNum - 1]}
+      <h3>Typing Task - Level {taskNum}</h3>
+      <div className={`difficulty-badge ${difficultyColor}`}>
+        {difficultyLabel}
       </div>
       
       <p className="instruction">

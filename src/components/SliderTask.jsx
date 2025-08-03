@@ -1,7 +1,8 @@
-// src/components/SliderTask.jsx - Updated with 90% accuracy threshold
+// src/components/SliderTask.jsx - Updated for 15 levels
 import React, { useEffect, useState, useRef } from 'react';
 import { eventTracker } from '../utils/eventTracker';
 import { taskDependencies } from '../utils/taskDependencies';
+import { patternGenerator } from '../utils/patternGenerator'; // NEW IMPORT
 import { db } from '../firebase';
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './SliderTask.css';
@@ -11,25 +12,17 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false, ga
   const [input, setInput] = useState(5.0);
   const [feedback, setFeedback] = useState(null);
   const [startTime] = useState(Date.now());
+  const [step, setStep] = useState(1); // NEW: Track step value
+  const [showValue, setShowValue] = useState(true); // NEW: Track if value should be shown
   const attemptsRef = useRef(0);
 
   useEffect(() => {
-    // Generate target based on difficulty with proper randomization
-    let targetValue;
-    if (taskNum === 1) {
-      // Easy: random integer from 0-10
-      targetValue = Math.floor(Math.random() * 11);
-    } else if (taskNum === 2) {
-      // Medium: random value with one decimal place (0.0 to 10.0)
-      // Generate a random number from 0 to 100, then divide by 10
-      targetValue = Math.floor(Math.random() * 101) / 10;
-    } else {
-      // Hard: random value with two decimal places (0.00 to 10.00)
-      // Generate a random number from 0 to 1000, then divide by 100
-      targetValue = Math.floor(Math.random() * 1001) / 100;
-    }
+    // CHANGED: Use pattern generator for 15 levels
+    const pattern = patternGenerator.generateSliderPattern(taskNum);
     
-    setTarget(targetValue);
+    setTarget(pattern.target);
+    setStep(pattern.step);
+    setShowValue(pattern.showValue);
     setInput(5.0); // Always start at middle
   }, [taskNum]);
 
@@ -41,68 +34,71 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false, ga
   };
 
   const handleSubmit = async () => {
-  const timeTaken = Date.now() - startTime;
-  const userValue = parseFloat(input);
-  const accuracy = calculateAccuracy(userValue, target);
-  
-  // Different pass thresholds based on game mode
-  const passThreshold = gameAccuracyMode === 'strict' ? 100 : 0;
-  const passed = gameAccuracyMode === 'lenient' ? true : accuracy >= passThreshold;
-  
-  attemptsRef.current += 1;
-  
-  await eventTracker.trackTaskAttempt(
-    `g2t${taskNum}`,
-    attemptsRef.current,
-    passed,
-    timeTaken,
-    userValue,
-    target
-  );
-  
-  // Store accuracy to database
-  const sessionId = localStorage.getItem('sessionId');
-  if (sessionId && !sessionId.startsWith('offline-')) {
-    try {
-      await updateDoc(doc(db, 'sessions', sessionId), {
-        [`taskAccuracies.g2t${taskNum}`]: accuracy,
-        [`taskTimes.g2t${taskNum}`]: timeTaken,
-        [`gameMode`]: gameAccuracyMode,
-        lastActivity: serverTimestamp()
-      });
-    } catch (error) {
-      console.error('Error storing accuracy:', error);
-    }
-  }
-  
-  if (passed) {
-    if (userValue === target) {
-      setFeedback('✓ Flawless!');
-    } else if (gameAccuracyMode === 'lenient') {
-      setFeedback(`✓ Passed! (${accuracy}% accuracy)`);
-    } else {
-      setFeedback('✓ Good job!');
+    const timeTaken = Date.now() - startTime;
+    const userValue = parseFloat(input);
+    const accuracy = calculateAccuracy(userValue, target);
+    
+    // Different pass thresholds based on game mode
+    const passThreshold = gameAccuracyMode === 'strict' ? 100 : 0;
+    const passed = gameAccuracyMode === 'lenient' ? true : accuracy >= passThreshold;
+    
+    attemptsRef.current += 1;
+    
+    await eventTracker.trackTaskAttempt(
+      `g2t${taskNum}`,
+      attemptsRef.current,
+      passed,
+      timeTaken,
+      userValue,
+      target
+    );
+    
+    // Store accuracy to database
+    const sessionId = localStorage.getItem('sessionId');
+    if (sessionId && !sessionId.startsWith('offline-')) {
+      try {
+        await updateDoc(doc(db, 'sessions', sessionId), {
+          [`taskAccuracies.g2t${taskNum}`]: accuracy,
+          [`taskTimes.g2t${taskNum}`]: timeTaken,
+          [`gameMode`]: gameAccuracyMode,
+          lastActivity: serverTimestamp()
+        });
+      } catch (error) {
+        console.error('Error storing accuracy:', error);
+      }
     }
     
-    setTimeout(() => {
-      onComplete(`g2t${taskNum}`, {
-        attempts: attemptsRef.current,
-        totalTime: timeTaken,
-        accuracy: accuracy
-      });
-    }, 1500);
-  } else {
-    if (isPractice) {
-      setFeedback(`✗ Target was ${target}. Try again!`);
+    if (passed) {
+      if (userValue === target) {
+        setFeedback('✓ Flawless!');
+      } else if (gameAccuracyMode === 'lenient') {
+        setFeedback(`✓ Passed! (${accuracy}% accuracy)`);
+      } else {
+        setFeedback('✓ Good job!');
+      }
+      
+      setTimeout(() => {
+        onComplete(`g2t${taskNum}`, {
+          attempts: attemptsRef.current,
+          totalTime: timeTaken,
+          accuracy: accuracy
+        });
+      }, 1500);
     } else {
-      setFeedback(`✗ Try again! (${accuracy}% accuracy - need 100%)`);
+      if (isPractice) {
+        setFeedback(`✗ Target was ${target}. Try again!`);
+      } else {
+        setFeedback(`✗ Try again! (${accuracy}% accuracy - need 100%)`);
+      }
     }
-  }
-};
+  };
 
   const isEnhanced = taskDependencies.getActiveDependency(`g2t${taskNum}`);
-  const step = taskNum === 1 ? 1 : (taskNum === 2 ? 0.1 : 0.01);
-  const showValue = taskNum !== 3; // Hide value only on hard mode
+  
+  // CHANGED: Get difficulty info from pattern generator
+  const pattern = patternGenerator.generateSliderPattern(taskNum);
+  const difficultyLabel = pattern.difficultyLabel;
+  const difficultyColor = pattern.difficulty;
   
   // Generate scale marks for enhanced slider
   const generateScaleMarks = () => {
@@ -139,9 +135,9 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false, ga
   
   return (
     <div className={`task slider ${isEnhanced ? 'enhanced-task' : ''}`}>
-      <h3>Slider Task {taskNum}</h3>
-      <div className={`difficulty-badge ${['easy', 'medium', 'hard'][taskNum - 1]}`}>
-        {['Easy', 'Medium', 'Hard'][taskNum - 1]}
+      <h3>Slider Task - Level {taskNum}</h3>
+      <div className={`difficulty-badge ${difficultyColor}`}>
+        {difficultyLabel}
       </div>
       
       <p className="instruction">
@@ -198,14 +194,10 @@ export default function SliderTask({ taskNum, onComplete, isPractice = false, ga
           />
         )}
         
-        {/* Current value display */}
+        {/* Current value display - UPDATED for 15 levels */}
         <div className="current-value">
           {showValue ? (
-            taskNum === 2 ? 
-              // For task 2 (medium), only show integer part
-              Math.floor(parseFloat(input)).toString() :
-              // For other tasks, show full precision
-              parseFloat(input).toFixed(taskNum === 1 ? 0 : (taskNum === 2 ? 1 : 2))
+            parseFloat(input).toFixed(pattern.precision)
           ) : '??'}
         </div>
       </div>
