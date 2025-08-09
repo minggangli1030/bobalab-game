@@ -4,10 +4,11 @@ export default function NavTabsEnhanced({
   current,
   completed,
   onSwitch,
-  remainingTasks,
   limitMode,
+  taskPoints = {}, // NEW: Pass points earned per task
+  categoryMultipliers = {}, // NEW: Pass current multipliers
 }) {
-  // Generate all 45 tabs (15 per game) but don't show total
+  // Generate all 45 tabs (15 per game)
   const tabs = [];
   for (let game = 1; game <= 3; game++) {
     for (let level = 1; level <= 15; level++) {
@@ -60,6 +61,12 @@ export default function NavTabsEnhanced({
     3: "Typing",
   };
 
+  const gameCategoryMap = {
+    1: "counting",
+    2: "slider",
+    3: "typing",
+  };
+
   // Helper function to convert hex to RGB
   const hexToRgb = (hex) => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -86,24 +93,10 @@ export default function NavTabsEnhanced({
     isAvailable,
     isCompleted,
     isCurrent,
-    gameNum,
-    isBlocked
+    gameNum
   ) => {
     const baseColor = gameColors[gameNum];
     const intensity = getButtonColorIntensity(gameNum);
-
-    // Convert hex to RGB for manipulation
-    const hexToRgb = (hex) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result
-        ? {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16),
-          }
-        : null;
-    };
-
     const rgb = hexToRgb(baseColor);
 
     // Fade the color based on intensity
@@ -128,21 +121,27 @@ export default function NavTabsEnhanced({
         ? baseColor
         : isCompleted
         ? fadedBgColor
-        : isAvailable && !isBlocked
+        : isAvailable
         ? "white"
         : "#f5f5f5",
       color: isCurrent
         ? "white"
         : isCompleted
         ? baseColor
-        : isAvailable && !isBlocked
+        : isAvailable
         ? "#333"
         : "#999",
-      cursor: isAvailable && !isBlocked ? "pointer" : "not-allowed",
+      cursor: isAvailable ? "pointer" : "not-allowed",
       transition: "all 0.2s",
       overflow: "hidden",
       boxShadow: isCurrent ? `0 2px 8px ${fadedColor}` : "none",
     };
+  };
+
+  // Calculate total points earned per game
+  const getGamePoints = (gameNum) => {
+    const gameTabs = gameGroups[gameNum];
+    return gameTabs.reduce((sum, tab) => sum + (taskPoints[tab.id] || 0), 0);
   };
 
   return (
@@ -155,42 +154,26 @@ export default function NavTabsEnhanced({
         marginBottom: "20px",
       }}
     >
-      {/* Task/Time limit indicator */}
-      {limitMode && (
+      {/* Time-based mode indicator */}
+      {limitMode === "time" && (
         <div
           style={{
             textAlign: "center",
             marginBottom: "20px",
             padding: "12px",
-            background: limitMode === "tasks" ? "#f3e5f5" : "#e3f2fd",
+            background: "#e3f2fd",
             borderRadius: "8px",
-            border: `2px solid ${
-              limitMode === "tasks" ? "#9C27B0" : "#2196F3"
-            }`,
+            border: "2px solid #2196F3",
           }}
         >
           <div
             style={{
-              fontSize: "18px",
-              fontWeight: "bold",
-              color: limitMode === "tasks" ? "#9C27B0" : "#2196F3",
-              marginBottom: "4px",
+              fontSize: "16px",
+              color: "#666",
             }}
           >
-            {limitMode === "tasks"
-              ? `Tasks Remaining: ${remainingTasks}`
-              : "⏱️ Time Challenge Mode"}
+            Choose your path strategically - all tasks are available!
           </div>
-          {limitMode === "tasks" && (
-            <div
-              style={{
-                fontSize: "12px",
-                color: "#666",
-              }}
-            >
-              Choose your tasks strategically!
-            </div>
-          )}
         </div>
       )}
 
@@ -208,6 +191,9 @@ export default function NavTabsEnhanced({
             (t) => completed[t.id]
           ).length;
           const intensity = getButtonColorIntensity(gameNum);
+          const gamePoints = getGamePoints(gameNum);
+          const categoryName = gameCategoryMap[gameNum];
+          const hasMultiplier = categoryMultipliers[categoryName] > 0;
 
           return (
             <div
@@ -222,6 +208,10 @@ export default function NavTabsEnhanced({
                 }, ${hexToRgb(gameColors[gameNum]).b}, 0.05)`,
                 borderRadius: "8px",
                 border: `1px solid ${gameColors[gameNum]}20`,
+                boxShadow: hasMultiplier
+                  ? `0 0 12px ${gameColors[gameNum]}30`
+                  : "none",
+                transition: "all 0.3s",
               }}
             >
               {/* Game icon */}
@@ -238,6 +228,39 @@ export default function NavTabsEnhanced({
               >
                 {gameNames[gameNum]}
               </h4>
+
+              {/* Points earned */}
+              {gamePoints > 0 && (
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: gameColors[gameNum],
+                    background: `${gameColors[gameNum]}20`,
+                    padding: "2px 6px",
+                    borderRadius: "10px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {gamePoints} pts
+                </span>
+              )}
+
+              {/* Multiplier indicator */}
+              {hasMultiplier && (
+                <span
+                  style={{
+                    fontSize: "11px",
+                    color: "#ff9800",
+                    background: "#fff3cd",
+                    padding: "2px 6px",
+                    borderRadius: "10px",
+                    fontWeight: "bold",
+                    border: "1px solid #ffc107",
+                  }}
+                >
+                  ×{categoryMultipliers[categoryName].toFixed(1)}
+                </span>
+              )}
 
               {/* Level indicator */}
               <span
@@ -272,8 +295,7 @@ export default function NavTabsEnhanced({
                   const isCompleted = completed[tab.id];
                   const isCurrent = current === tab.id;
                   const taskNum = parseInt(tab.id.substring(3));
-                  const isBlocked =
-                    limitMode === "tasks" && remainingTasks <= 0 && !isCurrent;
+                  const points = taskPoints[tab.id] || 0;
 
                   // Only show completed tasks and the next available one
                   if (!isCompleted && !isAvailable) return null;
@@ -283,18 +305,15 @@ export default function NavTabsEnhanced({
                   return (
                     <button
                       key={tab.id}
-                      disabled={!isAvailable || isBlocked}
-                      onClick={() =>
-                        isAvailable && !isBlocked && onSwitch(tab.id)
-                      }
+                      disabled={!isAvailable}
+                      onClick={() => isAvailable && onSwitch(tab.id)}
                       style={{
                         ...getButtonStyles(
                           tab,
                           isAvailable,
                           isCompleted,
                           isCurrent,
-                          gameNum,
-                          isBlocked
+                          gameNum
                         ),
                         minWidth: "32px",
                         height: "32px",
@@ -303,29 +322,47 @@ export default function NavTabsEnhanced({
                         flexShrink: 0,
                       }}
                       onMouseEnter={(e) => {
-                        if (isAvailable && !isBlocked && !isCurrent) {
+                        if (isAvailable && !isCurrent) {
                           e.currentTarget.style.transform = "scale(1.1)";
                         }
                       }}
                       onMouseLeave={(e) => {
-                        if (isAvailable && !isBlocked && !isCurrent) {
+                        if (isAvailable && !isCurrent) {
                           e.currentTarget.style.transform = "scale(1)";
                         }
                       }}
                     >
                       {taskNum}
                       {isCompleted && (
-                        <span
-                          style={{
-                            position: "absolute",
-                            top: "1px",
-                            right: "1px",
-                            fontSize: "8px",
-                            color: gameColors[gameNum],
-                          }}
-                        >
-                          ✓
-                        </span>
+                        <>
+                          <span
+                            style={{
+                              position: "absolute",
+                              top: "1px",
+                              right: "1px",
+                              fontSize: "8px",
+                              color: gameColors[gameNum],
+                            }}
+                          >
+                            ✓
+                          </span>
+                          {/* Points indicator */}
+                          {points > 0 && (
+                            <span
+                              style={{
+                                position: "absolute",
+                                bottom: "2px",
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                                fontSize: "6px",
+                                color: gameColors[gameNum],
+                                fontWeight: "bold",
+                              }}
+                            >
+                              {"•".repeat(points)}
+                            </span>
+                          )}
+                        </>
                       )}
                     </button>
                   );
@@ -336,7 +373,7 @@ export default function NavTabsEnhanced({
         })}
       </div>
 
-      {/* Progress summary - only show completed count */}
+      {/* Progress summary */}
       <div
         style={{
           marginTop: "20px",
@@ -354,6 +391,15 @@ export default function NavTabsEnhanced({
           <strong>Tasks Completed:</strong>{" "}
           <span style={{ color: "#333", fontSize: "16px", fontWeight: "bold" }}>
             {Object.keys(completed).length}
+          </span>
+        </div>
+
+        <div style={{ fontSize: "14px", color: "#666" }}>
+          <strong>Total Points:</strong>{" "}
+          <span
+            style={{ color: "#2196F3", fontSize: "16px", fontWeight: "bold" }}
+          >
+            {Object.values(taskPoints).reduce((sum, points) => sum + points, 0)}
           </span>
         </div>
 
