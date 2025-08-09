@@ -19,7 +19,6 @@ import './App.css';
 import AdminPage from './AdminPage';
 import GameModeSelector from './components/GameModeSelector';
 import CompletionCodeDisplay from './components/CompletionCodeDisplay'; 
-import { patternGenerator } from './utils/patternGenerator';
 
 function App() {
   // Admin page (hidden route)
