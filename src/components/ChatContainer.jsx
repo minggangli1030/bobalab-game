@@ -1,4 +1,4 @@
-// src/components/ChatContainer.jsx - Merged version for both modes
+// src/components/ChatContainer.jsx - Fixed version with correct filename
 import React, { useState, useEffect, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
 import "./ChatContainer.css";
@@ -6,33 +6,30 @@ import "./ChatContainer.css";
 export default function ChatContainer({
   bonusPrompts = 0,
   currentTask = "",
-  // New props for star mode
   categoryPoints = null,
   categoryMultipliers = null,
   starGoals = null,
   timeRemaining = null,
-  totalPoints = null,
 }) {
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Hello! I'm here to help with your tasks. Ask me anything!",
+      text: "Hello! I'm here to help with your tasks. Ask me anything about counting, slider, or typing tasks!",
     },
   ]);
   const [input, setInput] = useState("");
   const [promptsUsed, setPromptsUsed] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
-  const [gameMode, setGameMode] = useState("dependency"); // 'dependency' or 'star'
+  const [gameMode, setGameMode] = useState("star"); // Default to star mode since you're using star goals
   const responseDataRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const totalPrompts = 3 + bonusPrompts;
   const remainingPrompts = totalPrompts - promptsUsed;
 
-  // Load response data and detect game mode on mount
+  // Load response data on mount
   useEffect(() => {
     loadResponseData();
-    detectGameMode();
   }, []);
 
   // Auto-scroll to bottom
@@ -40,20 +37,10 @@ export default function ChatContainer({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const detectGameMode = () => {
-    // Detect mode based on props or localStorage
-    const storedMode = localStorage.getItem("gameMode");
-    if (categoryPoints !== null || storedMode === "star") {
-      setGameMode("star");
-    } else {
-      setGameMode("dependency");
-    }
-  };
-
   const loadResponseData = async () => {
     try {
-      // Try local first
-      const response = await fetch("/data/chat-responses-merged.json");
+      // Correct filename: chat-responses.json instead of chat-responses-merged.json
+      const response = await fetch("/data/chat-responses.json");
 
       if (!response.ok) {
         throw new Error("Failed to load response data");
@@ -61,18 +48,61 @@ export default function ChatContainer({
 
       const data = await response.json();
       responseDataRef.current = data;
-      console.log("Loaded merged response data successfully");
+      console.log("Loaded response data successfully");
     } catch (error) {
       console.error("Error loading response data:", error);
-      // Use minimal fallback
+      // Fallback with some basic responses
       responseDataRef.current = {
-        responses: {},
+        responses: {
+          counting: {
+            workflow: {
+              make_for_me: [],
+              find_for_me: [],
+              jumpstart_for_me: [],
+              iterate_with_me: [],
+            },
+            task: {
+              make_for_me: [],
+              find_for_me: [],
+              jumpstart_for_me: [],
+              iterate_with_me: [],
+            },
+          },
+          slider: {
+            workflow: {
+              make_for_me: [],
+              find_for_me: [],
+              jumpstart_for_me: [],
+              iterate_with_me: [],
+            },
+            task: {
+              make_for_me: [],
+              find_for_me: [],
+              jumpstart_for_me: [],
+              iterate_with_me: [],
+            },
+          },
+          typing: {
+            workflow: {
+              make_for_me: [],
+              find_for_me: [],
+              jumpstart_for_me: [],
+              iterate_with_me: [],
+            },
+            task: {
+              make_for_me: [],
+              find_for_me: [],
+              jumpstart_for_me: [],
+              iterate_with_me: [],
+            },
+          },
+        },
         general: {},
         fallback: [
           {
             id: "fallback-default",
             response:
-              "Ask about counting, slider, or typing tasks. I'm here to help!",
+              "Ask about counting, slider, or typing tasks. I'm here to help! Try asking about strategy, points, or star goals.",
             triggers: [],
             mode: "both",
           },
@@ -84,21 +114,31 @@ export default function ChatContainer({
   const replaceDynamicVariables = (response) => {
     let processedResponse = response;
 
+    // Calculate total points
+    const totalPoints = categoryPoints
+      ? categoryPoints.counting + categoryPoints.slider + categoryPoints.typing
+      : 0;
+
     // Replace star mode variables
-    if (gameMode === "star" && categoryPoints) {
+    if (categoryPoints) {
       processedResponse = processedResponse
-        .replace("{c}", categoryPoints.counting || 0)
-        .replace("{s}", categoryPoints.slider || 0)
-        .replace("{t}", categoryPoints.typing || 0)
-        .replace("{points}", totalPoints || 0)
+        .replace(/{c}/g, categoryPoints.counting || 0)
+        .replace(/{s}/g, categoryPoints.slider || 0)
+        .replace(/{t}/g, categoryPoints.typing || 0)
+        .replace(/{points}/g, totalPoints)
         .replace(
-          "{time_remaining}",
+          /{time_remaining}/g,
           timeRemaining ? formatTime(timeRemaining) : "12:00"
         )
         .replace(
-          "{time_elapsed}",
+          /{time_elapsed}/g,
           timeRemaining ? formatTime(720 - timeRemaining) : "0:00"
         );
+
+      // Calculate C×S×T bonus
+      const cstBonus =
+        categoryPoints.counting * categoryPoints.slider * categoryPoints.typing;
+      processedResponse = processedResponse.replace(/{bonus}/g, cstBonus);
 
       // Star goals
       if (starGoals) {
@@ -108,36 +148,30 @@ export default function ChatContainer({
                 (starGoals.star3.perfectCount / starGoals.star3.totalAttempts) *
                 100
               ).toFixed(1)
-            : 0;
+            : "0";
 
         processedResponse = processedResponse
-          .replace("{perfect}", starGoals.star3.perfectCount)
-          .replace("{total}", starGoals.star3.totalAttempts)
-          .replace("{rate}", perfectionRate)
-          .replace(
-            "{bonus}",
-            categoryPoints.counting *
-              categoryPoints.slider *
-              categoryPoints.typing
-          );
+          .replace(/{perfect}/g, starGoals.star3.perfectCount)
+          .replace(/{total}/g, starGoals.star3.totalAttempts)
+          .replace(/{rate}/g, perfectionRate);
       }
 
       // Multipliers
       if (categoryMultipliers) {
         processedResponse = processedResponse
-          .replace("{multiplier}", getCurrentMultiplier())
-          .replace("{category}", getBestCategory());
+          .replace(/{multiplier}/g, getCurrentMultiplier())
+          .replace(/{category}/g, getBestCategory());
       }
 
       // Current task info
       const taskLevel = currentTask ? parseInt(currentTask.substring(3)) : 1;
-      processedResponse = processedResponse.replace("{level}", taskLevel);
+      processedResponse = processedResponse.replace(/{level}/g, taskLevel);
     }
 
     // Replace general variables
     processedResponse = processedResponse
-      .replace("{current_task}", currentTask || "none")
-      .replace("{attempts}", getTaskAttempts(currentTask));
+      .replace(/{current_task}/g, currentTask || "none")
+      .replace(/{attempts}/g, getTaskAttempts(currentTask));
 
     return processedResponse;
   };
@@ -238,7 +272,7 @@ export default function ChatContainer({
       });
     }
 
-    // Filter by game mode
+    // Filter by game mode - for star goals, include both "star" and "both" responses
     const modeFilteredMatches = matches.filter(
       (match) =>
         match.response.mode === "both" || match.response.mode === gameMode
@@ -290,7 +324,7 @@ export default function ChatContainer({
         ? modeFallbacks[Math.floor(Math.random() * modeFallbacks.length)]
         : {
             response:
-              "Ask about counting, slider, or typing tasks. I'm here to help!",
+              "Ask about counting, slider, or typing tasks. I'm here to help! Try asking about strategy, points, or star goals.",
             id: "default-fallback",
             mode: "both",
           };
@@ -437,7 +471,7 @@ export default function ChatContainer({
       // Find best response
       const { response, metadata } = findBestResponse(userInput);
 
-      // Log the interaction with mode info
+      // Log the interaction
       await eventTracker.trackChatInteraction(
         userInput,
         {
@@ -470,11 +504,6 @@ export default function ChatContainer({
       <div className="chat-header">
         <h3>AI Assistant</h3>
         <div className="prompt-counter">{remainingPrompts} prompts left</div>
-        {gameMode === "star" && (
-          <div style={{ fontSize: "10px", color: "#666", marginTop: "4px" }}>
-            Mode: Star Goals
-          </div>
-        )}
       </div>
 
       {/* Messages */}
