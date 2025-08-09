@@ -1762,7 +1762,14 @@ function App() {
             height: "650px",
           }}
         >
-          <ChatContainer bonusPrompts={bonusPrompts} currentTask={currentTab} />
+          <ChatContainer
+            bonusPrompts={bonusPrompts}
+            currentTask={currentTab}
+            categoryPoints={categoryPoints}
+            categoryMultipliers={categoryMultipliers}
+            starGoals={starGoals}
+            timeRemaining={timeRemaining}
+          />
         </div>
       </div>
     </div>
