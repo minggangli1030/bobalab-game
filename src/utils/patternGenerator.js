@@ -1,6 +1,24 @@
 // src/utils/patternGenerator.js - Generate patterns for 15 levels per game
 
 export const patternGenerator = {
+  // Seeded random number generator
+  seedRandom: null,
+  currentSeed: null,
+  
+  initializeSeed(seed) {
+    this.currentSeed = seed;
+    // Simple seeded random based on xorshift
+    let s = seed;
+    this.seedRandom = function() {
+      s = (s * 9301 + 49297) % 233280;
+      return s / 233280;
+    };
+  },
+  
+  getRandom() {
+    return this.seedRandom ? this.seedRandom() : Math.random();
+  },
+  
   // Counting Game Patterns
   generateCountingPattern(level) {
     // Difficulty progression
@@ -57,17 +75,17 @@ export const patternGenerator = {
     
     if (level <= 5) {
       // Easy: integers 0-10
-      target = Math.floor(Math.random() * 11);
+      target = Math.floor(this.getRandom() * 11);
       step = 1;
       showValue = true;
     } else if (level <= 10) {
       // Medium: one decimal place
-      target = Math.round(Math.random() * 10 * 10) / 10;
+      target = Math.round(this.getRandom() * 10 * 10) / 10;
       step = 0.1;
       showValue = true;
     } else {
       // Hard: two decimal places, some with hidden values
-      target = Math.round(Math.random() * 10 * 100) / 100;
+      target = Math.round(this.getRandom() * 10 * 100) / 100;
       step = 0.01;
       showValue = level !== 13 && level !== 15; // Hide value on levels 13 and 15
     }
@@ -111,16 +129,18 @@ export const patternGenerator = {
       pattern = patterns.hard[level - 11];
     }
 
-    // For variety, occasionally generate random patterns
-    if (Math.random() < 0.3) {
+    // For variety, occasionally generate random patterns using seeded random
+    if (this.getRandom() < 0.3) {
       if (level <= 5) {
         // Random easy pattern
         const words = ['test', 'type', 'easy', 'quick', 'simple', 'basic'];
-        pattern = `${words[Math.floor(Math.random() * words.length)]} ${words[Math.floor(Math.random() * words.length)]}`;
+        const word1 = words[Math.floor(this.getRandom() * words.length)];
+        const word2 = words[Math.floor(this.getRandom() * words.length)];
+        pattern = `${word1} ${word2}`;
       } else if (level <= 10) {
-        // Random medium pattern
+        // Random medium pattern - randomize case
         pattern = pattern.split('').map(char => 
-          Math.random() < 0.5 ? char.toUpperCase() : char.toLowerCase()
+          this.getRandom() < 0.5 ? char.toUpperCase() : char.toLowerCase()
         ).join('');
       }
     }
@@ -179,8 +199,16 @@ export const patternGenerator = {
 
   // Get a text passage for a specific level
   getTextPassage(level) {
-    // Rotate through passages, using level to determine which one
-    const index = (level - 1) % this.textPassages.length;
-    return this.textPassages[index];
+    // Use seeded random to select passage if seed is initialized
+    if (this.seedRandom) {
+      // Use level and seed to deterministically select a passage
+      const randomOffset = Math.floor(this.getRandom() * this.textPassages.length);
+      const index = (level - 1 + randomOffset) % this.textPassages.length;
+      return this.textPassages[index];
+    } else {
+      // Fallback to original behavior if no seed
+      const index = (level - 1) % this.textPassages.length;
+      return this.textPassages[index];
+    }
   }
 };

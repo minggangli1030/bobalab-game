@@ -19,6 +19,7 @@ import './App.css';
 import AdminPage from './AdminPage';
 import GameModeSelector from './components/GameModeSelector';
 import CompletionCodeDisplay from './components/CompletionCodeDisplay'; 
+import { patternGenerator } from './utils/patternGenerator';
 
 function App() {
   // Admin page (hidden route)
@@ -48,6 +49,10 @@ function App() {
   const [idleCountdown, setIdleCountdown] = useState(5);
   const [gameBlocked, setGameBlocked] = useState(false);
   const [pausedTime, setPausedTime] = useState(0);
+  const [currentRound, setCurrentRound] = useState(1);
+  const [totalRounds] = useState(4);
+  const [roundHistory, setRoundHistory] = useState([]);
+  const [randomSeed, setRandomSeed] = useState(null);
   
   // NEW: States for 15-level mode
   const [remainingTasks, setRemainingTasks] = useState(12);
@@ -315,21 +320,22 @@ function App() {
     // Clear all dependencies before starting main game
     taskDependencies.clearAllDependencies();
     
-    // Clear any practice-related state
-    setMode('challenge');
-    setCompleted({});
-    setSwitches(0);
-    setBonusPrompts(0);
-    setCurrentTab('g1t1');
+    // Clear all dependencies before starting main game
+  taskDependencies.clearAllDependencies();
+  
+  // Generate random seed if not set
+  if (!randomSeed) {
+    const seed = Math.floor(Math.random() * 1000000);
+    setRandomSeed(seed);
+    patternGenerator.initializeSeed(seed);
     
-    startTimer();
-    setTaskStartTimes({ g1t1: Date.now() });
-    eventTracker.setPageStartTime('g1t1');
-    eventTracker.logEvent('game_start', { 
-      practiceCompleted: practiceChoice === 'yes',
-      timestamp: Date.now(),
-      gameMode: gameMode // NEW: Track game mode
-    });
+    // Store seed to Firebase (hidden from player)
+    if (sessionId && !sessionId.startsWith('offline-')) {
+      updateDoc(doc(db, 'sessions', sessionId), {
+        randomSeed: seed,
+        [`roundSeeds.round${currentRound}`]: seed
+      });
+    }}
   };
   
   // NEW: Handle time up
@@ -847,7 +853,7 @@ function App() {
     );
   }
   
-  // Completion screen - UPDATED with strategy analysis
+  // Completion screen - UPDATED with rounds support
 if (mode === 'complete') {
   const minutes = Math.floor(globalTimer / 60);
   const seconds = globalTimer % 60;
@@ -858,6 +864,56 @@ if (mode === 'complete') {
   const typingLevels = Object.keys(completed).filter(id => id.startsWith('g3')).length;
   const totalCompleted = Object.keys(completed).length;
   
+  // Store round data
+  const roundData = {
+    round: currentRound,
+    totalTime: globalTimer,
+    completedLevels: totalCompleted,
+    countingLevels,
+    sliderLevels,
+    typingLevels,
+    switches,
+    gameMode,
+    randomSeed
+  };
+  
+  const handleNextRound = async () => {
+    // Save current round data
+    const newHistory = [...roundHistory, roundData];
+    setRoundHistory(newHistory);
+    
+    // Store to Firebase
+    if (sessionId && !sessionId.startsWith('offline-')) {
+      await updateDoc(doc(db, 'sessions', sessionId), {
+        [`roundHistory.round${currentRound}`]: roundData,
+        currentRound: currentRound + 1,
+        lastActivity: serverTimestamp()
+      });
+    }
+    
+    // Reset for next round
+    setCurrentRound(currentRound + 1);
+    setCompleted({});
+    setSwitches(0);
+    setBonusPrompts(0);
+    setGlobalTimer(0);
+    setPausedTime(0);
+    setCurrentTab('g1t1');
+    setMode('challenge');
+    taskDependencies.clearAllDependencies();
+    
+    // Generate new seed for next round
+    const newSeed = Math.floor(Math.random() * 1000000);
+    setRandomSeed(newSeed);
+    
+    // Restart timer
+    startTimer();
+    setTaskStartTimes({ g1t1: Date.now() });
+    eventTracker.setPageStartTime('g1t1');
+  };
+  
+  const isLastRound = currentRound >= totalRounds;
+  
   return (
     <div className="app">
       <div style={{ 
@@ -865,13 +921,29 @@ if (mode === 'complete') {
         margin: '0 auto',
         padding: '20px'
       }}>
-        {/* Completion Code - MOST PROMINENT */}
-        <CompletionCodeDisplay 
-          sessionId={sessionId}
-          completedLevels={totalCompleted}
-          totalTime={globalTimer}
-          gameMode={gameMode}
-        />
+        {/* Round indicator */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '20px',
+          padding: '15px',
+          background: '#e3f2fd',
+          borderRadius: '8px',
+          border: '2px solid #2196F3'
+        }}>
+          <h2 style={{ color: '#2196F3', margin: 0 }}>
+            Round {currentRound} of {totalRounds} Complete!
+          </h2>
+        </div>
+        
+        {/* Show completion code only on last round */}
+        {isLastRound && (
+          <CompletionCodeDisplay 
+            sessionId={sessionId}
+            completedLevels={totalCompleted}
+            totalTime={globalTimer}
+            gameMode={gameMode}
+          />
+        )}
         
         {/* Performance Summary */}
         <div style={{ 
@@ -883,7 +955,7 @@ if (mode === 'complete') {
           marginTop: '20px'
         }}>
           <h2 style={{ color: '#333', marginBottom: '20px' }}>
-            📊 Performance Summary
+            📊 Round {currentRound} Performance
           </h2>
           
           <p style={{ fontSize: '18px', color: '#666', marginBottom: '30px' }}>
@@ -891,7 +963,7 @@ if (mode === 'complete') {
               ? "Time's up! Here's how you performed." 
               : gameMode?.limit === 'tasks'
               ? "All task attempts used! Here's your summary."
-              : "Incredible! You completed all 45 levels!"}
+              : "Great job! Here's your performance."}
           </p>
           
           {/* Key metrics */}
@@ -925,7 +997,7 @@ if (mode === 'complete') {
                 Levels Complete
               </div>
               <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>
-                {totalCompleted}/45
+                {totalCompleted}
               </div>
             </div>
             
@@ -998,36 +1070,78 @@ if (mode === 'complete') {
             </div>
           </div>
           
-          {/* Strategy type badge */}
-          <div style={{ 
-            padding: '15px', 
-            background: '#e3f2fd', 
-            borderRadius: '6px',
-            fontSize: '16px'
-          }}>
-            <strong>Strategy Type: </strong>
-            {countingLevels > sliderLevels && countingLevels > typingLevels ? '📚 Counting Specialist' :
-             sliderLevels > countingLevels && sliderLevels > typingLevels ? '🎯 Precision Master' :
-             typingLevels > countingLevels && typingLevels > sliderLevels ? '⚡ Speed Typist' :
-             '⚖️ Balanced Approach'}
-          </div>
+          {/* Round history if not first round */}
+          {roundHistory.length > 0 && (
+            <div style={{
+              marginTop: '30px',
+              padding: '20px',
+              background: '#f8f9fa',
+              borderRadius: '8px'
+            }}>
+              <h4 style={{ color: '#666', marginBottom: '15px' }}>Progress Over Rounds</h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                gap: '10px'
+              }}>
+                {[...roundHistory, roundData].map((round, idx) => (
+                  <div key={idx} style={{
+                    padding: '10px',
+                    background: idx === roundHistory.length ? '#e3f2fd' : 'white',
+                    borderRadius: '6px',
+                    border: '1px solid #e0e0e0',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '12px', color: '#666' }}>Round {idx + 1}</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#333' }}>
+                      {round.completedLevels}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#999' }}>levels</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         
-        {/* Return to survey reminder */}
+        {/* Next round or finish button */}
         <div style={{
           marginTop: '30px',
-          padding: '20px',
-          background: '#fff3cd',
-          border: '2px solid #ffc107',
-          borderRadius: '8px',
           textAlign: 'center'
         }}>
-          <h3 style={{ color: '#856404', marginBottom: '10px' }}>
-            ⚠️ Don't forget!
-          </h3>
-          <p style={{ color: '#856404', marginBottom: '0' }}>
-            Return to the Qualtrics survey and enter your completion code to finish the study.
-          </p>
+          {!isLastRound ? (
+            <button
+              onClick={handleNextRound}
+              style={{
+                padding: '15px 40px',
+                background: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+              }}
+            >
+              Start Round {currentRound + 1} →
+            </button>
+          ) : (
+            <div style={{
+              padding: '20px',
+              background: '#fff3cd',
+              border: '2px solid #ffc107',
+              borderRadius: '8px',
+              textAlign: 'center'
+            }}>
+              <h3 style={{ color: '#856404', marginBottom: '10px' }}>
+                ⚠️ All rounds complete!
+              </h3>
+              <p style={{ color: '#856404', marginBottom: '0' }}>
+                Return to the Qualtrics survey and enter your completion code to finish the study.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1189,11 +1303,14 @@ return (
       limitMode={gameMode?.limit}
     />
     
-    {/* Progress bar - UPDATED for 45 levels */}
+    {/* Progress bar - continuous without showing total */}
     <div className="progress-container">
       <div 
         className="progress-bar" 
-        style={{ width: `${(Object.keys(completed).length / 45) * 100}%` }}
+        style={{ 
+          width: `${Math.min(100, Object.keys(completed).length * 2.22)}%`, // Each task is ~2.22% 
+          background: `linear-gradient(to right, #4CAF50, #2196F3, #9C27B0)`
+        }}
       />
     </div>
     
