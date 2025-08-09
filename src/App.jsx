@@ -1,4 +1,4 @@
-// src/App.jsx - Complete version with 15 levels and 4 rounds
+// src/App.jsx - Complete version with Star Goals
 import React, { useState, useEffect, useRef } from "react";
 import CountingTask from "./components/CountingTask";
 import SliderTask from "./components/SliderTask";
@@ -7,6 +7,7 @@ import NavTabsEnhanced from "./components/NavTabsEnhanced";
 import PracticeMode from "./components/PracticeMode";
 import ChatContainer from "./components/ChatContainer";
 import StudentLogin from "./components/StudentLogin";
+import StarProgress from "./components/StarProgress";
 import { sessionManager } from "./utils/sessionManager";
 import { eventTracker } from "./utils/eventTracker";
 import { taskDependencies } from "./utils/taskDependencies";
@@ -50,7 +51,31 @@ function App() {
   const [totalRounds] = useState(4);
   const [roundHistory, setRoundHistory] = useState([]);
   const [randomSeed, setRandomSeed] = useState(null);
-  const [remainingTasks, setRemainingTasks] = useState(12);
+
+  // NEW: Star goal states
+  const [timeLimit] = useState(720); // 12 minutes in seconds
+  const [timeRemaining, setTimeRemaining] = useState(720);
+  const [starGoals, setStarGoals] = useState({
+    star1: { achieved: false, points: 0, bonusEarned: 0 },
+    star2: { achieved: false, focusCategory: null, points: 0, bonusEarned: 0 },
+    star3: {
+      achieved: false,
+      perfectCount: 0,
+      totalAttempts: 0,
+      bonusEarned: 0,
+    },
+  });
+  const [categoryPoints, setCategoryPoints] = useState({
+    counting: 0,
+    slider: 0,
+    typing: 0,
+  });
+  const [categoryMultipliers, setCategoryMultipliers] = useState({
+    counting: 0,
+    slider: 0,
+    typing: 0,
+  });
+  const [taskAttempts, setTaskAttempts] = useState({}); // Track attempts per task
 
   // Refs
   const startTimeRef = useRef(Date.now());
@@ -304,15 +329,22 @@ function App() {
     }
   };
 
-  // Start timer
+  // UPDATED: Start timer with time limit
   const startTimer = () => {
     startTimeRef.current = Date.now();
     timerIntervalRef.current = setInterval(() => {
-      // Calculate elapsed time minus any paused time
       const elapsed = Math.floor(
         (Date.now() - startTimeRef.current - pausedTime) / 1000
       );
       setGlobalTimer(elapsed);
+
+      // Time limit countdown
+      const remaining = Math.max(0, timeLimit - elapsed);
+      setTimeRemaining(remaining);
+
+      if (remaining === 0) {
+        handleGameComplete("time_up");
+      }
     }, 1000);
   };
 
@@ -359,7 +391,27 @@ function App() {
     setSwitches(0);
     setBonusPrompts(0);
     setCurrentTab("g1t1");
-    setRemainingTasks(12); // Reset to 12 tasks
+
+    // Reset star goal states
+    setTimeRemaining(timeLimit);
+    setCategoryPoints({ counting: 0, slider: 0, typing: 0 });
+    setCategoryMultipliers({ counting: 0, slider: 0, typing: 0 });
+    setStarGoals({
+      star1: { achieved: false, points: 0, bonusEarned: 0 },
+      star2: {
+        achieved: false,
+        focusCategory: null,
+        points: 0,
+        bonusEarned: 0,
+      },
+      star3: {
+        achieved: false,
+        perfectCount: 0,
+        totalAttempts: 0,
+        bonusEarned: 0,
+      },
+    });
+    setTaskAttempts({});
 
     startTimer();
     setTaskStartTimes({ g1t1: Date.now() });
@@ -373,22 +425,49 @@ function App() {
     });
   };
 
-  // Handle task completion
+  // UPDATED: Handle task completion with star goals
   const handleComplete = async (tabId, data) => {
     // Reset idle timer on task completion
     lastActivityRef.current = Date.now();
 
+    // Calculate points based on accuracy
+    const points = data.accuracy >= 95 ? 2 : data.accuracy >= 70 ? 1 : 0;
+
+    // Determine category
+    const category = tabId.startsWith("g1")
+      ? "counting"
+      : tabId.startsWith("g2")
+      ? "slider"
+      : "typing";
+
+    // Update category points
+    setCategoryPoints((prev) => ({
+      ...prev,
+      [category]: prev[category] + points,
+    }));
+
+    // Track attempts for this task
+    setTaskAttempts((prev) => ({
+      ...prev,
+      [tabId]: (prev[tabId] || 0) + 1,
+    }));
+
+    // Track for star 3 (perfection tracking)
+    setStarGoals((prev) => ({
+      ...prev,
+      star3: {
+        ...prev.star3,
+        totalAttempts: prev.star3.totalAttempts + 1,
+        perfectCount: prev.star3.perfectCount + (points === 2 ? 1 : 0),
+      },
+    }));
+
+    // Update multipliers for star 2
+    updateMultipliers(category, points);
+
+    // Mark task as completed
     setCompleted((prev) => ({ ...prev, [tabId]: true }));
     setBonusPrompts((prev) => prev + 1);
-
-    // Decrement remaining tasks
-    setRemainingTasks((prev) => {
-      const newCount = prev - 1;
-      if (newCount <= 0) {
-        setTimeout(() => handleGameComplete("task_limit_reached"), 1500);
-      }
-      return newCount;
-    });
 
     // Check and activate dependencies
     const activatedDeps = taskDependencies.checkDependencies(
@@ -408,13 +487,15 @@ function App() {
     await eventTracker.logEvent("task_complete", {
       taskId: tabId,
       ...data,
+      pointsEarned: points,
+      categoryPoints: categoryPoints[category] + points,
       activatedDependencies: activatedDeps,
       completionContext: {
         totalTasksCompleted: Object.keys(completed).length + 1,
         currentGameTime: globalTimer,
         switchesBeforeCompletion: switches,
         bonusPromptsEarned: bonusPrompts + 1,
-        remainingTasks: remainingTasks - 1,
+        timeRemaining: timeRemaining,
       },
     });
 
@@ -422,19 +503,126 @@ function App() {
     if (sessionId && !sessionId.startsWith("offline-")) {
       await updateDoc(doc(db, "sessions", sessionId), {
         [`completedTasks.${tabId}`]: true,
+        [`taskPoints.${tabId}`]: points,
+        [`categoryPoints`]: {
+          ...categoryPoints,
+          [category]: categoryPoints[category] + points,
+        },
         bonusPrompts: bonusPrompts + 1,
         lastActivity: serverTimestamp(),
       });
     }
 
     // Show completion notification
-    showNotification(`Task Complete! +1 Chat Prompt Earned!`);
+    showNotification(`Task Complete! +${points} points earned!`);
 
-    // Check if should continue
-    if (remainingTasks > 1) {
-      // Start break and auto-advance
-      startMandatoryBreak(tabId);
+    // Check star achievements after updating points
+    checkStarGoals();
+  };
+
+  // NEW: Update multipliers function
+  const updateMultipliers = (category, points) => {
+    setCategoryMultipliers((prev) => {
+      const newMultipliers = { ...prev };
+      const currentPoints = categoryPoints[category] + points;
+
+      // Update multipliers based on category and points
+      if (category === "counting") {
+        newMultipliers.counting = Math.floor(currentPoints / 2) * 0.2;
+      } else if (category === "slider") {
+        newMultipliers.slider = Math.floor(currentPoints / 3) * 0.3;
+      } else if (category === "typing") {
+        newMultipliers.typing = Math.floor(currentPoints / 2) * 0.2;
+      }
+
+      return newMultipliers;
+    });
+  };
+
+  // NEW: Check star goals
+  const checkStarGoals = () => {
+    const total =
+      categoryPoints.counting + categoryPoints.slider + categoryPoints.typing;
+
+    // Star 1: 25 points with diversity bonus
+    if (!starGoals.star1.achieved && total >= 25) {
+      const bonus = calculateStar1Bonus();
+      setStarGoals((prev) => ({
+        ...prev,
+        star1: { achieved: true, points: total, bonusEarned: bonus },
+      }));
+      showStarAchievement(1, bonus);
     }
+
+    // Star 2: 20 points in focus category (determine focus by highest category)
+    if (!starGoals.star2.achieved && starGoals.star1.achieved) {
+      const focusCategory = determineFocusCategory();
+      const focusPoints = categoryPoints[focusCategory];
+
+      if (focusPoints >= 20) {
+        const bonus = calculateStar2Bonus(focusCategory);
+        setStarGoals((prev) => ({
+          ...prev,
+          star2: {
+            achieved: true,
+            focusCategory,
+            points: focusPoints,
+            bonusEarned: bonus,
+          },
+        }));
+        showStarAchievement(2, bonus);
+      }
+    }
+
+    // Star 3: 50 total points
+    if (!starGoals.star3.achieved && total >= 50) {
+      const bonus = calculateStar3Bonus();
+      setStarGoals((prev) => ({
+        ...prev,
+        star3: { ...prev.star3, achieved: true, bonusEarned: bonus },
+      }));
+      showStarAchievement(3, bonus);
+    }
+  };
+
+  // NEW: Calculate bonuses
+  const calculateStar1Bonus = () => {
+    // C × S × T bonus
+    return (
+      categoryPoints.counting * categoryPoints.slider * categoryPoints.typing
+    );
+  };
+
+  const calculateStar2Bonus = (focusCategory) => {
+    // Focus category points × sum of other multipliers
+    const otherMultipliers = Object.entries(categoryMultipliers)
+      .filter(([cat]) => cat !== focusCategory)
+      .reduce((sum, [_, mult]) => sum + mult, 0);
+
+    return Math.round(categoryPoints[focusCategory] * (1 + otherMultipliers));
+  };
+
+  const calculateStar3Bonus = () => {
+    // Perfection percentage bonus (c2 × %²)
+    const perfectionRate =
+      starGoals.star3.totalAttempts > 0
+        ? starGoals.star3.perfectCount / starGoals.star3.totalAttempts
+        : 0;
+    return Math.round(perfectionRate * perfectionRate * 1000);
+  };
+
+  // NEW: Helper functions for star goals
+  const determineFocusCategory = () => {
+    // Focus category is the one with most points
+    const categories = Object.entries(categoryPoints);
+    return categories.reduce((a, b) => (a[1] > b[1] ? a : b))[0];
+  };
+
+  const showStarAchievement = (starNum, bonus) => {
+    const starSymbols = ["⭐", "⭐⭐", "⭐⭐⭐"][starNum - 1];
+    showNotification(
+      `${starSymbols} Star ${starNum} Achieved! +${bonus} bonus points!`
+    );
   };
 
   // Handle tab switching
@@ -484,54 +672,6 @@ function App() {
     eventTracker.setPageStartTime(newTab);
   };
 
-  // Mandatory break between tasks
-  const startMandatoryBreak = (completedTabId) => {
-    setIsInBreak(true);
-
-    // Pause the timer by recording when break started
-    pauseStartRef.current = Date.now();
-
-    // Determine next task
-    const game = parseInt(completedTabId[1]);
-    const task = parseInt(completedTabId.substring(3));
-    let nextTab = null;
-
-    if (task < 15) {
-      nextTab = `g${game}t${task + 1}`;
-    } else {
-      // Find next incomplete task across all levels
-      const allTabs = [];
-      for (let g = 1; g <= 3; g++) {
-        for (let t = 1; t <= 15; t++) {
-          allTabs.push(`g${g}t${t}`);
-        }
-      }
-      nextTab = allTabs.find((t) => !completed[t] && t !== completedTabId);
-    }
-
-    setBreakDestination(nextTab);
-
-    // Track break start
-    eventTracker.trackUserAction("break_started", {
-      afterTask: completedTabId,
-      nextTask: nextTab,
-      breakDuration: 2000,
-    });
-
-    // Auto-advance after 2 seconds
-    setTimeout(() => {
-      // Calculate how long the break was and add to paused time
-      const breakDuration = Date.now() - pauseStartRef.current;
-      setPausedTime((prev) => prev + breakDuration);
-
-      setIsInBreak(false);
-
-      if (nextTab) {
-        handleTabSwitch(nextTab, true);
-      }
-    }, 2000);
-  };
-
   // Show notification
   const showNotification = (message) => {
     const notification = document.createElement("div");
@@ -548,10 +688,10 @@ function App() {
           document.body.removeChild(notification);
         }
       }, 500);
-    }, 2000);
+    }, 3000);
   };
 
-  // Handle game completion
+  // UPDATED: Handle game completion
   const handleGameComplete = async (reason = "all_levels_complete") => {
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
@@ -561,16 +701,14 @@ function App() {
       (Date.now() - startTimeRef.current - pausedTime) / 1000
     );
 
-    // Calculate strategy metrics
-    const countingLevels = Object.keys(completed).filter((id) =>
-      id.startsWith("g1")
-    ).length;
-    const sliderLevels = Object.keys(completed).filter((id) =>
-      id.startsWith("g2")
-    ).length;
-    const typingLevels = Object.keys(completed).filter((id) =>
-      id.startsWith("g3")
-    ).length;
+    // Calculate final scores
+    const totalPoints =
+      categoryPoints.counting + categoryPoints.slider + categoryPoints.typing;
+    const totalBonus = Object.values(starGoals).reduce(
+      (sum, star) => sum + star.bonusEarned,
+      0
+    );
+    const finalScore = totalPoints + totalBonus;
 
     await eventTracker.logEvent("game_complete", {
       totalTime: finalTime,
@@ -580,37 +718,22 @@ function App() {
       gameMode: gameMode,
       currentRound: currentRound,
 
-      // Strategy analysis
-      taskDistribution: {
-        countingLevels,
-        sliderLevels,
-        typingLevels,
-        maxLevelReached: {
-          counting: Math.max(
-            ...Object.keys(completed)
-              .filter((id) => id.startsWith("g1"))
-              .map((id) => parseInt(id.substring(3))),
-            0
-          ),
-          slider: Math.max(
-            ...Object.keys(completed)
-              .filter((id) => id.startsWith("g2"))
-              .map((id) => parseInt(id.substring(3))),
-            0
-          ),
-          typing: Math.max(
-            ...Object.keys(completed)
-              .filter((id) => id.startsWith("g3"))
-              .map((id) => parseInt(id.substring(3))),
-            0
-          ),
-        },
-      },
+      // Point breakdown
+      categoryPoints,
+      starGoals,
+      totalPoints,
+      totalBonus,
+      finalScore,
+
+      // Performance metrics
+      perfectionRate:
+        starGoals.star3.totalAttempts > 0
+          ? starGoals.star3.perfectCount / starGoals.star3.totalAttempts
+          : 0,
 
       finalContext: {
         practiceCompleted: practiceChoice === "yes",
         totalPrompts: 3 + bonusPrompts,
-        promptsUsed: 3 + bonusPrompts,
       },
     });
 
@@ -622,6 +745,8 @@ function App() {
         totalSwitches: switches,
         completionReason: reason,
         currentRound: currentRound,
+        finalScore,
+        starGoals,
       });
     }
 
@@ -657,116 +782,6 @@ function App() {
         onComplete={handleComplete}
         gameAccuracyMode="lenient"
       />
-    );
-  };
-
-  // Render break overlay
-  const renderBreakOverlay = () => {
-    if (!isInBreak) return null;
-
-    const tasksRemaining = remainingTasks;
-    const promptsAvailable = 3 + bonusPrompts;
-
-    // Calculate current overall accuracy
-    const calculateOverallAccuracy = () => {
-      const completedTaskIds = Object.keys(completed);
-      if (completedTaskIds.length === 0) return 0;
-
-      let totalAccuracy = 0;
-      let validTasks = 0;
-
-      completedTaskIds.forEach((taskId) => {
-        const historyStr = localStorage.getItem(`attemptHistory_${taskId}`);
-        if (historyStr) {
-          const history = JSON.parse(historyStr);
-          if (history.length > 0) {
-            const bestAccuracy = Math.max(...history.map((h) => h.accuracy));
-            totalAccuracy += bestAccuracy;
-            validTasks++;
-          }
-        }
-      });
-
-      if (validTasks === 0) return 0;
-
-      const averageAccuracy = totalAccuracy / validTasks;
-      return Math.round(averageAccuracy);
-    };
-
-    const currentAccuracy = calculateOverallAccuracy();
-
-    return (
-      <div className="break-overlay">
-        <div className="break-content">
-          <h2 style={{ color: "#4CAF50", marginBottom: "20px" }}>
-            Task Complete! +1 Prompt Earned
-          </h2>
-
-          <div
-            style={{
-              display: "flex",
-              gap: "20px",
-              justifyContent: "center",
-              margin: "30px 0",
-              flexWrap: "wrap",
-            }}
-          >
-            <div
-              style={{
-                background: "#f0f0f0",
-                padding: "10px 20px",
-                borderRadius: "6px",
-              }}
-            >
-              <span style={{ color: "#666", fontSize: "14px" }}>
-                Tasks Remaining:{" "}
-              </span>
-              <span style={{ fontWeight: "bold", fontSize: "16px" }}>
-                {tasksRemaining}
-              </span>
-            </div>
-            <div
-              style={{
-                background: "#f0f0f0",
-                padding: "10px 20px",
-                borderRadius: "6px",
-              }}
-            >
-              <span style={{ color: "#666", fontSize: "14px" }}>
-                Prompts Available:{" "}
-              </span>
-              <span style={{ fontWeight: "bold", fontSize: "16px" }}>
-                {promptsAvailable}
-              </span>
-            </div>
-            <div
-              style={{
-                background: "#e8f5e9",
-                padding: "10px 20px",
-                borderRadius: "6px",
-                border: "1px solid #4CAF50",
-              }}
-            >
-              <span style={{ color: "#666", fontSize: "14px" }}>
-                Current Accuracy:{" "}
-              </span>
-              <span
-                style={{
-                  fontWeight: "bold",
-                  fontSize: "16px",
-                  color: "#4CAF50",
-                }}
-              >
-                {currentAccuracy}%
-              </span>
-            </div>
-          </div>
-
-          <p style={{ color: "#666", fontSize: "16px" }}>
-            Auto-advancing to next task...
-          </p>
-        </div>
-      </div>
     );
   };
 
@@ -835,13 +850,13 @@ function App() {
     );
   }
 
-  // Landing page - SIMPLIFIED
+  // UPDATED: Landing page with star goals
   if (mode === "landing") {
     // Auto-set game mode
     if (!gameMode) {
       setGameMode({
         accuracy: "lenient",
-        limit: "tasks",
+        limit: "time",
       });
     }
 
@@ -852,7 +867,7 @@ function App() {
             <h1
               style={{ color: "#333", marginBottom: "20px", fontSize: "28px" }}
             >
-              Multi-Task Challenge - Round {currentRound}/{totalRounds}
+              Multi-Task Star Challenge - Round {currentRound}/{totalRounds}
             </h1>
 
             <div className="game-info">
@@ -863,37 +878,92 @@ function App() {
                   marginBottom: "15px",
                 }}
               >
-                Welcome! Complete tasks across 3 games:
+                Complete tasks to earn points and achieve star goals!
               </h2>
 
               <div style={{ marginBottom: "20px" }}>
                 <h3 style={{ color: "#9C27B0" }}>🔢 Counting Game</h3>
                 <p>
-                  Count words or letters in text passages. Multiple levels
-                  await!
+                  Count words or letters in text passages. Earn 1-2 points per
+                  task!
                 </p>
 
                 <h3 style={{ color: "#4CAF50" }}>🎯 Slider Game</h3>
                 <p>
-                  Match target values with increasing precision. How far can you
-                  go?
+                  Match target values with precision. Perfect accuracy = 2
+                  points!
                 </p>
 
                 <h3 style={{ color: "#f44336" }}>⌨️ Typing Game</h3>
-                <p>Type patterns exactly as shown. Test your accuracy!</p>
+                <p>Type patterns exactly as shown. High accuracy pays off!</p>
               </div>
 
               <div
                 style={{
-                  background: "#f8f9fa",
-                  borderRadius: "6px",
-                  padding: "15px",
+                  background: "#f0f8ff",
+                  borderRadius: "8px",
+                  padding: "20px",
                   marginBottom: "20px",
+                  border: "2px solid #2196F3",
                 }}
               >
                 <h3
                   style={{
+                    color: "#2196F3",
+                    fontSize: "18px",
+                    marginBottom: "15px",
+                  }}
+                >
+                  ⭐ Star Goals - Earn Bonus Points!
+                </h3>
+                <ul
+                  style={{
                     color: "#333",
+                    lineHeight: "1.8",
+                    margin: "0",
+                    paddingLeft: "20px",
+                    fontSize: "14px",
+                    textAlign: "left",
+                  }}
+                >
+                  <li>
+                    <strong>⭐ Star 1 (25 pts):</strong> Balance all three games
+                    <br />
+                    <span style={{ marginLeft: "20px", color: "#666" }}>
+                      Bonus = Counting × Slider × Typing points
+                    </span>
+                  </li>
+                  <li>
+                    <strong>⭐⭐ Star 2 (20 pts in one category):</strong>{" "}
+                    Specialize wisely
+                    <br />
+                    <span style={{ marginLeft: "20px", color: "#666" }}>
+                      Build multipliers from other games first!
+                    </span>
+                  </li>
+                  <li>
+                    <strong>⭐⭐⭐ Star 3 (50 pts):</strong> Master the
+                    challenge
+                    <br />
+                    <span style={{ marginLeft: "20px", color: "#666" }}>
+                      Bonus based on your perfection rate²
+                    </span>
+                  </li>
+                </ul>
+              </div>
+
+              <div
+                style={{
+                  background: "#fff3cd",
+                  borderRadius: "6px",
+                  padding: "15px",
+                  marginBottom: "20px",
+                  border: "1px solid #ffc107",
+                }}
+              >
+                <h3
+                  style={{
+                    color: "#856404",
                     fontSize: "16px",
                     marginBottom: "10px",
                   }}
@@ -902,26 +972,21 @@ function App() {
                 </h3>
                 <ul
                   style={{
-                    color: "#666",
+                    color: "#856404",
                     lineHeight: "1.6",
                     margin: "0",
                     paddingLeft: "20px",
                     fontSize: "14px",
                   }}
                 >
-                  <li>
-                    You have 12 task attempts per round - use them wisely!
-                  </li>
-                  <li>All attempts pass, but accuracy is tracked</li>
-                  <li>Complete tasks to earn bonus chat prompts (+1 each)</li>
-                  <li>Tasks affect each other - discover the best strategy!</li>
-                  <li>Play 4 rounds total to see your improvement</li>
+                  <li>You have 12 minutes per round - use them wisely!</li>
+                  <li>Score 70%+ accuracy = 1 point, 95%+ = 2 points</li>
+                  <li>All games available from the start</li>
+                  <li>Complete tasks to earn bonus chat prompts</li>
+                  <li>Tasks get harder as you progress through levels</li>
                 </ul>
               </div>
             </div>
-
-            {/* Fixed Game Mode Display */}
-            <GameModeSelector onModeSelected={() => {}} />
 
             <button
               className="start-button"
@@ -943,9 +1008,10 @@ function App() {
               >
                 <strong>Previous Rounds:</strong>
                 {roundHistory.map((round, idx) => (
-                  <span key={idx} style={{ marginLeft: "10px" }}>
-                    Round {idx + 1}: {round.completedLevels} tasks
-                  </span>
+                  <div key={idx} style={{ marginTop: "5px" }}>
+                    Round {idx + 1}: {round.finalScore} points (
+                    {round.starsEarned} stars earned)
+                  </div>
                 ))}
               </div>
             )}
@@ -975,8 +1041,7 @@ function App() {
                 fontStyle: "italic",
               }}
             >
-              Tip: Try completing different tasks and revisiting them to see
-              what changes!
+              Tip: Try different task difficulties to plan your strategy!
             </p>
 
             <div
@@ -1033,34 +1098,35 @@ function App() {
     );
   }
 
-  // Completion screen - UPDATED with rounds support
+  // UPDATED: Completion screen with star achievements
   if (mode === "complete") {
     const minutes = Math.floor(globalTimer / 60);
     const seconds = globalTimer % 60;
-
-    // Calculate strategy metrics
-    const countingLevels = Object.keys(completed).filter((id) =>
-      id.startsWith("g1")
-    ).length;
-    const sliderLevels = Object.keys(completed).filter((id) =>
-      id.startsWith("g2")
-    ).length;
-    const typingLevels = Object.keys(completed).filter((id) =>
-      id.startsWith("g3")
-    ).length;
-    const totalCompleted = Object.keys(completed).length;
+    const totalPoints =
+      categoryPoints.counting + categoryPoints.slider + categoryPoints.typing;
+    const totalBonus = Object.values(starGoals).reduce(
+      (sum, star) => sum + star.bonusEarned,
+      0
+    );
+    const finalScore = totalPoints + totalBonus;
+    const starsEarned = [
+      starGoals.star1.achieved,
+      starGoals.star2.achieved,
+      starGoals.star3.achieved,
+    ].filter(Boolean).length;
 
     // Store round data
     const roundData = {
       round: currentRound,
       totalTime: globalTimer,
-      completedLevels: totalCompleted,
-      countingLevels,
-      sliderLevels,
-      typingLevels,
+      completedLevels: Object.keys(completed).length,
+      categoryPoints,
       switches,
       gameMode,
       randomSeed,
+      starGoals,
+      finalScore,
+      starsEarned,
     };
 
     const handleNextRound = async () => {
@@ -1086,7 +1152,6 @@ function App() {
       setPausedTime(0);
       setCurrentTab("g1t1");
       setMode("challenge");
-      setRemainingTasks(12);
       taskDependencies.clearAllDependencies();
 
       // Generate new seed for next round
@@ -1131,7 +1196,7 @@ function App() {
           {isLastRound && (
             <CompletionCodeDisplay
               sessionId={sessionId}
-              completedLevels={totalCompleted}
+              completedLevels={Object.keys(completed).length}
               totalTime={globalTimer}
               gameMode={gameMode}
             />
@@ -1152,13 +1217,19 @@ function App() {
               📊 Round {currentRound} Performance
             </h2>
 
-            <p
-              style={{ fontSize: "18px", color: "#666", marginBottom: "30px" }}
+            {/* Final Score */}
+            <div
+              style={{
+                fontSize: "36px",
+                fontWeight: "bold",
+                color: "#2196F3",
+                marginBottom: "30px",
+              }}
             >
-              All task attempts used! Here's your summary.
-            </p>
+              Final Score: {finalScore} points
+            </div>
 
-            {/* Key metrics */}
+            {/* Point Breakdown */}
             <div
               style={{
                 display: "grid",
@@ -1210,7 +1281,7 @@ function App() {
                     marginBottom: "5px",
                   }}
                 >
-                  Levels Complete
+                  Base Points
                 </div>
                 <div
                   style={{
@@ -1219,7 +1290,7 @@ function App() {
                     color: "#333",
                   }}
                 >
-                  {totalCompleted}
+                  {totalPoints}
                 </div>
               </div>
 
@@ -1238,7 +1309,7 @@ function App() {
                     marginBottom: "5px",
                   }}
                 >
-                  Task Switches
+                  Star Bonuses
                 </div>
                 <div
                   style={{
@@ -1247,14 +1318,14 @@ function App() {
                     color: "#333",
                   }}
                 >
-                  {switches}
+                  +{totalBonus}
                 </div>
               </div>
             </div>
 
-            {/* Strategy breakdown */}
+            {/* Category breakdown */}
             <h3 style={{ color: "#666", marginBottom: "15px" }}>
-              Strategy Analysis
+              Points by Category
             </h3>
             <div
               style={{
@@ -1282,16 +1353,7 @@ function App() {
                   🔢 Counting
                 </div>
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {countingLevels}
-                </div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  Max Level:{" "}
-                  {Math.max(
-                    ...Object.keys(completed)
-                      .filter((id) => id.startsWith("g1"))
-                      .map((id) => parseInt(id.substring(3))),
-                    0
-                  )}
+                  {categoryPoints.counting}
                 </div>
               </div>
 
@@ -1313,16 +1375,7 @@ function App() {
                   🎯 Slider
                 </div>
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {sliderLevels}
-                </div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  Max Level:{" "}
-                  {Math.max(
-                    ...Object.keys(completed)
-                      .filter((id) => id.startsWith("g2"))
-                      .map((id) => parseInt(id.substring(3))),
-                    0
-                  )}
+                  {categoryPoints.slider}
                 </div>
               </div>
 
@@ -1344,15 +1397,65 @@ function App() {
                   ⌨️ Typing
                 </div>
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {typingLevels}
+                  {categoryPoints.typing}
                 </div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  Max Level:{" "}
-                  {Math.max(
-                    ...Object.keys(completed)
-                      .filter((id) => id.startsWith("g3"))
-                      .map((id) => parseInt(id.substring(3))),
-                    0
+              </div>
+            </div>
+
+            {/* Star Achievements */}
+            <div
+              style={{
+                marginTop: "30px",
+                padding: "25px",
+                background: "#fff3cd",
+                borderRadius: "8px",
+                border: "2px solid #ffc107",
+              }}
+            >
+              <h3 style={{ color: "#856404", marginBottom: "20px" }}>
+                ⭐ Star Achievements
+              </h3>
+              <div style={{ textAlign: "left", color: "#856404" }}>
+                <div style={{ marginBottom: "10px" }}>
+                  {starGoals.star1.achieved ? (
+                    <span style={{ color: "#4CAF50" }}>
+                      ✓ ⭐ Star 1 Achieved! Bonus: {starGoals.star1.bonusEarned}{" "}
+                      points
+                    </span>
+                  ) : (
+                    <span style={{ color: "#999" }}>
+                      ✗ ⭐ Star 1: Need 25 total points (had {totalPoints})
+                    </span>
+                  )}
+                </div>
+                <div style={{ marginBottom: "10px" }}>
+                  {starGoals.star2.achieved ? (
+                    <span style={{ color: "#4CAF50" }}>
+                      ✓ ⭐⭐ Star 2 Achieved! Focus:{" "}
+                      {starGoals.star2.focusCategory}, Bonus:{" "}
+                      {starGoals.star2.bonusEarned} points
+                    </span>
+                  ) : (
+                    <span style={{ color: "#999" }}>
+                      ✗ ⭐⭐ Star 2: Need 20 points in one category
+                    </span>
+                  )}
+                </div>
+                <div>
+                  {starGoals.star3.achieved ? (
+                    <span style={{ color: "#4CAF50" }}>
+                      ✓ ⭐⭐⭐ Star 3 Achieved! Perfection:{" "}
+                      {(
+                        (starGoals.star3.perfectCount /
+                          starGoals.star3.totalAttempts) *
+                        100
+                      ).toFixed(1)}
+                      %, Bonus: {starGoals.star3.bonusEarned} points
+                    </span>
+                  ) : (
+                    <span style={{ color: "#999" }}>
+                      ✗ ⭐⭐⭐ Star 3: Need 50 total points (had {totalPoints})
+                    </span>
                   )}
                 </div>
               </div>
@@ -1400,10 +1503,10 @@ function App() {
                           color: "#333",
                         }}
                       >
-                        {round.completedLevels}
+                        {round.finalScore}
                       </div>
                       <div style={{ fontSize: "10px", color: "#999" }}>
-                        levels
+                        {round.starsEarned} stars
                       </div>
                     </div>
                   ))}
@@ -1583,38 +1686,16 @@ function App() {
       )}
 
       <h1>
-        Multi-Task Challenge - Round {currentRound}/{totalRounds}
+        Multi-Task Star Challenge - Round {currentRound}/{totalRounds}
       </h1>
 
-      {/* Round indicator */}
-      <div
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          background: "#4CAF50",
-          color: "white",
-          padding: "5px 10px",
-          borderRadius: "4px",
-          fontSize: "12px",
-          fontWeight: "bold",
-        }}
-      >
-        Pass All Mode | Round {currentRound}
-      </div>
-
-      {/* Timer display */}
-      <div
-        style={{
-          textAlign: "center",
-          fontSize: "20px",
-          fontWeight: "bold",
-          marginBottom: "20px",
-        }}
-      >
-        Time: {Math.floor(globalTimer / 60)}:
-        {(globalTimer % 60).toString().padStart(2, "0")}
-      </div>
+      {/* Star Progress Display */}
+      <StarProgress
+        starGoals={starGoals}
+        categoryPoints={categoryPoints}
+        categoryMultipliers={categoryMultipliers}
+        timeRemaining={timeRemaining}
+      />
 
       {/* Mode switch - removed chat button */}
       <div className="mode-switch">
@@ -1626,20 +1707,8 @@ function App() {
         current={currentTab}
         completed={completed}
         onSwitch={handleTabSwitch}
-        remainingTasks={remainingTasks}
-        limitMode="tasks"
+        limitMode="time"
       />
-
-      {/* Progress bar - continuous without showing total */}
-      <div className="progress-container">
-        <div
-          className="progress-bar"
-          style={{
-            width: `${Math.min(100, Object.keys(completed).length * 2.22)}%`,
-            background: `linear-gradient(to right, #4CAF50, #2196F3, #9C27B0)`,
-          }}
-        />
-      </div>
 
       {/* Side-by-side layout: Game + Chat */}
       <div
@@ -1696,9 +1765,6 @@ function App() {
           <ChatContainer bonusPrompts={bonusPrompts} currentTask={currentTab} />
         </div>
       </div>
-
-      {/* Break overlay */}
-      {renderBreakOverlay()}
     </div>
   );
 }
