@@ -719,15 +719,23 @@ function App() {
     );
   }
   
-  // Landing page - UPDATED with new GameModeSelector
+  // Landing page - SIMPLIFIED
   if (mode === 'landing') {
-    return (
-      <div className="app">
-        <div className="landing-container">
-          <div className="landing-card">
-            <h1 style={{ color: '#333', marginBottom: '20px', fontSize: '28px' }}>
-              Multi-Task Challenge
-            </h1>
+    // Auto-set game mode
+    if (!gameMode) {
+      setGameMode({
+        accuracy: 'lenient',
+        limit: 'tasks'
+      });
+    }
+
+  return (
+    <div className="app">
+      <div className="landing-container">
+        <div className="landing-card">
+          <h1 style={{ color: '#333', marginBottom: '20px', fontSize: '28px' }}>
+            Multi-Task Challenge - Round {currentRound}/{totalRounds}
+          </h1>
             
             <div className="game-info">
               <h2 style={{ color: '#555', fontSize: '20px', marginBottom: '15px' }}>
@@ -758,47 +766,38 @@ function App() {
               </div>
             </div>
             
-            {/* Game Mode Selector - UPDATED */}
-            {!gameMode ? (
-              <GameModeSelector onModeSelected={setGameMode} />
-            ) : (
-              <div style={{ marginBottom: '20px' }}>
-                <p style={{ color: '#666', marginBottom: '10px' }}>
-                  Selected Mode: <strong style={{ 
-                    color: gameMode.accuracy === 'strict' ? '#f44336' : '#4CAF50' 
-                  }}>
-                    {gameMode.accuracy === 'strict' ? 'Strict (100% Required)' : 'Lenient (Pass All)'}
-                  </strong>
-                  {' | '}
-                  <strong style={{ 
-                    color: gameMode.limit === 'time' ? '#2196F3' : '#9C27B0' 
-                  }}>
-                    {gameMode.limit === 'time' ? '15 Minute Timer' : '12 Task Attempts'}
-                  </strong>
-                </p>
-              </div>
-            )}
-            
-            <button 
-              className="start-button"
-              onClick={() => setMode('practiceChoice')}
-              disabled={!gameMode}
-              style={{
-                opacity: gameMode ? 1 : 0.5,
-                cursor: gameMode ? 'pointer' : 'not-allowed'
-              }}
-            >
-              {gameMode ? 'Start Game' : 'Select Mode First'}
-            </button>
-            
-            <p style={{ color: '#999', fontSize: '13px', marginTop: '15px' }}>
-              Timer starts when you begin the main game
-            </p>
-          </div>
+            {/* Fixed Game Mode Display */}
+          <GameModeSelector onModeSelected={() => {}} />
+          
+          <button 
+            className="start-button"
+            onClick={() => setMode('practiceChoice')}
+          >
+            Start Round {currentRound}
+          </button>
+          
+          {/* ADD THIS: Show round history */}
+          {roundHistory.length > 0 && (
+            <div style={{
+              marginTop: '20px',
+              padding: '15px',
+              background: '#e3f2fd',
+              borderRadius: '6px',
+              fontSize: '14px'
+            }}>
+              <strong>Previous Rounds:</strong>
+              {roundHistory.map((round, idx) => (
+                <span key={idx} style={{ marginLeft: '10px' }}>
+                  Round {idx + 1}: {round.completedLevels} tasks
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
-    );
-  }
+    </div>
+  );
+}
   
   // Practice choice
   if (mode === 'practiceChoice') {
