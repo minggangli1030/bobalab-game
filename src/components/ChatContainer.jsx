@@ -556,3 +556,4 @@ export default function ChatContainer({
     </div>
   );
 }
+// added star goal chat reponse
