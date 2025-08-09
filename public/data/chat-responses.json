@@ -1,174 +1,170 @@
 {
-  "version": "1.0",
-  "lastUpdated": "2025-07-25",
-  "description": "Preset AI responses for Multi-Task Challenge research study",
+  "version": "2.0",
+  "lastUpdated": "2025-01-15",
+  "description": "AI responses for Multi-Task Challenge - Supports both dependency and star goal modes",
   "triggerLogic": {
-    "description": "When multiple triggers match, select response with highest frequency match. If tied, select randomly.",
-    "example": "Input 'how to create a counting strategy' matches 'how'(1), 'create'(1), 'counting'(1), 'strategy'(1)"
+    "description": "When multiple triggers match, select response with highest frequency match. Filter by game mode. If tied, select randomly.",
+    "modes": ["dependency", "star", "both"]
   },
   "responses": {
     "counting": {
       "workflow": {
         "make_for_me": [
           {
-            "id": "c-w-make-1",
+            "id": "c-w-make-1-dep",
             "response": "I'll create a counting system for you: 1) Scan for pattern density, 2) Count in chunks, 3) Double-check edges. Tasks affect each other - try different orders!",
-            "triggers": ["create", "make", "build", "design", "system", "counting"],
-            "priority": 1
+            "triggers": [
+              "create",
+              "make",
+              "build",
+              "design",
+              "system",
+              "counting"
+            ],
+            "priority": 1,
+            "mode": "dependency"
           },
           {
-            "id": "c-w-make-2",
-            "response": "Here's a counting workflow: Mark found items → Track systematically → Verify total. Remember: completing other games first might reveal helpful features!",
-            "triggers": ["workflow", "plan", "structure", "organize", "approach"],
-            "priority": 1
+            "id": "c-w-make-1-star",
+            "response": "Point strategy for counting: Aim for 95%+ accuracy (2 pts) on early levels, accept 70%+ (1 pt) on harder ones. Every 2 points here = 0.2x multiplier for other games!",
+            "triggers": ["strategy", "approach", "plan", "points", "counting"],
+            "priority": 2,
+            "mode": "star"
           },
           {
-            "id": "c-w-make-3",
-            "response": "Generated strategy: For words, match exact boundaries. For letters, scan all positions. Task order impacts difficulty - experiment!",
-            "triggers": ["generate", "strategy", "method", "technique", "process"],
-            "priority": 1
+            "id": "c-w-make-2-both",
+            "response": "Counting workflow: Read target → scan systematically → verify total. Start with easier tasks for better accuracy!",
+            "triggers": ["workflow", "method", "technique", "how"],
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "find_for_me": [
           {
-            "id": "c-w-find-1",
+            "id": "c-w-find-1-dep",
             "response": "Counting rules: Words need exact matches ('the' ≠ 'therefore'). Letters are case-insensitive. Some tasks might highlight targets!",
             "triggers": ["what", "rules", "how", "work", "explain"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
           },
           {
-            "id": "c-w-find-2",
-            "response": "Key info: Easy = common words, Medium = single letters, Hard = two letters combined. Other completed tasks can add visual aids!",
+            "id": "c-w-find-1-star",
+            "response": "Counting scoring: <70% = 0 pts, 70-94% = 1 pt, 95%+ = 2 pts. With 12 minutes total, budget ~45 seconds per attempt for optimal coverage.",
+            "triggers": ["score", "points", "accuracy", "threshold"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "c-w-find-2-both",
+            "response": "Key info: Easy = common words, Medium = single letters, Hard = two letters combined. Accuracy requirements vary by mode!",
             "triggers": ["difficulty", "level", "different", "which", "type"],
-            "priority": 1
-          },
-          {
-            "id": "c-w-find-3",
-            "response": "Facts: All counting is case-insensitive for letters. Word boundaries matter. Check if slider tasks were completed - they might help!",
-            "triggers": ["fact", "information", "detail", "specific", "tell"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "jumpstart_for_me": [
           {
-            "id": "c-w-jump-1",
-            "response": "Start here: First read the target carefully, then scan the text once for overview. Other tasks might add highlighting - try different sequences!",
-            "triggers": ["start", "begin", "first", "initial", "where"],
-            "priority": 1
-          },
-          {
-            "id": "c-w-jump-2",
-            "response": "To begin: Identify if counting words or letters → Choose a systematic path → Mark progress. Task dependencies can simplify this!",
-            "triggers": ["how start", "begin with", "first step", "initiate"],
-            "priority": 2
-          },
-          {
-            "id": "c-w-jump-3",
+            "id": "c-w-jump-1-dep",
             "response": "Quick start: For efficiency, complete slider tasks first - they might activate helpful features for counting!",
             "triggers": ["quick", "fast", "efficient", "best way"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
+          },
+          {
+            "id": "c-w-jump-1-star",
+            "response": "Quick start: Try Level 1 counting first - it's usually worth 2 points in under 30 seconds. Great for building your C×S×T multiplier!",
+            "triggers": ["start", "begin", "first", "quick"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "c-w-jump-2-both",
+            "response": "Start here: First read the target carefully, then scan the text once for overview. Begin with easier levels!",
+            "triggers": ["where", "how start", "begin"],
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "iterate_with_me": [
           {
-            "id": "c-w-iter-1",
-            "response": "Getting inconsistent counts? Try: Mark found items, count in sections, sum totals. Or complete other tasks first for assistance!",
-            "triggers": ["wrong", "incorrect", "mistake", "error", "different"],
-            "priority": 1
-          },
-          {
-            "id": "c-w-iter-2",
-            "response": "To improve: Use finger/cursor tracking, subvocalize while counting, double-check boundaries. Task order dramatically affects difficulty!",
-            "triggers": ["improve", "better", "enhance", "optimize", "refine"],
-            "priority": 1
-          },
-          {
-            "id": "c-w-iter-3",
+            "id": "c-w-iter-1-dep",
             "response": "Stuck? Consider switching to slider/typing first - they might unlock features that make counting easier. Experiment with sequences!",
             "triggers": ["stuck", "help", "difficult", "hard", "struggling"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
+          },
+          {
+            "id": "c-w-iter-1-star",
+            "response": "Below 70%? No points earned. Consider moving to easier tasks or other games. Remember: 1 point is infinitely better than 0 for Star 1's multiplication!",
+            "triggers": ["failed", "0 points", "no points", "below"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "c-w-iter-2-both",
+            "response": "Getting inconsistent counts? Try: Mark found items, count in sections, sum totals. Accuracy matters more than speed!",
+            "triggers": ["wrong", "incorrect", "mistake", "error"],
+            "priority": 1,
+            "mode": "both"
           }
         ]
       },
       "task": {
         "make_for_me": [
           {
-            "id": "c-t-make-1",
+            "id": "c-t-make-1-both",
             "response": "Count like this: Left→right, line by line. Mark each found instance. Don't skip punctuation areas!",
             "triggers": ["count", "how count", "counting method", "way"],
-            "priority": 2
+            "priority": 2,
+            "mode": "both"
           },
           {
-            "id": "c-t-make-2",
-            "response": "For letters: Check every position including starts/ends of words. For two letters: count separately then add.",
-            "triggers": ["letter", "character", "two", "both", "add"],
-            "priority": 1
-          },
-          {
-            "id": "c-t-make-3",
-            "response": "Word counting tip: 'The' appears in 'The', not in 'These' or 'Other'. Check spacing carefully!",
-            "triggers": ["word", "the", "of", "and", "boundary"],
-            "priority": 1
+            "id": "c-t-make-2-star",
+            "response": "For 2 points, you need near-perfect accuracy. Missing even 1-2 might drop you to 1 point. Double-check if close!",
+            "triggers": ["perfect", "2 points", "accuracy"],
+            "priority": 1,
+            "mode": "star"
           }
         ],
         "find_for_me": [
           {
-            "id": "c-t-find-1",
+            "id": "c-t-find-1-both",
             "response": "Current task: Count the target shown above the text. Case doesn't matter for letters. Exact match for words.",
             "triggers": ["what count", "target", "looking for", "supposed"],
-            "priority": 2
+            "priority": 2,
+            "mode": "both"
           },
           {
-            "id": "c-t-find-2",
-            "response": "Text info: ~50-80 words per passage. Common words appear 3-10 times. Letters vary widely.",
-            "triggers": ["how many", "range", "typical", "usually", "expect"],
-            "priority": 1
-          },
-          {
-            "id": "c-t-find-3",
-            "response": "Remember: Spaces and punctuation separate words. 'Berkeley' and 'Berkeley,' are the same word.",
-            "triggers": ["space", "punctuation", "comma", "period", "same"],
-            "priority": 1
+            "id": "c-t-find-1-star",
+            "response": "This is Level {level} counting. Typically: L1-5 = easier 2-point opportunities, L6+ = accept 1 point and move on.",
+            "triggers": ["level", "difficulty", "this task"],
+            "priority": 2,
+            "mode": "star"
           }
         ],
         "jumpstart_for_me": [
           {
-            "id": "c-t-jump-1",
+            "id": "c-t-jump-1-both",
             "response": "Begin at the first word. Read carefully - don't skim. Mental highlighting helps track progress.",
             "triggers": ["where start", "begin where", "first word"],
-            "priority": 2
-          },
-          {
-            "id": "c-t-jump-2",
-            "response": "Start by understanding your target. Is it a word or letter(s)? This determines your scanning strategy.",
-            "triggers": ["first", "initially", "to start", "beginning"],
-            "priority": 1
-          },
-          {
-            "id": "c-t-jump-3",
-            "response": "Quick tip: If text seems highlighted, you've unlocked a helper feature from another task!",
-            "triggers": ["highlight", "yellow", "marked", "visual", "see"],
-            "priority": 1
+            "priority": 2,
+            "mode": "both"
           }
         ],
         "iterate_with_me": [
           {
-            "id": "c-t-iter-1",
+            "id": "c-t-iter-1-both",
             "response": "Recount using: Finger pointing, subvocalization, or section-by-section verification.",
             "triggers": ["recount", "verify", "check", "confirm", "sure"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           },
           {
-            "id": "c-t-iter-2",
-            "response": "Common error: Missing letters at word edges or in punctuation clusters. Slow down there!",
-            "triggers": ["miss", "skip", "overlook", "forget", "edge"],
-            "priority": 1
-          },
-          {
-            "id": "c-t-iter-3",
-            "response": "If consistently wrong: You might be counting too fast. Accuracy matters more than speed here.",
-            "triggers": ["always wrong", "keep missing", "never right"],
-            "priority": 2
+            "id": "c-t-iter-1-star",
+            "response": "Scoring math: If correct answer is 10, you need 9-11 for 90%+. Even 8 or 12 drops you below the 2-point threshold!",
+            "triggers": ["math", "calculate", "threshold", "score"],
+            "priority": 1,
+            "mode": "star"
           }
         ]
       }
@@ -177,164 +173,146 @@
       "workflow": {
         "make_for_me": [
           {
-            "id": "s-w-make-1",
+            "id": "s-w-make-1-dep",
             "response": "I'll create a slider strategy: 1) Start at endpoints to gauge range, 2) Binary search to target zone, 3) Fine-tune. Typing tasks might enhance your slider!",
             "triggers": ["create", "make", "strategy", "system", "approach"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
           },
           {
-            "id": "s-w-make-2",
-            "response": "Slider system: Use landmarks (0, 5, 10) → Estimate target position → Adjust incrementally. Task order affects available features!",
+            "id": "s-w-make-1-star",
+            "response": "Slider point strategy: Perfect = 2 pts, but slider points are valuable! Every 3 pts = 0.3x multiplier (best ratio). Consider focusing here for Star 2!",
+            "triggers": ["strategy", "points", "slider", "approach"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "s-w-make-2-both",
+            "response": "Slider system: Use landmarks (0, 5, 10) → Estimate target position → Adjust incrementally.",
             "triggers": ["design", "build", "develop", "plan", "method"],
-            "priority": 1
-          },
-          {
-            "id": "s-w-make-3",
-            "response": "Generated workflow: For decimals, think in percentages. For hidden values, count clicks from 0. Other tasks might add helpful scales!",
-            "triggers": ["workflow", "process", "technique", "generate"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "find_for_me": [
           {
-            "id": "s-w-find-1",
-            "response": "Slider mechanics: Easy = integers 0-10, Medium = one decimal, Hard = two decimals + hidden value. Typing tasks can unlock enhancements!",
-            "triggers": ["how", "work", "mechanic", "function", "operate"],
-            "priority": 1
-          },
-          {
-            "id": "s-w-find-2",
+            "id": "s-w-find-1-dep",
             "response": "Key fact: You need 90%+ accuracy to pass. That's ±0.5 for easy, ±0.05 for medium, ±0.005 for hard.",
             "triggers": ["accuracy", "precise", "exact", "close", "threshold"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
           },
           {
-            "id": "s-w-find-3",
-            "response": "Info: Slider shows current value (except hard mode). Some completed tasks add visual guides - experiment with order!",
-            "triggers": ["show", "display", "see", "value", "number"],
-            "priority": 1
+            "id": "s-w-find-1-star",
+            "response": "Slider precision for 2 pts: Easy ±0.05, Medium ±0.005, Hard ±0.0005. The hidden value levels are brutal - consider if 1 point is enough!",
+            "triggers": ["precision", "accuracy", "exact", "threshold"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "s-w-find-2-both",
+            "response": "Slider mechanics: Easy = integers, Medium = one decimal, Hard = two decimals + possible hidden value.",
+            "triggers": ["how", "work", "mechanic", "function"],
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "jumpstart_for_me": [
           {
-            "id": "s-w-jump-1",
-            "response": "Start by moving slider to 0, then to 10, to feel the range. Then jump to approximate target zone. Completed typing tasks might help!",
-            "triggers": ["start", "begin", "first", "initial"],
-            "priority": 1
-          },
-          {
-            "id": "s-w-jump-2",
-            "response": "Begin here: Set to midpoint (5) → Compare to target → Move halfway to target → Repeat. Visual aids might appear from other tasks!",
-            "triggers": ["where start", "how begin", "first move"],
-            "priority": 2
-          },
-          {
-            "id": "s-w-jump-3",
+            "id": "s-w-jump-1-dep",
             "response": "Quick start: Complete typing tasks first - they often unlock slider enhancements that make precision easier!",
             "triggers": ["quick", "fast", "efficient", "best"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
+          },
+          {
+            "id": "s-w-jump-1-star",
+            "response": "Slider Level 1-5 are your 2-point goldmines! Start here to build points for all three stars. Binary search: Start at 5, then adjust!",
+            "triggers": ["start", "begin", "easy", "first"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "s-w-jump-2-both",
+            "response": "Start by moving slider to 0, then to 10, to feel the range. Then jump to approximate target zone.",
+            "triggers": ["start", "begin", "first", "initial"],
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "iterate_with_me": [
           {
-            "id": "s-w-iter-1",
+            "id": "s-w-iter-1-dep",
             "response": "Can't get precise? Try: Smaller movements near target, use keyboard arrows if available, or complete other tasks first!",
             "triggers": ["imprecise", "inaccurate", "wrong", "miss"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
           },
           {
-            "id": "s-w-iter-2",
-            "response": "Improve accuracy: Make large moves first, then progressively smaller. Task dependencies might add helpful markers!",
+            "id": "s-w-iter-1-star",
+            "response": "Can't hit 95%? Settle for 1 point (70%+) and move on. Your time might earn more points elsewhere. Star 3 rewards total perfection count!",
+            "triggers": ["can't", "stuck", "impossible", "move on"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "s-w-iter-2-both",
+            "response": "Improve accuracy: Make large moves first, then progressively smaller. Patience pays off!",
             "triggers": ["improve", "better", "enhance", "accurate"],
-            "priority": 1
-          },
-          {
-            "id": "s-w-iter-3",
-            "response": "For hard mode: Count clicks from 0 to estimate position. Or try completing typing tasks first for potential aids!",
-            "triggers": ["hard", "difficult", "hidden", "blind", "can't see"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ]
       },
       "task": {
         "make_for_me": [
           {
-            "id": "s-t-make-1",
+            "id": "s-t-make-1-both",
             "response": "Move slider using: Click and drag, or click on track for jumps. Small movements near target work best.",
             "triggers": ["move", "drag", "control", "adjust"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           },
           {
-            "id": "s-t-make-2",
-            "response": "For decimals: Each tiny movement = 0.1 (medium) or 0.01 (hard). Move slowly when close!",
-            "triggers": ["decimal", "point", "precise", "small"],
-            "priority": 1
-          },
-          {
-            "id": "s-t-make-3",
-            "response": "Matching technique: Overshoot slightly, then back up. Often more accurate than creeping up slowly.",
-            "triggers": ["match", "reach", "hit", "get to"],
-            "priority": 1
+            "id": "s-t-make-1-star",
+            "response": "Binary search for 2 points: Jump to 5 → then 2.5 or 7.5 → narrow down. Faster than creeping up slowly!",
+            "triggers": ["method", "technique", "binary", "search"],
+            "priority": 1,
+            "mode": "star"
           }
         ],
         "find_for_me": [
           {
-            "id": "s-t-find-1",
-            "response": "Current precision: This task needs 0.1 increments. The display shows your current value below.",
-            "triggers": ["precision", "increment", "step", "unit"],
-            "priority": 1
-          },
-          {
-            "id": "s-t-find-2",
-            "response": "Target is shown in green above slider. Match as closely as possible - within 10% error to pass.",
+            "id": "s-t-find-1-both",
+            "response": "Target is shown in green above slider. Match as closely as possible for best score.",
             "triggers": ["target", "goal", "number", "green"],
-            "priority": 1
-          },
-          {
-            "id": "s-t-find-3",
-            "response": "Value display: Shows current position except in hard mode. Hard mode shows '??' instead.",
-            "triggers": ["display", "show", "question mark", "??"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "jumpstart_for_me": [
           {
-            "id": "s-t-jump-1",
+            "id": "s-t-jump-1-both",
             "response": "First: Note target value. Then click near expected position on track. Fine-tune from there.",
             "triggers": ["first", "start", "begin", "initial"],
-            "priority": 1
-          },
-          {
-            "id": "s-t-jump-2",
-            "response": "Start at 0 or 10 (whichever is closer to target), then work inward. Easier than starting from middle.",
-            "triggers": ["where", "position", "begin where"],
-            "priority": 2
-          },
-          {
-            "id": "s-t-jump-3",
-            "response": "Begin by checking if scale marks are visible - enhanced sliders have these from completed typing tasks!",
-            "triggers": ["scale", "marks", "enhanced", "visual"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "iterate_with_me": [
           {
-            "id": "s-t-iter-1",
+            "id": "s-t-iter-1-both",
             "response": "Too sensitive? Try clicking on track instead of dragging. Or use arrow keys for fine control.",
             "triggers": ["sensitive", "jumpy", "fast", "overshot"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           },
           {
-            "id": "s-t-iter-2",
-            "response": "For blind mode: Remember each full drag ≈ 10 units. Count movements from edges.",
-            "triggers": ["blind", "hidden", "no value", "can't see"],
-            "priority": 1
-          },
-          {
-            "id": "s-t-iter-3",
+            "id": "s-t-iter-2-dep",
             "response": "Still struggling? The slider might be easier after completing other tasks. Try a different sequence!",
             "triggers": ["still", "struggling", "can't", "impossible"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
           }
         ]
       }
@@ -343,164 +321,139 @@
       "workflow": {
         "make_for_me": [
           {
-            "id": "t-w-make-1",
+            "id": "t-w-make-1-dep",
             "response": "I'll create a typing system: 1) Memorize in chunks, 2) Type in bursts, 3) Verify each chunk. Counting tasks might simplify patterns!",
             "triggers": ["create", "make", "system", "method"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
           },
           {
-            "id": "t-w-make-2",
-            "response": "Typing workflow: Read pattern → Break into segments → Type carefully → Double-check. Task order affects pattern difficulty!",
+            "id": "t-w-make-1-star",
+            "response": "Typing point strategy: Perfect match = 2 pts, one mistake = usually 1 pt. Every 2 typing points = 0.2x multiplier. Fast levels but unforgiving!",
+            "triggers": ["strategy", "points", "typing", "approach"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "t-w-make-2-both",
+            "response": "Typing workflow: Read pattern → Break into segments → Type carefully → Double-check.",
             "triggers": ["workflow", "plan", "approach", "strategy"],
-            "priority": 1
-          },
-          {
-            "id": "t-w-make-3",
-            "response": "Generated strategy: For symbols, use mental word associations. For mixed case, type slowly. Other tasks might give easier patterns!",
-            "triggers": ["generate", "design", "build", "develop"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "find_for_me": [
           {
-            "id": "t-w-find-1",
-            "response": "Pattern types: Easy = lowercase words, Medium = mixed case + numbers, Hard = symbols included. Counting tasks can simplify these!",
+            "id": "t-w-find-1-dep",
+            "response": "Pattern types: Easy = lowercase words, Medium = mixed case, Hard = symbols included. Counting tasks can simplify these!",
             "triggers": ["type", "pattern", "difficulty", "level"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
           },
           {
-            "id": "t-w-find-2",
+            "id": "t-w-find-1-star",
+            "response": "Typing is all-or-nothing for top points. One wrong character drops you from 2 pts to 1 (or 0). Your perfection rate: {perfect}%",
+            "triggers": ["scoring", "points", "accuracy"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "t-w-find-2-both",
             "response": "Exact match required: Every character, space, and symbol must match perfectly. Case sensitivity is enforced!",
             "triggers": ["exact", "match", "perfect", "sensitive"],
-            "priority": 1
-          },
-          {
-            "id": "t-w-find-3",
-            "response": "Info: Patterns are 10-15 characters typically. Completing counting tasks first might unlock simpler patterns!",
-            "triggers": ["how long", "length", "characters", "size"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "jumpstart_for_me": [
           {
-            "id": "t-w-jump-1",
-            "response": "Start by reading the full pattern twice. Then type the first word/segment. Build momentum gradually!",
-            "triggers": ["start", "begin", "first", "initial"],
-            "priority": 1
-          },
-          {
-            "id": "t-w-jump-2",
-            "response": "Begin here: Check if pattern looks simpler than expected - you might have unlocked easy mode from other tasks!",
-            "triggers": ["where start", "how begin", "first step"],
-            "priority": 2
-          },
-          {
-            "id": "t-w-jump-3",
+            "id": "t-w-jump-1-dep",
             "response": "Quick tip: Complete counting tasks first - they often trigger simpler typing patterns. Experiment with order!",
             "triggers": ["quick", "tip", "efficient", "best"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
+          },
+          {
+            "id": "t-w-jump-1-star",
+            "response": "Start with simple patterns (Level 1-5) for guaranteed 2-pointers. Mixed case and symbols can wait until you've secured base points!",
+            "triggers": ["start", "begin", "strategy"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "t-w-jump-2-both",
+            "response": "Start by reading the full pattern twice. Then type the first word/segment. Build momentum gradually!",
+            "triggers": ["start", "begin", "first", "initial"],
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "iterate_with_me": [
           {
-            "id": "t-w-iter-1",
+            "id": "t-w-iter-1-dep",
             "response": "Keep mistyping? Slow down, type each character deliberately. Or try completing counting tasks for easier patterns!",
             "triggers": ["mistype", "error", "wrong", "mistake"],
-            "priority": 1
+            "priority": 1,
+            "mode": "dependency"
           },
           {
-            "id": "t-w-iter-2",
-            "response": "To improve: Use proper finger positioning, don't look at keyboard, type rhythmically. Task order matters significantly!",
+            "id": "t-w-iter-1-star",
+            "response": "Mistyped again? Each retry hurts Star 3's perfection bonus. Consider moving to other games and returning if time permits!",
+            "triggers": ["again", "retry", "mistake", "wrong"],
+            "priority": 2,
+            "mode": "star"
+          },
+          {
+            "id": "t-w-iter-2-both",
+            "response": "To improve: Use proper finger positioning, don't look at keyboard, type rhythmically.",
             "triggers": ["improve", "better", "enhance", "accurate"],
-            "priority": 1
-          },
-          {
-            "id": "t-w-iter-3",
-            "response": "Symbols tough? Create mental associations: @ = at, # = hash. Or complete other tasks first for simpler patterns!",
-            "triggers": ["symbol", "special", "hard", "difficult", "@", "#", "$"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ]
       },
       "task": {
         "make_for_me": [
           {
-            "id": "t-t-make-1",
+            "id": "t-t-make-1-both",
             "response": "Type exactly as shown. Every space, capital, and symbol matters. No autocorrect here!",
             "triggers": ["type", "enter", "input", "write"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           },
           {
-            "id": "t-t-make-2",
-            "response": "For mixed case: Hold shift for capitals. Release for lowercase. Type deliberately to avoid errors.",
-            "triggers": ["capital", "case", "upper", "lower", "shift"],
-            "priority": 1
-          },
-          {
-            "id": "t-t-make-3",
-            "response": "Symbol typing: Shift + number keys for most symbols. Take your time with these!",
-            "triggers": ["symbol", "special", "character", "shift"],
-            "priority": 1
+            "id": "t-t-make-1-star",
+            "response": "Type slowly for 2 points! Speed doesn't matter - only accuracy. One error = significant point loss.",
+            "triggers": ["slow", "careful", "accurate"],
+            "priority": 1,
+            "mode": "star"
           }
         ],
         "find_for_me": [
           {
-            "id": "t-t-find-1",
+            "id": "t-t-find-1-both",
             "response": "Pattern shown above input box. Must match 100% - every character, space, and case exactly.",
             "triggers": ["where", "pattern", "shown", "see"],
-            "priority": 1
-          },
-          {
-            "id": "t-t-find-2",
-            "response": "This difficulty uses: Mixed case letters and numbers. Watch for capital letters carefully!",
-            "triggers": ["what type", "difficulty", "includes"],
-            "priority": 1
-          },
-          {
-            "id": "t-t-find-3",
-            "response": "No partial credit - must be perfect match. Even one wrong character = retry needed.",
-            "triggers": ["partial", "close", "almost", "credit"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "jumpstart_for_me": [
           {
-            "id": "t-t-jump-1",
+            "id": "t-t-jump-1-both",
             "response": "First: Study the pattern. Notice capitals, spaces, symbols. Then position hands properly.",
             "triggers": ["first", "start", "begin", "prepare"],
-            "priority": 1
-          },
-          {
-            "id": "t-t-jump-2",
-            "response": "Begin with first character. Type slowly but steadily. Speed isn't scored - only accuracy!",
-            "triggers": ["where begin", "first character", "start where"],
-            "priority": 2
-          },
-          {
-            "id": "t-t-jump-3",
-            "response": "Check pattern difficulty - if it's all lowercase, you've unlocked easy mode from another task!",
-            "triggers": ["easy", "simple", "lowercase", "changed"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ],
         "iterate_with_me": [
           {
-            "id": "t-t-iter-1",
+            "id": "t-t-iter-1-both",
             "response": "Common mistake: Missing spaces or wrong case. Double-check these specifically!",
             "triggers": ["mistake", "common", "miss", "wrong"],
-            "priority": 1
-          },
-          {
-            "id": "t-t-iter-2",
-            "response": "Can't match pattern? Try typing in segments. Verify each part before continuing.",
-            "triggers": ["can't match", "impossible", "too hard"],
-            "priority": 1
-          },
-          {
-            "id": "t-t-iter-3",
-            "response": "Pattern too complex? Other tasks might unlock simpler ones. Try different completion orders!",
-            "triggers": ["complex", "complicated", "difficult", "easier"],
-            "priority": 1
+            "priority": 1,
+            "mode": "both"
           }
         ]
       }
@@ -509,116 +462,173 @@
   "general": {
     "navigation": [
       {
-        "id": "gen-nav-1",
+        "id": "gen-nav-1-dep",
         "response": "You can switch between any unlocked tasks. Each game unlocks sequentially within itself. Task order affects difficulty!",
         "triggers": ["switch", "change", "navigate", "move", "different task"],
-        "priority": 2
+        "priority": 2,
+        "mode": "dependency"
       },
       {
-        "id": "gen-nav-2",
-        "response": "Complete tasks in any order! Each completion = +1 prompt. Strategic ordering can unlock helpful features!",
+        "id": "gen-nav-1-star",
+        "response": "All tasks are unlocked! Switch freely between games. Time is limited - plan your route for maximum points!",
+        "triggers": ["switch", "change", "navigate", "move"],
+        "priority": 2,
+        "mode": "star"
+      },
+      {
+        "id": "gen-nav-2-both",
+        "response": "Complete tasks in any order! Each completion = +1 prompt. Strategic ordering can help!",
         "triggers": ["order", "sequence", "which first", "best order"],
-        "priority": 2
-      },
-      {
-        "id": "gen-nav-3",
-        "response": "Navigation tip: Try different sequences. Some tasks make others easier when completed first!",
-        "triggers": ["tip", "navigation", "strategy", "help with order"],
-        "priority": 1
+        "priority": 2,
+        "mode": "both"
       }
     ],
     "prompts": [
       {
-        "id": "gen-prompt-1",
+        "id": "gen-prompt-1-both",
         "response": "You have 3 base prompts + 1 per completed task. Use wisely - save for when truly stuck!",
         "triggers": ["prompt", "how many", "limit", "question"],
-        "priority": 2
-      },
-      {
-        "id": "gen-prompt-2",
-        "response": "Earn more prompts by completing tasks. Each task = +1 prompt. Maximum 12 prompts possible!",
-        "triggers": ["more prompts", "earn", "get prompts", "additional"],
-        "priority": 2
-      },
-      {
-        "id": "gen-prompt-3",
-        "response": "Prompt strategy: Save them for hard tasks. Easy tasks are solvable without AI help!",
-        "triggers": ["when use", "save prompts", "prompt strategy"],
-        "priority": 1
+        "priority": 2,
+        "mode": "both"
       }
     ],
     "dependencies": [
       {
         "id": "gen-dep-1",
         "response": "Tasks affect each other! Completing one might add features to others. Experiment with different orders!",
-        "triggers": ["affect", "influence", "dependency", "connection", "relate"],
-        "priority": 2
+        "triggers": [
+          "affect",
+          "influence",
+          "dependency",
+          "connection",
+          "relate"
+        ],
+        "priority": 2,
+        "mode": "dependency"
       },
       {
         "id": "gen-dep-2",
-        "response": "Hidden connections exist between games. Higher numbered tasks have stronger effects. Order matters significantly!",
-        "triggers": ["hidden", "connection", "between", "games affect"],
-        "priority": 2
-      },
-      {
-        "id": "gen-dep-3",
         "response": "Pro tip: Slider→Counting, Typing→Slider, Counting→Typing. Each helps the next in unique ways!",
         "triggers": ["which helps", "best sequence", "optimal order"],
-        "priority": 2
+        "priority": 2,
+        "mode": "dependency"
+      }
+    ],
+    "stars": [
+      {
+        "id": "gen-star-1",
+        "response": "Star 1 (C×S×T): Currently {c}×{s}×{t} = {bonus}. Even 1 point in each category gives bonus. Balance matters!",
+        "triggers": ["star 1", "multiply", "c×s×t", "balance"],
+        "priority": 3,
+        "mode": "star"
+      },
+      {
+        "id": "gen-star-2",
+        "response": "Star 2 strategy: Build multipliers FIRST (other categories), then focus one category to 20. Current best: {category} with {points} pts at {multiplier}x",
+        "triggers": ["star 2", "focus", "20 points", "multiplier"],
+        "priority": 3,
+        "mode": "star"
+      },
+      {
+        "id": "gen-star-3",
+        "response": "Star 3 perfection: {perfect}/{total} = {rate}%. Every 2-point score helps! Bonus = rate². At 80% perfection = 640 bonus points!",
+        "triggers": ["star 3", "perfection", "perfect", "rate"],
+        "priority": 3,
+        "mode": "star"
+      }
+    ],
+    "optimization": [
+      {
+        "id": "gen-opt-1",
+        "response": "Point efficiency: Easy levels = 2 pts in 20-30 sec. Hard levels = maybe 1 pt in 60+ sec. Do the math with {time_remaining} left!",
+        "triggers": ["efficiency", "optimize", "time", "best use"],
+        "priority": 2,
+        "mode": "star"
+      },
+      {
+        "id": "gen-opt-2",
+        "response": "Current rate: {points} points in {time_elapsed} = {rate} pts/min. At this pace, you'll reach ~{projected} points.",
+        "triggers": ["rate", "pace", "projection", "current"],
+        "priority": 2,
+        "mode": "star"
+      }
+    ],
+    "multipliers": [
+      {
+        "id": "gen-mult-1",
+        "response": "Multiplier math: Counting 2pts=0.2x, Slider 3pts=0.3x, Typing 2pts=0.2x. Current: C:{c}x S:{s}x T:{t}x",
+        "triggers": ["multiplier", "how much", "calculate", "math"],
+        "priority": 2,
+        "mode": "star"
       }
     ],
     "difficulty": [
       {
-        "id": "gen-diff-1",
-        "response": "Each game has 3 difficulty levels. Task 1 = Easy, Task 2 = Medium, Task 3 = Hard. But order affects actual difficulty!",
-        "triggers": ["difficulty", "easy medium hard", "levels"],
-        "priority": 1
-      },
-      {
-        "id": "gen-diff-2",
-        "response": "Struggling with hard tasks? Try completing other games first - they might unlock helpful features!",
-        "triggers": ["too hard", "difficult", "struggling", "easier"],
-        "priority": 2
+        "id": "gen-diff-1-both",
+        "response": "Each game has 15 difficulty levels. Early levels are easier and worth quick points!",
+        "triggers": ["difficulty", "levels", "easy", "hard"],
+        "priority": 1,
+        "mode": "both"
       }
     ]
   },
   "fallback": [
     {
-      "id": "fallback-1",
+      "id": "fallback-1-dep",
       "response": "I'm not sure I understand. Ask about counting, slider, or typing tasks. Remember: task order matters!",
       "triggers": [],
-      "context": "unclear"
+      "context": "unclear",
+      "mode": "dependency"
     },
     {
-      "id": "fallback-2",
+      "id": "fallback-1-star",
+      "response": "Focus on points! 70%+ = 1pt, 95%+ = 2pts. Check your star progress - you might be closer than you think!",
+      "triggers": [],
+      "context": "general",
+      "mode": "star"
+    },
+    {
+      "id": "fallback-2-both",
       "response": "Let's focus on the current task. Need help with specific game mechanics? Each completed task = +1 prompt!",
       "triggers": [],
-      "context": "off-topic"
-    },
-    {
-      "id": "fallback-3",
-      "response": "Try asking about: task strategies, navigation, or how tasks connect. Save prompts for when you're truly stuck!",
-      "triggers": [],
-      "context": "vague"
-    },
-    {
-      "id": "fallback-4",
-      "response": "Focus on your current task first. Complete it to earn another prompt! Tasks influence each other - experiment!",
-      "triggers": [],
-      "context": "general"
+      "context": "off-topic",
+      "mode": "both"
     }
   ],
+  "dynamicVariables": {
+    "description": "Variables to be replaced with actual game state",
+    "star": [
+      "{time_remaining}",
+      "{time_elapsed}",
+      "{c}",
+      "{s}",
+      "{t}",
+      "{points}",
+      "{perfect}",
+      "{total}",
+      "{rate}",
+      "{bonus}",
+      "{category}",
+      "{multiplier}",
+      "{level}",
+      "{projected}"
+    ],
+    "dependency": ["{completed_tasks}", "{unlocked_features}"],
+    "both": ["{current_task}", "{attempts}"]
+  },
   "metadata": {
-    "totalResponses": 72,
-    "responsesPerGame": 24,
-    "categoriesPerLevel": 4,
-    "responsesPerCategory": 3,
+    "totalResponses": 150,
+    "modes": {
+      "dependency": "Original task dependency system",
+      "star": "Point-based star goal system",
+      "both": "Works in either mode"
+    },
     "designPrinciples": [
-      "Responses hint at task dependencies without revealing specifics",
-      "Encourage experimentation with task order",
-      "Remind users about prompt economy",
-      "Keep responses concise and actionable",
-      "Balance helpfulness with research goals"
+      "Mode-specific responses take priority when filtering",
+      "Star mode emphasizes points and efficiency",
+      "Dependency mode hints at task connections",
+      "Both mode provides general task help",
+      "Dynamic variables allow real-time game state integration"
     ]
   }
 }
