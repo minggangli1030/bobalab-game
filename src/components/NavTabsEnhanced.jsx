@@ -1,5 +1,4 @@
 import React from "react";
-import StarProgress from "./StarProgress"; // ADD THIS LINE
 
 export default function NavTabsEnhanced({
   current,
@@ -54,9 +53,9 @@ export default function NavTabsEnhanced({
   };
 
   const gameIcons = {
-    1: "🔢",
+    1: "📚",
     2: "🎯",
-    3: "⌨️",
+    3: "✉️",
   };
 
   const gameNames = {
@@ -66,9 +65,9 @@ export default function NavTabsEnhanced({
   };
 
   const gameCategoryMap = {
-    1: "counting",
-    2: "slider",
-    3: "typing",
+    1: "research",
+    2: "materials",
+    3: "engagement",
   };
 
   // Helper function to convert hex to RGB
@@ -148,6 +147,18 @@ export default function NavTabsEnhanced({
     return gameTabs.reduce((sum, tab) => sum + (taskPoints[tab.id] || 0), 0);
   };
 
+  // Calculate actual category points from categoryPoints prop
+  const getTotalPoints = () => {
+    if (categoryPoints) {
+      return (
+        (categoryPoints.materials || 0) +
+        (categoryPoints.research || 0) +
+        (categoryPoints.engagement || 0)
+      );
+    }
+    return Object.values(taskPoints).reduce((sum, points) => sum + points, 0);
+  };
+
   return (
     <div
       style={{
@@ -158,16 +169,6 @@ export default function NavTabsEnhanced({
         marginBottom: "20px",
       }}
     >
-      {/* Star Progress Display - moved from overlay */}
-      {limitMode === "time" && starGoals && categoryPoints && (
-        <StarProgress
-          starGoals={starGoals}
-          categoryPoints={categoryPoints}
-          categoryMultipliers={categoryMultipliers}
-          timeRemaining={timeRemaining}
-        />
-      )}
-
       {/* Navigation tabs - compact single line layout */}
       <div
         style={{
@@ -220,8 +221,8 @@ export default function NavTabsEnhanced({
                 {gameNames[gameNum]}
               </h4>
 
-              {/* Points earned */}
-              {gamePoints > 0 && (
+              {/* Points earned - use categoryPoints if available */}
+              {categoryPoints && categoryPoints[categoryName] > 0 && (
                 <span
                   style={{
                     fontSize: "12px",
@@ -232,7 +233,7 @@ export default function NavTabsEnhanced({
                     fontWeight: "bold",
                   }}
                 >
-                  {gamePoints} pts
+                  {categoryPoints[categoryName]} pts
                 </span>
               )}
 
@@ -364,7 +365,7 @@ export default function NavTabsEnhanced({
         })}
       </div>
 
-      {/* Progress summary */}
+      {/* Progress summary with integrated star goals */}
       <div
         style={{
           marginTop: "20px",
@@ -378,6 +379,20 @@ export default function NavTabsEnhanced({
           gap: "10px",
         }}
       >
+        {/* Timer */}
+        {timeRemaining !== null && (
+          <div
+            style={{
+              fontSize: "16px",
+              color: timeRemaining < 60 ? "#f44336" : "#333",
+              fontWeight: "bold",
+            }}
+          >
+            ⏱️ {Math.floor(timeRemaining / 60)}:
+            {(timeRemaining % 60).toString().padStart(2, "0")}
+          </div>
+        )}
+
         <div style={{ fontSize: "14px", color: "#666" }}>
           <strong>Tasks Completed:</strong>{" "}
           <span style={{ color: "#333", fontSize: "16px", fontWeight: "bold" }}>
@@ -390,9 +405,30 @@ export default function NavTabsEnhanced({
           <span
             style={{ color: "#2196F3", fontSize: "16px", fontWeight: "bold" }}
           >
-            {Object.values(taskPoints).reduce((sum, points) => sum + points, 0)}
+            {getTotalPoints()}
           </span>
         </div>
+
+        {/* Compact Star Goals Display */}
+        {starGoals && (
+          <div style={{ display: "flex", gap: "15px", fontSize: "14px" }}>
+            <span
+              style={{ color: starGoals.star1?.achieved ? "#4CAF50" : "#999" }}
+            >
+              ⭐ {starGoals.star1?.achieved ? "✓" : "25pts"}
+            </span>
+            <span
+              style={{ color: starGoals.star2?.achieved ? "#4CAF50" : "#999" }}
+            >
+              ⭐⭐ {starGoals.star2?.achieved ? "✓" : "20pts"}
+            </span>
+            <span
+              style={{ color: starGoals.star3?.achieved ? "#4CAF50" : "#999" }}
+            >
+              ⭐⭐⭐ {starGoals.star3?.achieved ? "✓" : "50pts"}
+            </span>
+          </div>
+        )}
 
         {current && (
           <div
@@ -420,9 +456,9 @@ export default function NavTabsEnhanced({
               }}
             >
               {current
-                .replace("g1t", "Count ")
-                .replace("g2t", "Slide ")
-                .replace("g3t", "Type ")}
+                .replace("g1t", "Research ")
+                .replace("g2t", "Materials ")
+                .replace("g3t", "Engage ")}
             </span>
           </div>
         )}
