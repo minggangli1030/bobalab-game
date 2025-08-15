@@ -1631,6 +1631,12 @@ function App() {
               starGoals={{}}
               timeRemaining={timeRemaining}
               calculateStudentLearning={calculateStudentLearning}
+              onAIHelp={(helpData) => {
+                // Pass AI help to the current task
+                window.dispatchEvent(
+                  new CustomEvent("aiHelp", { detail: helpData })
+                );
+              }}
             />
           </div>
         </div>

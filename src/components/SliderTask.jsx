@@ -12,6 +12,7 @@ export default function SliderTask({
   onComplete,
   isPractice = false,
   gameAccuracyMode = "strict",
+  currentTaskId,
 }) {
   const [target, setTarget] = useState(5);
   const [input, setInput] = useState(5.0);
@@ -19,6 +20,7 @@ export default function SliderTask({
   const [startTime] = useState(Date.now());
   const [step, setStep] = useState(1); // NEW: Track step value
   const [showValue, setShowValue] = useState(true); // NEW: Track if value should be shown
+  const [isAnimating, setIsAnimating] = useState(false);
   const attemptsRef = useRef(0);
 
   useEffect(() => {
@@ -30,6 +32,38 @@ export default function SliderTask({
     setShowValue(pattern.showValue);
     setInput(5.0); // Always start at middle
   }, [taskNum]);
+
+  // Listen for AI help
+  useEffect(() => {
+    const handleAIHelp = (event) => {
+      if (
+        event.detail.taskId === currentTaskId &&
+        event.detail.type === "slider"
+      ) {
+        // AI helps move the slider
+        setIsAnimating(true);
+        const aiTarget = event.detail.value;
+
+        // Animate slider movement
+        let currentValue = input;
+        const increment = (aiTarget - currentValue) / 20;
+
+        const animationInterval = setInterval(() => {
+          currentValue += increment;
+          if (Math.abs(currentValue - aiTarget) < Math.abs(increment)) {
+            setInput(aiTarget);
+            setIsAnimating(false);
+            clearInterval(animationInterval);
+          } else {
+            setInput(currentValue);
+          }
+        }, 50);
+      }
+    };
+
+    window.addEventListener("aiHelp", handleAIHelp);
+    return () => window.removeEventListener("aiHelp", handleAIHelp);
+  }, [currentTaskId, input]);
 
   const calculateAccuracy = (userValue, targetValue) => {
     const difference = Math.abs(userValue - targetValue);

@@ -12,6 +12,7 @@ export default function CountingTask({
   onComplete,
   isPractice = false,
   gameAccuracyMode = "strict",
+  currentTaskId,
 }) {
   const [target, setTarget] = useState("");
   const [instruction, setInstruction] = useState("");
@@ -22,6 +23,7 @@ export default function CountingTask({
   const [displayText, setDisplayText] = useState("");
   const [startTime] = useState(Date.now());
   const [textImageUrl, setTextImageUrl] = useState("");
+  const [aiHighlightActive, setAiHighlightActive] = useState(false);
   const attemptsRef = useRef(0);
   const canvasRef = useRef(null);
 

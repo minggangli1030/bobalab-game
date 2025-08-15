@@ -12,6 +12,7 @@ export default function TypingTask({
   onComplete,
   isPractice = false,
   gameAccuracyMode = "strict",
+  currentTaskId,
 }) {
   const [pattern, setPattern] = useState("");
   const [input, setInput] = useState("");
