@@ -867,7 +867,7 @@ function App() {
             <h1
               style={{ color: "#333", marginBottom: "20px", fontSize: "28px" }}
             >
-              Multi-Task Star Challenge - Round {currentRound}/{totalRounds}
+              Can you beat Park? - Round {currentRound}/{totalRounds}
             </h1>
 
             <div className="game-info">
@@ -1686,21 +1686,8 @@ function App() {
       )}
 
       <h1>
-        Multi-Task Star Challenge - Round {currentRound}/{totalRounds}
+        Can you beat Park? - Round {currentRound}/{totalRounds}
       </h1>
-
-      {/* Star Progress Display */}
-      <StarProgress
-        starGoals={starGoals}
-        categoryPoints={categoryPoints}
-        categoryMultipliers={categoryMultipliers}
-        timeRemaining={timeRemaining}
-      />
-
-      {/* Mode switch - removed chat button */}
-      <div className="mode-switch">
-        <button disabled={true}>Challenge</button>
-      </div>
 
       {/* Use NavTabsEnhanced */}
       <NavTabsEnhanced
@@ -1708,6 +1695,11 @@ function App() {
         completed={completed}
         onSwitch={handleTabSwitch}
         limitMode="time"
+        taskPoints={taskPoints} // This might need to be added if not there
+        categoryMultipliers={categoryMultipliers}
+        starGoals={starGoals} // ADD THIS
+        categoryPoints={categoryPoints} // ADD THIS
+        timeRemaining={timeRemaining} // ADD THIS
       />
 
       {/* Side-by-side layout: Game + Chat */}

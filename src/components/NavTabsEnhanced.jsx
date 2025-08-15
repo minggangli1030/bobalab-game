@@ -1,12 +1,16 @@
 import React from "react";
+import StarProgress from "./StarProgress"; // ADD THIS LINE
 
 export default function NavTabsEnhanced({
   current,
   completed,
   onSwitch,
   limitMode,
-  taskPoints = {}, // NEW: Pass points earned per task
-  categoryMultipliers = {}, // NEW: Pass current multipliers
+  taskPoints = {},
+  categoryMultipliers = {},
+  starGoals = {},
+  categoryPoints = {},
+  timeRemaining = null,
 }) {
   // Generate all 45 tabs (15 per game)
   const tabs = [];
@@ -154,27 +158,14 @@ export default function NavTabsEnhanced({
         marginBottom: "20px",
       }}
     >
-      {/* Time-based mode indicator */}
-      {limitMode === "time" && (
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: "20px",
-            padding: "12px",
-            background: "#e3f2fd",
-            borderRadius: "8px",
-            border: "2px solid #2196F3",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "16px",
-              color: "#666",
-            }}
-          >
-            Choose your path strategically - all tasks are available!
-          </div>
-        </div>
+      {/* Star Progress Display - moved from overlay */}
+      {limitMode === "time" && starGoals && categoryPoints && (
+        <StarProgress
+          starGoals={starGoals}
+          categoryPoints={categoryPoints}
+          categoryMultipliers={categoryMultipliers}
+          timeRemaining={timeRemaining}
+        />
       )}
 
       {/* Navigation tabs - compact single line layout */}
