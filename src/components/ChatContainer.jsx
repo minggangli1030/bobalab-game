@@ -1,4 +1,4 @@
-// src/components/ChatContainer.jsx - Fixed version with correct filename
+// src/components/ChatContainer.jsx - Updated with AI task assistance
 import React, { useState, useEffect, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
 import "./ChatContainer.css";
@@ -14,496 +14,181 @@ export default function ChatContainer({
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Hello! I'm here to help with your tasks. Ask me anything about counting, slider, or typing tasks!",
+      text: "Hello! I'm your AI teaching assistant. I can help with slider, counting, and typing tasks. Try asking 'slider help', 'count help', or 'type help'!",
     },
   ]);
   const [input, setInput] = useState("");
-  const [promptsUsed, setPromptsUsed] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
-  const [gameMode, setGameMode] = useState("star"); // Default to star mode since you're using star goals
-  const responseDataRef = useRef(null);
   const messagesEndRef = useRef(null);
-
-  const totalPrompts = 3 + bonusPrompts;
-  const remainingPrompts = totalPrompts - promptsUsed;
-
-  // Load response data on mount
-  useEffect(() => {
-    loadResponseData();
-  }, []);
+  const [aiUseCount, setAiUseCount] = useState({
+    counting: 0,
+    slider: 0,
+    typing: 0,
+  });
 
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const loadResponseData = async () => {
-    try {
-      // Correct filename: chat-responses.json instead of chat-responses-merged.json
-      const response = await fetch("/data/chat-responses.json");
+  // Generate AI help based on task type
+  const generateAIHelp = (taskType) => {
+    const taskNum = currentTask ? parseInt(currentTask.substring(3)) : 1;
+    const game = currentTask ? currentTask.substring(0, 2) : null;
 
-      if (!response.ok) {
-        throw new Error("Failed to load response data");
+    // Track AI usage
+    const useCount = aiUseCount[taskType] || 0;
+    setAiUseCount((prev) => ({ ...prev, [taskType]: useCount + 1 }));
+
+    // AI gets worse over time (except typing which is always perfect)
+    const degradationFactor =
+      taskType === "typing" ? 0 : Math.min(useCount * 0.1, 0.5);
+
+    if (taskType === "slider" && game === "g2") {
+      // Slider AI: 50% accurate, 50% off by 1
+      const actualTarget = getSliderTarget(); // You'll need to implement this
+      const errorChance = Math.random() + degradationFactor;
+
+      if (errorChance < 0.5) {
+        return `I'll help! Try moving the slider to ${actualTarget}. Start from 0 and drag slowly.`;
+      } else {
+        const offset = Math.random() < 0.5 ? -1 : 1;
+        const wrongTarget = Math.max(0, Math.min(10, actualTarget + offset));
+        return `I think you should move the slider to ${wrongTarget}. Hold and drag from 0!`;
       }
-
-      const data = await response.json();
-      responseDataRef.current = data;
-      console.log("Loaded response data successfully");
-    } catch (error) {
-      console.error("Error loading response data:", error);
-      // Fallback with some basic responses
-      responseDataRef.current = {
-        responses: {
-          counting: {
-            workflow: {
-              make_for_me: [],
-              find_for_me: [],
-              jumpstart_for_me: [],
-              iterate_with_me: [],
-            },
-            task: {
-              make_for_me: [],
-              find_for_me: [],
-              jumpstart_for_me: [],
-              iterate_with_me: [],
-            },
-          },
-          slider: {
-            workflow: {
-              make_for_me: [],
-              find_for_me: [],
-              jumpstart_for_me: [],
-              iterate_with_me: [],
-            },
-            task: {
-              make_for_me: [],
-              find_for_me: [],
-              jumpstart_for_me: [],
-              iterate_with_me: [],
-            },
-          },
-          typing: {
-            workflow: {
-              make_for_me: [],
-              find_for_me: [],
-              jumpstart_for_me: [],
-              iterate_with_me: [],
-            },
-            task: {
-              make_for_me: [],
-              find_for_me: [],
-              jumpstart_for_me: [],
-              iterate_with_me: [],
-            },
-          },
-        },
-        general: {},
-        fallback: [
-          {
-            id: "fallback-default",
-            response:
-              "Ask about counting, slider, or typing tasks. I'm here to help! Try asking about strategy, points, or star goals.",
-            triggers: [],
-            mode: "both",
-          },
-        ],
-      };
     }
-  };
 
-  const replaceDynamicVariables = (response) => {
-    let processedResponse = response;
+    if (taskType === "counting" && game === "g1") {
+      // Counting AI: Gets progressively worse
+      const patterns = [
+        { correct: 12, wrong: [11, 13, 10] }, // Example counts
+        { correct: 8, wrong: [7, 9, 6] },
+        { correct: 15, wrong: [14, 16, 13] },
+      ];
 
-    // Calculate total points
-    const totalPoints = categoryPoints
-      ? categoryPoints.counting + categoryPoints.slider + categoryPoints.typing
-      : 0;
+      const pattern = patterns[taskNum % patterns.length];
+      const errorChance = Math.random() + degradationFactor;
 
-    // Replace star mode variables
-    if (categoryPoints) {
-      processedResponse = processedResponse
-        .replace(/{c}/g, categoryPoints.counting || 0)
-        .replace(/{s}/g, categoryPoints.slider || 0)
-        .replace(/{t}/g, categoryPoints.typing || 0)
-        .replace(/{points}/g, totalPoints)
-        .replace(
-          /{time_remaining}/g,
-          timeRemaining ? formatTime(timeRemaining) : "12:00"
-        )
-        .replace(
-          /{time_elapsed}/g,
-          timeRemaining ? formatTime(720 - timeRemaining) : "0:00"
-        );
-
-      // Calculate C×S×T bonus
-      const cstBonus =
-        categoryPoints.counting * categoryPoints.slider * categoryPoints.typing;
-      processedResponse = processedResponse.replace(/{bonus}/g, cstBonus);
-
-      // Star goals
-      if (starGoals) {
-        const perfectionRate =
-          starGoals.star3.totalAttempts > 0
-            ? (
-                (starGoals.star3.perfectCount / starGoals.star3.totalAttempts) *
-                100
-              ).toFixed(1)
-            : "0";
-
-        processedResponse = processedResponse
-          .replace(/{perfect}/g, starGoals.star3.perfectCount)
-          .replace(/{total}/g, starGoals.star3.totalAttempts)
-          .replace(/{rate}/g, perfectionRate);
+      if (errorChance < 0.3) {
+        return `I count ${pattern.correct} occurrences. Some words are highlighted to help you verify!`;
+      } else {
+        const wrongAnswer =
+          pattern.wrong[Math.floor(Math.random() * pattern.wrong.length)];
+        return `Hmm, I see ${wrongAnswer} occurrences. Check the highlighted words carefully!`;
       }
-
-      // Multipliers
-      if (categoryMultipliers) {
-        processedResponse = processedResponse
-          .replace(/{multiplier}/g, getCurrentMultiplier())
-          .replace(/{category}/g, getBestCategory());
-      }
-
-      // Current task info
-      const taskLevel = currentTask ? parseInt(currentTask.substring(3)) : 1;
-      processedResponse = processedResponse.replace(/{level}/g, taskLevel);
     }
 
-    // Replace general variables
-    processedResponse = processedResponse
-      .replace(/{current_task}/g, currentTask || "none")
-      .replace(/{attempts}/g, getTaskAttempts(currentTask));
-
-    return processedResponse;
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const getCurrentMultiplier = () => {
-    if (!categoryMultipliers) return "1.0";
-    const total = Object.values(categoryMultipliers).reduce(
-      (sum, mult) => sum + mult,
-      0
-    );
-    return (1 + total).toFixed(1);
-  };
-
-  const getBestCategory = () => {
-    if (!categoryPoints) return "none";
-    const categories = Object.entries(categoryPoints);
-    const best = categories.reduce((a, b) => (a[1] > b[1] ? a : b));
-    return best[0];
-  };
-
-  const getTaskAttempts = (taskId) => {
-    const history = localStorage.getItem(`attemptHistory_${taskId}`);
-    return history ? JSON.parse(history).length : 0;
-  };
-
-  const findBestResponse = (userInput) => {
-    if (!responseDataRef.current) {
-      return {
-        response: "Still loading... Please try again in a moment.",
-        metadata: { id: "loading", level: "Task-level", type: "Find for me" },
-      };
+    if (taskType === "typing" && game === "g3") {
+      // Typing AI: Always perfect (as per requirement)
+      const pattern = getTypingPattern(); // You'll need to implement this
+      return `Here's the exact pattern: "${pattern}". Just copy it exactly!`;
     }
 
-    const input = userInput.toLowerCase().trim();
-    const matches = [];
-
-    // Determine current game type
-    const gameType = currentTask
-      ? currentTask.startsWith("g1")
-        ? "counting"
-        : currentTask.startsWith("g2")
-        ? "slider"
-        : currentTask.startsWith("g3")
-        ? "typing"
-        : null
-      : null;
-
-    console.log(
-      "Finding response for:",
-      input,
-      "Game:",
-      gameType,
-      "Mode:",
-      gameMode
-    );
-
-    // Search in current game responses first
-    if (
-      gameType &&
-      responseDataRef.current.responses &&
-      responseDataRef.current.responses[gameType]
-    ) {
-      searchResponses(
-        responseDataRef.current.responses[gameType],
-        input,
-        matches,
-        2.0
-      );
-    }
-
-    // Search in general responses
-    if (responseDataRef.current.general) {
-      searchGeneralResponses(
-        responseDataRef.current.general,
-        input,
-        matches,
-        1.0
-      );
-    }
-
-    // Search in other game responses (lower weight)
-    if (responseDataRef.current.responses) {
-      Object.keys(responseDataRef.current.responses).forEach((game) => {
-        if (game !== gameType) {
-          searchResponses(
-            responseDataRef.current.responses[game],
-            input,
-            matches,
-            0.5
-          );
-        }
-      });
-    }
-
-    // Filter by game mode - for star goals, include both "star" and "both" responses
-    const modeFilteredMatches = matches.filter(
-      (match) =>
-        match.response.mode === "both" || match.response.mode === gameMode
-    );
-
-    console.log(
-      `Found ${matches.length} matches, ${modeFilteredMatches.length} after mode filter`
-    );
-
-    // Sort by score (highest first)
-    modeFilteredMatches.sort((a, b) => {
-      // Prioritize mode-specific responses
-      if (a.response.mode === gameMode && b.response.mode === "both") return -1;
-      if (b.response.mode === gameMode && a.response.mode === "both") return 1;
-      return b.score - a.score;
-    });
-
-    // If we have good matches, select based on score
-    if (modeFilteredMatches.length > 0 && modeFilteredMatches[0].score > 0.1) {
-      const topScore = modeFilteredMatches[0].score;
-      const topMatches = modeFilteredMatches.filter(
-        (m) => Math.abs(m.score - topScore) < 0.01
-      );
-
-      // Randomly select from top matches
-      const selected =
-        topMatches[Math.floor(Math.random() * topMatches.length)];
-
-      return {
-        response: replaceDynamicVariables(selected.response.response),
-        metadata: {
-          id: selected.response.id,
-          level: selected.level || "Task-level",
-          type: selected.type || "Find for me",
-          triggers: selected.matchedTriggers,
-          score: selected.score,
-          mode: selected.response.mode,
-        },
-      };
-    }
-
-    // Return mode-appropriate fallback
-    const fallbacks = responseDataRef.current.fallback || [];
-    const modeFallbacks = fallbacks.filter(
-      (f) => f.mode === "both" || f.mode === gameMode
-    );
-    const fallback =
-      modeFallbacks.length > 0
-        ? modeFallbacks[Math.floor(Math.random() * modeFallbacks.length)]
-        : {
-            response:
-              "Ask about counting, slider, or typing tasks. I'm here to help! Try asking about strategy, points, or star goals.",
-            id: "default-fallback",
-            mode: "both",
-          };
-
-    return {
-      response: replaceDynamicVariables(fallback.response),
-      metadata: {
-        id: fallback.id,
-        level: "Task-level",
-        type: "Iterate with me",
-        context: fallback.context || "fallback",
-        mode: fallback.mode,
-      },
-    };
+    return "I'm not sure what task you're on. Try being more specific!";
   };
 
-  const searchResponses = (gameResponses, input, matches, weight) => {
-    // Search both workflow and task level
-    ["workflow", "task"].forEach((level) => {
-      if (!gameResponses[level]) return;
-
-      // Search all 4 categories
-      [
-        "make_for_me",
-        "find_for_me",
-        "jumpstart_for_me",
-        "iterate_with_me",
-      ].forEach((type) => {
-        if (!gameResponses[level][type]) return;
-
-        gameResponses[level][type].forEach((response) => {
-          const { score, matchedTriggers } = calculateTriggerScore(
-            response.triggers || [],
-            input
-          );
-
-          if (score > 0) {
-            matches.push({
-              response: response,
-              score: score * weight * (response.priority || 1),
-              level: level === "workflow" ? "Workflow-level" : "Task-level",
-              type: type
-                .split("_")
-                .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                .join(" "),
-              matchedTriggers: matchedTriggers,
-            });
-          }
-        });
-      });
-    });
+  // Get current task targets (these need to be passed from parent or stored)
+  const getSliderTarget = () => {
+    // This should get the actual target from the current SliderTask
+    // For now, returning a placeholder
+    return 5;
   };
 
-  const searchGeneralResponses = (generalResponses, input, matches, weight) => {
-    Object.keys(generalResponses).forEach((category) => {
-      if (Array.isArray(generalResponses[category])) {
-        generalResponses[category].forEach((response) => {
-          const { score, matchedTriggers } = calculateTriggerScore(
-            response.triggers || [],
-            input
-          );
-
-          if (score > 0) {
-            matches.push({
-              response: response,
-              score: score * weight * (response.priority || 1),
-              level: "Workflow-level",
-              type: "Find for me",
-              matchedTriggers: matchedTriggers,
-            });
-          }
-        });
-      }
-    });
-  };
-
-  const calculateTriggerScore = (triggers, input) => {
-    if (!triggers || triggers.length === 0)
-      return { score: 0, matchedTriggers: [] };
-
-    let totalScore = 0;
-    const matchedTriggers = [];
-    const inputWords = input.toLowerCase().split(/\s+/);
-
-    triggers.forEach((trigger) => {
-      const triggerLower = trigger.toLowerCase();
-
-      // Check for exact word match
-      let found = false;
-      inputWords.forEach((word) => {
-        if (
-          word === triggerLower ||
-          word.includes(triggerLower) ||
-          triggerLower.includes(word)
-        ) {
-          found = true;
-          matchedTriggers.push({ trigger, type: "word" });
-        }
-      });
-
-      // Check for substring match
-      if (!found && input.includes(triggerLower)) {
-        found = true;
-        matchedTriggers.push({ trigger, type: "substring" });
-      }
-
-      if (found) {
-        // Give higher score for longer triggers and exact matches
-        const baseScore = trigger.length / Math.max(input.length, 1);
-        totalScore += baseScore;
-      }
-    });
-
-    // Normalize score
-    totalScore = totalScore / Math.max(triggers.length, 1);
-
-    return { score: totalScore, matchedTriggers };
+  const getTypingPattern = () => {
+    // This should get the actual pattern from the current TypingTask
+    // For now, returning a placeholder
+    return "Type this pattern";
   };
 
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    if (remainingPrompts <= 0) {
-      setMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "system",
-          text: "⚠️ No prompts remaining. Complete more tasks to earn additional prompts!",
-        },
-      ]);
-      return;
-    }
-
     // Add user message
     const userMsg = { sender: "user", text: input };
     setMessages((msgs) => [...msgs, userMsg]);
-    const userInput = input;
+    const userInput = input.toLowerCase();
     setInput("");
-    setPromptsUsed((prev) => prev + 1);
     setIsTyping(true);
 
-    // Small delay to ensure response data is loaded
-    setTimeout(async () => {
-      // Find best response
-      const { response, metadata } = findBestResponse(userInput);
+    // Check for AI help keywords
+    let response = "";
+    if (userInput.includes("slider") && userInput.includes("help")) {
+      response = generateAIHelp("slider");
+    } else if (userInput.includes("count") && userInput.includes("help")) {
+      response = generateAIHelp("counting");
+    } else if (userInput.includes("type") && userInput.includes("help")) {
+      response = generateAIHelp("typing");
+    } else if (userInput.includes("strategy") || userInput.includes("order")) {
+      // Flow-level strategic advice
+      response = getStrategicAdvice();
+    } else {
+      // Default helpful response
+      response = getGeneralHelp();
+    }
 
-      // Log the interaction
-      await eventTracker.trackChatInteraction(
-        userInput,
+    // Log the interaction
+    await eventTracker.trackChatInteraction(
+      input,
+      { text: response, type: "ai_help" },
+      messages.length,
+      currentTask
+    );
+
+    // Simulate typing delay
+    setTimeout(() => {
+      setIsTyping(false);
+      setMessages((msgs) => [
+        ...msgs,
         {
+          sender: "bot",
           text: response,
-          ...metadata,
-          gameMode: gameMode,
         },
-        promptsUsed + 1,
-        currentTask
-      );
+      ]);
+    }, 500 + Math.random() * 1000);
+  };
 
-      // Simulate typing delay
-      setTimeout(() => {
-        setIsTyping(false);
-        setMessages((msgs) => [
-          ...msgs,
-          {
-            sender: "bot",
-            text: response,
-            metadata: metadata,
-          },
-        ]);
-      }, 500 + Math.random() * 500);
-    }, 100);
+  const getStrategicAdvice = () => {
+    const studentLearning = calculateStudentLearning();
+
+    if (categoryPoints.materials < 10) {
+      return "Focus on Materials tasks first - they're the foundation of student learning! Research and Engagement multiply these base points.";
+    } else if (categoryPoints.research < 4) {
+      return "Consider doing some Research tasks now. Each point adds 5% to your Materials score. Early investment pays off!";
+    } else if (categoryPoints.engagement < 4) {
+      return "Don't forget Engagement! It adds 1% per point to everything. Small but compounds nicely.";
+    } else {
+      return "Good balance! Keep completing tasks. Remember: Materials × Research Multiplier × Engagement Multiplier = Student Learning!";
+    }
+  };
+
+  const getGeneralHelp = () => {
+    const tips = [
+      "Try 'slider help', 'count help', or 'type help' for task-specific assistance!",
+      "Student Learning = Materials × (1 + Research×0.05) × (1 + Engagement×0.01)",
+      "Complete tasks with 95%+ accuracy for 2 points, 70%+ for 1 point!",
+      "Checkpoint at 10 minutes! Get 30+ Student Learning for bonus points!",
+      "Research multiplies your Materials points - invest early!",
+      "Engagement compounds everything - don't neglect it!",
+    ];
+    return tips[Math.floor(Math.random() * tips.length)];
+  };
+
+  const calculateStudentLearning = () => {
+    if (!categoryPoints) return 0;
+    const materials = categoryPoints.materials || 0;
+    const researchMult = 1 + (categoryPoints.research || 0) * 0.05;
+    const engagementMult = 1 + (categoryPoints.engagement || 0) * 0.01;
+    return materials * researchMult * engagementMult;
   };
 
   return (
     <div className="chat-container-sidebar">
       {/* Header */}
       <div className="chat-header">
-        <h3>AI Assistant</h3>
-        <div className="prompt-counter">{remainingPrompts} prompts left</div>
+        <h3>AI Teaching Assistant</h3>
+        <div style={{ fontSize: "12px", color: "#666", marginTop: "5px" }}>
+          Unlimited help available! (reliability may vary)
+        </div>
       </div>
 
       {/* Messages */}
@@ -511,14 +196,7 @@ export default function ChatContainer({
         {messages.map((m, i) => (
           <div key={i} className={`message ${m.sender}`}>
             <div className="message-content">
-              <strong>
-                {m.sender === "user"
-                  ? "You"
-                  : m.sender === "bot"
-                  ? "AI"
-                  : "System"}
-                :
-              </strong>
+              <strong>{m.sender === "user" ? "You" : "AI Assistant"}:</strong>
               <span>{m.text}</span>
             </div>
           </div>
@@ -526,7 +204,7 @@ export default function ChatContainer({
         {isTyping && (
           <div className="message bot">
             <div className="message-content">
-              <strong>AI:</strong>
+              <strong>AI Assistant:</strong>
               <span className="typing-indicator">...</span>
             </div>
           </div>
@@ -538,22 +216,15 @@ export default function ChatContainer({
       <div className="chat-input-sidebar">
         <input
           type="text"
-          placeholder={
-            remainingPrompts > 0 ? "Ask for help..." : "No prompts left"
-          }
+          placeholder="Ask for help... (try 'slider help')"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          disabled={remainingPrompts <= 0}
         />
-        <button
-          onClick={handleSend}
-          disabled={remainingPrompts <= 0 || !input.trim()}
-        >
+        <button onClick={handleSend} disabled={!input.trim()}>
           Send
         </button>
       </div>
     </div>
   );
 }
-// added star goal chat reponse

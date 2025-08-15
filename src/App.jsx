@@ -24,6 +24,10 @@ function App() {
     return <AdminPage />;
   }
 
+  // Admin mode check
+  const urlParams = new URLSearchParams(window.location.search);
+  const isAdminMode = urlParams.get("admin") === "berkeley2024";
+
   // State management
   const [mode, setMode] = useState("landing");
   const [gameMode, setGameMode] = useState(null);
@@ -55,28 +59,14 @@ function App() {
   const [checkpointBonus, setCheckpointBonus] = useState(0);
 
   // NEW: Teaching simulation states
-  const [timeLimit] = useState(1200); // 20 minutes per semester
-  const [timeRemaining, setTimeRemaining] = useState(1200);
-  const [starGoals, setStarGoals] = useState({
-    star1: { achieved: false, points: 0, bonusEarned: 0 },
-    star2: { achieved: false, focusCategory: null, points: 0, bonusEarned: 0 },
-    star3: {
-      achieved: false,
-      perfectCount: 0,
-      totalAttempts: 0,
-      bonusEarned: 0,
-    },
-  });
+  const [timeLimit] = useState(isAdminMode ? 120 : 1200); // 2 min vs 20 min for admin
+  const [timeRemaining, setTimeRemaining] = useState(isAdminMode ? 120 : 1200);
+  const [studentLearningScore, setStudentLearningScore] = useState(0);
   const [categoryPoints, setCategoryPoints] = useState({
     materials: 0, // Slider (was counting)
     research: 0, // Counting (was slider)
     engagement: 0, // Typing
     bonus: 0, // Checkpoint bonuses
-  });
-  const [categoryMultipliers, setCategoryMultipliers] = useState({
-    materials: 0,
-    research: 0,
-    engagement: 0,
   });
   const [taskAttempts, setTaskAttempts] = useState({});
   const [taskPoints, setTaskPoints] = useState({});
@@ -105,6 +95,24 @@ function App() {
       }
     };
   }, []);
+
+  // Calculate student learning score with new formula
+  const calculateStudentLearning = (points = categoryPoints) => {
+    // Base: Materials (direct contribution)
+    const materialsPoints = points.materials || 0;
+
+    // Research multiplier: 5% per point
+    const researchMultiplier = 1 + (points.research || 0) * 0.05;
+
+    // Engagement multiplier: 1% per point
+    const engagementMultiplier = 1 + (points.engagement || 0) * 0.01;
+
+    // Formula: Materials × Research Multiplier × Engagement Multiplier
+    const studentLearning =
+      materialsPoints * researchMultiplier * engagementMultiplier;
+
+    return studentLearning;
+  };
 
   // Session management
   const checkAndInitSession = async () => {
@@ -158,7 +166,11 @@ function App() {
       setTimeRemaining(remaining);
 
       // Check for 10-minute checkpoint (exam season)
-      if (elapsed === 600 && !checkpointReached) {
+      // Admin mode: checkpoint at 1 minute
+      if (
+        (isAdminMode && elapsed === 60 && !checkpointReached) ||
+        (!isAdminMode && elapsed === 600 && !checkpointReached)
+      ) {
         handleCheckpoint();
       }
 
@@ -183,11 +195,12 @@ function App() {
     // Log checkpoint event
     eventTracker.logEvent("checkpoint_reached", {
       semester: currentSemester,
-      time: 600,
+      time: isAdminMode ? 60 : 600,
       completedTasks: Object.keys(completed).length,
       completedLevels: completedLevels,
       categoryPoints,
       bonusEarned: bonus,
+      studentLearningScore: calculateStudentLearning(),
     });
 
     // Add bonus to score
@@ -204,17 +217,21 @@ function App() {
   };
 
   const calculateCheckpointBonus = () => {
-    // Bonus for balanced teaching performance
-    const total =
-      categoryPoints.materials +
-      categoryPoints.research +
-      categoryPoints.engagement;
-    const balance = Math.min(
-      categoryPoints.materials,
-      categoryPoints.research,
-      categoryPoints.engagement
-    );
-    return Math.round(balance * 2 + total * 0.1);
+    // Calculate current student learning score
+    const studentLearning = calculateStudentLearning();
+
+    // Checkpoint thresholds
+    const threshold1 = 30; // First checkpoint threshold
+    const threshold2 = 60; // Higher threshold
+
+    let bonus = 0;
+    if (studentLearning >= threshold2) {
+      bonus = 200; // Higher bonus
+    } else if (studentLearning >= threshold1) {
+      bonus = 100; // Base bonus
+    }
+
+    return bonus;
   };
 
   // Handle practice choice
@@ -258,24 +275,8 @@ function App() {
     setCheckpointReached(false);
 
     // Reset teaching points
-    setTimeRemaining(timeLimit);
+    setTimeRemaining(isAdminMode ? 120 : 1200);
     setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
-    setCategoryMultipliers({ materials: 0, research: 0, engagement: 0 });
-    setStarGoals({
-      star1: { achieved: false, points: 0, bonusEarned: 0 },
-      star2: {
-        achieved: false,
-        focusCategory: null,
-        points: 0,
-        bonusEarned: 0,
-      },
-      star3: {
-        achieved: false,
-        perfectCount: 0,
-        totalAttempts: 0,
-        bonusEarned: 0,
-      },
-    });
     setTaskAttempts({});
     setTaskPoints({});
 
@@ -288,6 +289,7 @@ function App() {
       gameMode: gameMode,
       currentSemester: currentSemester,
       totalSemesters: totalSemesters,
+      isAdminMode: isAdminMode,
     });
   };
 
@@ -304,6 +306,7 @@ function App() {
       ? "materials"
       : "engagement";
 
+    // Store raw points for the category
     setCategoryPoints((prev) => ({
       ...prev,
       [category]: prev[category] + points,
@@ -319,16 +322,21 @@ function App() {
       [tabId]: (prev[tabId] || 0) + 1,
     }));
 
-    setStarGoals((prev) => ({
-      ...prev,
-      star3: {
-        ...prev.star3,
-        totalAttempts: prev.star3.totalAttempts + 1,
-        perfectCount: prev.star3.perfectCount + (points === 2 ? 1 : 0),
-      },
-    }));
+    // Calculate the new student learning score
+    const newCategoryPoints = {
+      ...categoryPoints,
+      [category]: categoryPoints[category] + points,
+    };
 
-    updateMultipliers(category, points);
+    const newStudentLearning = calculateStudentLearning(newCategoryPoints);
+    setStudentLearningScore(newStudentLearning);
+
+    // Show learning score update
+    showNotification(
+      `Task Complete! +${points} ${category} points | Student Learning: ${Math.round(
+        newStudentLearning
+      )} pts`
+    );
 
     setCompleted((prev) => ({ ...prev, [tabId]: true }));
     setCompletedLevels((prev) => prev + 1);
@@ -350,7 +358,8 @@ function App() {
       taskId: tabId,
       ...data,
       pointsEarned: points,
-      categoryPoints: categoryPoints[category] + points,
+      categoryPoints: newCategoryPoints,
+      studentLearningScore: newStudentLearning,
       activatedDependencies: activatedDeps,
       completionContext: {
         totalTasksCompleted: Object.keys(completed).length + 1,
@@ -365,124 +374,23 @@ function App() {
       await updateDoc(doc(db, "sessions", sessionId), {
         [`completedTasks.${tabId}`]: true,
         [`taskPoints.${tabId}`]: points,
-        [`categoryPoints`]: {
-          ...categoryPoints,
-          [category]: categoryPoints[category] + points,
-        },
+        [`categoryPoints`]: newCategoryPoints,
+        studentLearningScore: newStudentLearning,
         bonusPrompts: bonusPrompts + 1,
         lastActivity: serverTimestamp(),
       });
     }
-
-    showNotification(`Task Complete! +${points} points earned!`);
-    checkStarGoals();
-  };
-
-  // Update multipliers
-  const updateMultipliers = (category, points) => {
-    setCategoryMultipliers((prev) => {
-      const newMultipliers = { ...prev };
-      const currentPoints = categoryPoints[category] + points;
-
-      if (category === "research") {
-        newMultipliers.research = Math.floor(currentPoints / 2) * 0.2;
-      } else if (category === "materials") {
-        newMultipliers.materials = Math.floor(currentPoints / 3) * 0.3;
-      } else if (category === "engagement") {
-        newMultipliers.engagement = Math.floor(currentPoints / 2) * 0.2;
-      }
-
-      return newMultipliers;
-    });
-  };
-
-  // Check star goals
-  const checkStarGoals = () => {
-    const total =
-      categoryPoints.materials +
-      categoryPoints.research +
-      categoryPoints.engagement;
-
-    if (!starGoals.star1.achieved && total >= 25) {
-      const bonus = calculateStar1Bonus();
-      setStarGoals((prev) => ({
-        ...prev,
-        star1: { achieved: true, points: total, bonusEarned: bonus },
-      }));
-      showStarAchievement(1, bonus);
-    }
-
-    if (!starGoals.star2.achieved && starGoals.star1.achieved) {
-      const focusCategory = determineFocusCategory();
-      const focusPoints = categoryPoints[focusCategory];
-
-      if (focusPoints >= 20) {
-        const bonus = calculateStar2Bonus(focusCategory);
-        setStarGoals((prev) => ({
-          ...prev,
-          star2: {
-            achieved: true,
-            focusCategory,
-            points: focusPoints,
-            bonusEarned: bonus,
-          },
-        }));
-        showStarAchievement(2, bonus);
-      }
-    }
-
-    if (!starGoals.star3.achieved && total >= 50) {
-      const bonus = calculateStar3Bonus();
-      setStarGoals((prev) => ({
-        ...prev,
-        star3: { ...prev.star3, achieved: true, bonusEarned: bonus },
-      }));
-      showStarAchievement(3, bonus);
-    }
-  };
-
-  // Calculate bonuses
-  const calculateStar1Bonus = () => {
-    return (
-      categoryPoints.materials *
-      categoryPoints.research *
-      categoryPoints.engagement
-    );
-  };
-
-  const calculateStar2Bonus = (focusCategory) => {
-    const otherMultipliers = Object.entries(categoryMultipliers)
-      .filter(([cat]) => cat !== focusCategory)
-      .reduce((sum, [_, mult]) => sum + mult, 0);
-
-    return Math.round(categoryPoints[focusCategory] * (1 + otherMultipliers));
-  };
-
-  const calculateStar3Bonus = () => {
-    const perfectionRate =
-      starGoals.star3.totalAttempts > 0
-        ? starGoals.star3.perfectCount / starGoals.star3.totalAttempts
-        : 0;
-    return Math.round(perfectionRate * perfectionRate * 1000);
-  };
-
-  const determineFocusCategory = () => {
-    const categories = Object.entries(categoryPoints).filter(
-      ([cat]) => cat !== "bonus"
-    );
-    return categories.reduce((a, b) => (a[1] > b[1] ? a : b))[0];
-  };
-
-  const showStarAchievement = (starNum, bonus) => {
-    const starSymbols = ["⭐", "⭐⭐", "⭐⭐⭐"][starNum - 1];
-    showNotification(
-      `${starSymbols} Star ${starNum} Achieved! +${bonus} bonus points!`
-    );
   };
 
   // Handle tab switching
   const handleTabSwitch = async (newTab, isAutoAdvance = false) => {
     if (isInBreak) return;
+
+    // Prevent switching to completed tasks
+    if (completed[newTab] && !isAutoAdvance) {
+      showNotification("Task already completed! Choose a different task.");
+      return;
+    }
 
     if (!isAutoAdvance) {
       await eventTracker.trackUserAction("manual_tab_switch", {
@@ -528,7 +436,7 @@ function App() {
     const notification = document.createElement("div");
     notification.className = "notification-enter";
     notification.style.cssText =
-      "position: fixed; bottom: 20px; left: 20px; background: #2196F3; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10000;";
+      "position: fixed; bottom: 20px; left: 20px; background: #2196F3; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10000; max-width: 400px;";
     notification.textContent = message;
     document.body.appendChild(notification);
 
@@ -552,16 +460,9 @@ function App() {
       (Date.now() - startTimeRef.current - pausedTime) / 1000
     );
 
-    const totalPoints =
-      categoryPoints.materials +
-      categoryPoints.research +
-      categoryPoints.engagement +
-      categoryPoints.bonus;
-    const totalBonus = Object.values(starGoals).reduce(
-      (sum, star) => sum + star.bonusEarned,
-      0
-    );
-    const finalScore = totalPoints + totalBonus;
+    const finalStudentLearning = calculateStudentLearning();
+    const totalBonus = categoryPoints.bonus || 0;
+    const finalScore = Math.round(finalStudentLearning) + totalBonus;
 
     await eventTracker.logEvent("game_complete", {
       totalTime: finalTime,
@@ -572,17 +473,13 @@ function App() {
       gameMode: gameMode,
       currentSemester: currentSemester,
       categoryPoints,
-      starGoals,
-      totalPoints,
+      studentLearningScore: finalStudentLearning,
       totalBonus,
       finalScore,
-      perfectionRate:
-        starGoals.star3.totalAttempts > 0
-          ? starGoals.star3.perfectCount / starGoals.star3.totalAttempts
-          : 0,
       finalContext: {
         practiceCompleted: practiceChoice === "yes",
         totalPrompts: 3 + bonusPrompts,
+        isAdminMode: isAdminMode,
       },
     });
 
@@ -595,7 +492,7 @@ function App() {
         completionReason: reason,
         currentSemester: currentSemester,
         finalScore,
-        starGoals,
+        studentLearningScore: finalStudentLearning,
       });
     }
 
@@ -613,6 +510,7 @@ function App() {
           taskNum={taskNum}
           onComplete={handleComplete}
           gameAccuracyMode="lenient"
+          currentTaskId={currentTab}
         />
       );
     }
@@ -622,6 +520,7 @@ function App() {
           taskNum={taskNum}
           onComplete={handleComplete}
           gameAccuracyMode="lenient"
+          currentTaskId={currentTab}
         />
       );
     }
@@ -630,6 +529,7 @@ function App() {
         taskNum={taskNum}
         onComplete={handleComplete}
         gameAccuracyMode="lenient"
+        currentTaskId={currentTab}
       />
     );
   };
@@ -723,26 +623,26 @@ function App() {
                   marginBottom: "15px",
                 }}
               >
-                Complete teaching tasks to earn points and achieve star goals!
+                Maximize student learning through strategic teaching!
               </h2>
 
               <div style={{ marginBottom: "20px" }}>
                 <h3 style={{ color: "#4CAF50" }}>🎯 Material Creation</h3>
                 <p>
-                  Create teaching materials with precision. Perfect preparation
-                  = better teaching!
+                  Create teaching materials - the foundation of student
+                  learning. Each point directly contributes!
                 </p>
 
                 <h3 style={{ color: "#9C27B0" }}>📚 Research Content</h3>
                 <p>
-                  Research and analyze educational content. Accurate research =
-                  informed teaching!
+                  Research amplifies your materials! Each point adds +5% to all
+                  material points.
                 </p>
 
                 <h3 style={{ color: "#f44336" }}>✉️ Student Engagement</h3>
                 <p>
-                  Communicate effectively with students. Clear communication =
-                  better learning!
+                  Engagement compounds everything! Each point adds +1% to your
+                  total score.
                 </p>
               </div>
 
@@ -762,8 +662,22 @@ function App() {
                     marginBottom: "15px",
                   }}
                 >
-                  📅 Semester Structure - 20 Minutes
+                  📊 Student Learning Formula
                 </h3>
+                <div
+                  style={{
+                    background: "white",
+                    padding: "15px",
+                    borderRadius: "6px",
+                    fontFamily: "monospace",
+                    fontSize: "16px",
+                    textAlign: "center",
+                    marginBottom: "15px",
+                    border: "1px solid #e0e0e0",
+                  }}
+                >
+                  Materials × (1 + Research×0.05) × (1 + Engagement×0.01)
+                </div>
                 <ul
                   style={{
                     color: "#333",
@@ -775,23 +689,17 @@ function App() {
                   }}
                 >
                   <li>
-                    <strong>First 10 minutes:</strong> Regular teaching
-                    activities
+                    Complete tasks with 70%+ accuracy for 1 point, 95%+ for 2
+                    points
                   </li>
                   <li>
-                    <strong>Minute 10:</strong> 📚 Exam Season Checkpoint (bonus
-                    points!)
+                    Strategic timing matters - early multipliers compound!
                   </li>
                   <li>
-                    <strong>Last 10 minutes:</strong> Continue teaching with
-                    renewed focus
+                    At minute {isAdminMode ? "1" : "10"}: Exam checkpoint with
+                    bonus opportunities
                   </li>
-                  <li>
-                    Complete as many tasks as possible within the time limit
-                  </li>
-                  <li>
-                    Balance all three teaching areas for maximum effectiveness
-                  </li>
+                  <li>30+ Student Learning = 100 bonus, 60+ = 200 bonus</li>
                 </ul>
               </div>
 
@@ -811,7 +719,7 @@ function App() {
                     marginBottom: "10px",
                   }}
                 >
-                  How It Works:
+                  AI Assistant Available:
                 </h3>
                 <ul
                   style={{
@@ -822,11 +730,12 @@ function App() {
                     fontSize: "14px",
                   }}
                 >
-                  <li>You have 20 minutes per semester</li>
-                  <li>Score 70%+ accuracy = 1 point, 95%+ = 2 points</li>
-                  <li>All tasks available from the start</li>
-                  <li>Complete tasks to earn bonus chat prompts</li>
-                  <li>Tasks get harder as you progress through levels</li>
+                  <li>
+                    Ask for help with "slider help", "count help", or "type
+                    help"
+                  </li>
+                  <li>Unlimited use but reliability varies</li>
+                  <li>Strategic advice available - ask about task ordering!</li>
                 </ul>
               </div>
             </div>
@@ -837,6 +746,23 @@ function App() {
             >
               Start Semester {currentSemester}
             </button>
+
+            {isAdminMode && (
+              <div
+                style={{
+                  marginTop: "20px",
+                  padding: "10px",
+                  background: "#ffcccb",
+                  borderRadius: "6px",
+                  border: "2px solid #ff0000",
+                  fontWeight: "bold",
+                  color: "#d00",
+                }}
+              >
+                ADMIN MODE: {timeLimit / 60} minute timer, checkpoint at 1
+                minute
+              </div>
+            )}
 
             {semesterHistory.length > 0 && (
               <div
@@ -851,8 +777,7 @@ function App() {
                 <strong>Previous Semesters:</strong>
                 {semesterHistory.map((sem, idx) => (
                   <div key={idx} style={{ marginTop: "5px" }}>
-                    Semester {idx + 1}: {sem.finalScore} points (
-                    {sem.starsEarned} stars earned)
+                    Semester {idx + 1}: {sem.finalScore} points
                   </div>
                 ))}
               </div>
@@ -946,21 +871,9 @@ function App() {
   if (mode === "complete") {
     const minutes = Math.floor(globalTimer / 60);
     const seconds = globalTimer % 60;
-    const totalPoints =
-      categoryPoints.materials +
-      categoryPoints.research +
-      categoryPoints.engagement +
-      categoryPoints.bonus;
-    const totalBonus = Object.values(starGoals).reduce(
-      (sum, star) => sum + star.bonusEarned,
-      0
-    );
-    const finalScore = totalPoints + totalBonus;
-    const starsEarned = [
-      starGoals.star1.achieved,
-      starGoals.star2.achieved,
-      starGoals.star3.achieved,
-    ].filter(Boolean).length;
+    const finalStudentLearning = Math.round(calculateStudentLearning());
+    const totalBonus = categoryPoints.bonus || 0;
+    const finalScore = finalStudentLearning + totalBonus;
 
     const semesterData = {
       semester: currentSemester,
@@ -970,9 +883,8 @@ function App() {
       switches,
       gameMode,
       randomSeed,
-      starGoals,
+      studentLearningScore: finalStudentLearning,
       finalScore,
-      starsEarned,
     };
 
     const handleNextSemester = async () => {
@@ -1065,6 +977,37 @@ function App() {
               Final Score: {finalScore} points
             </div>
 
+            {/* Student Learning Breakdown */}
+            <div
+              style={{
+                background: "#e3f2fd",
+                padding: "20px",
+                borderRadius: "8px",
+                marginBottom: "30px",
+                border: "2px solid #2196F3",
+              }}
+            >
+              <h3 style={{ margin: "0 0 15px 0", color: "#1976d2" }}>
+                Student Learning Score: {finalStudentLearning}
+              </h3>
+              <div style={{ fontSize: "16px", color: "#666" }}>
+                = {categoryPoints.materials} (Materials) ×{" "}
+                {(1 + categoryPoints.research * 0.05).toFixed(2)} (Research) ×{" "}
+                {(1 + categoryPoints.engagement * 0.01).toFixed(2)} (Engagement)
+              </div>
+              {totalBonus > 0 && (
+                <div
+                  style={{
+                    marginTop: "10px",
+                    fontSize: "16px",
+                    color: "#1976d2",
+                  }}
+                >
+                  + {totalBonus} Checkpoint Bonus
+                </div>
+              )}
+            </div>
+
             {/* Stats Grid */}
             <div
               style={{
@@ -1117,7 +1060,7 @@ function App() {
                     marginBottom: "5px",
                   }}
                 >
-                  Base Points
+                  Student Learning
                 </div>
                 <div
                   style={{
@@ -1126,7 +1069,7 @@ function App() {
                     color: "#333",
                   }}
                 >
-                  {totalPoints}
+                  {finalStudentLearning}
                 </div>
               </div>
 
@@ -1145,7 +1088,7 @@ function App() {
                     marginBottom: "5px",
                   }}
                 >
-                  Star Bonuses
+                  Checkpoint Bonus
                 </div>
                 <div
                   style={{
@@ -1219,6 +1162,9 @@ function App() {
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
                   {categoryPoints.materials}
                 </div>
+                <div style={{ fontSize: "12px", color: "#666" }}>
+                  Base points
+                </div>
               </div>
 
               <div
@@ -1241,6 +1187,9 @@ function App() {
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
                   {categoryPoints.research}
                 </div>
+                <div style={{ fontSize: "12px", color: "#666" }}>
+                  +{categoryPoints.research * 5}% multiplier
+                </div>
               </div>
 
               <div
@@ -1262,6 +1211,9 @@ function App() {
                 </div>
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
                   {categoryPoints.engagement}
+                </div>
+                <div style={{ fontSize: "12px", color: "#666" }}>
+                  +{categoryPoints.engagement * 1}% multiplier
                 </div>
               </div>
             </div>
@@ -1291,65 +1243,6 @@ function App() {
                 </span>
               </div>
             )}
-
-            {/* Star Achievements */}
-            <div
-              style={{
-                marginTop: "30px",
-                padding: "25px",
-                background: "#fff3cd",
-                borderRadius: "8px",
-                border: "2px solid #ffc107",
-              }}
-            >
-              <h3 style={{ color: "#856404", marginBottom: "20px" }}>
-                ⭐ Star Achievements
-              </h3>
-              <div style={{ textAlign: "left", color: "#856404" }}>
-                <div style={{ marginBottom: "10px" }}>
-                  {starGoals.star1.achieved ? (
-                    <span style={{ color: "#4CAF50" }}>
-                      ✓ ⭐ Star 1 Achieved! Bonus: {starGoals.star1.bonusEarned}{" "}
-                      points
-                    </span>
-                  ) : (
-                    <span style={{ color: "#999" }}>
-                      ✗ ⭐ Star 1: Need 25 total points (had {totalPoints})
-                    </span>
-                  )}
-                </div>
-                <div style={{ marginBottom: "10px" }}>
-                  {starGoals.star2.achieved ? (
-                    <span style={{ color: "#4CAF50" }}>
-                      ✓ ⭐⭐ Star 2 Achieved! Focus:{" "}
-                      {starGoals.star2.focusCategory}, Bonus:{" "}
-                      {starGoals.star2.bonusEarned} points
-                    </span>
-                  ) : (
-                    <span style={{ color: "#999" }}>
-                      ✗ ⭐⭐ Star 2: Need 20 points in one category
-                    </span>
-                  )}
-                </div>
-                <div>
-                  {starGoals.star3.achieved ? (
-                    <span style={{ color: "#4CAF50" }}>
-                      ✓ ⭐⭐⭐ Star 3 Achieved! Perfection:{" "}
-                      {(
-                        (starGoals.star3.perfectCount /
-                          starGoals.star3.totalAttempts) *
-                        100
-                      ).toFixed(1)}
-                      %, Bonus: {starGoals.star3.bonusEarned} points
-                    </span>
-                  ) : (
-                    <span style={{ color: "#999" }}>
-                      ✗ ⭐⭐⭐ Star 3: Need 50 total points (had {totalPoints})
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
 
             {/* Semester history */}
             {semesterHistory.length > 0 && (
@@ -1394,9 +1287,6 @@ function App() {
                         }}
                       >
                         {sem.finalScore}
-                      </div>
-                      <div style={{ fontSize: "10px", color: "#999" }}>
-                        {sem.starsEarned} stars
                       </div>
                     </div>
                   ))}
@@ -1481,18 +1371,58 @@ function App() {
               📚 Exam Season Checkpoint!
             </h2>
             <p style={{ fontSize: "18px", marginBottom: "20px" }}>
-              Halfway through the semester - time for exams!
+              The midterm is here! Let's see how your students are doing...
             </p>
             <div style={{ marginBottom: "20px" }}>
-              <h3>Teaching Performance Summary:</h3>
-              <div>Materials Created: {categoryPoints.materials} points</div>
-              <div>Research Completed: {categoryPoints.research} points</div>
-              <div>Student Engagement: {categoryPoints.engagement} points</div>
+              <h3>Teaching Performance:</h3>
+              <div>Materials Created: {categoryPoints.materials} pts</div>
+              <div>
+                Research: {categoryPoints.research} pts (×
+                {(1 + categoryPoints.research * 0.05).toFixed(2)})
+              </div>
+              <div>
+                Engagement: {categoryPoints.engagement} pts (×
+                {(1 + categoryPoints.engagement * 0.01).toFixed(2)})
+              </div>
             </div>
             <div
-              style={{ fontSize: "24px", fontWeight: "bold", color: "#4CAF50" }}
+              style={{
+                background: "#e3f2fd",
+                padding: "15px",
+                borderRadius: "8px",
+                marginBottom: "20px",
+              }}
             >
-              Checkpoint Bonus: +{checkpointBonus} points!
+              <div
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                  color: "#1976d2",
+                }}
+              >
+                Student Learning Score: {Math.round(calculateStudentLearning())}{" "}
+                pts
+              </div>
+              <div
+                style={{ fontSize: "14px", color: "#666", marginTop: "5px" }}
+              >
+                = {categoryPoints.materials} ×{" "}
+                {(1 + categoryPoints.research * 0.05).toFixed(2)} ×{" "}
+                {(1 + categoryPoints.engagement * 0.01).toFixed(2)}
+              </div>
+            </div>
+            <div
+              style={{
+                fontSize: "24px",
+                fontWeight: "bold",
+                color: checkpointBonus > 0 ? "#4CAF50" : "#ff9800",
+              }}
+            >
+              {checkpointBonus > 0 ? (
+                <>Midterm Bonus: +{checkpointBonus} points!</>
+              ) : (
+                <>Need 30+ Student Learning for bonus!</>
+              )}
             </div>
             <p style={{ marginTop: "20px", color: "#666" }}>
               Continuing in 5 seconds...
@@ -1635,8 +1565,8 @@ function App() {
           onSwitch={handleTabSwitch}
           limitMode="time"
           taskPoints={taskPoints}
-          categoryMultipliers={categoryMultipliers}
-          starGoals={starGoals}
+          categoryMultipliers={{}}
+          starGoals={{}}
           categoryPoints={categoryPoints}
           timeRemaining={timeRemaining}
         />
@@ -1697,9 +1627,10 @@ function App() {
               bonusPrompts={bonusPrompts}
               currentTask={currentTab}
               categoryPoints={categoryPoints}
-              categoryMultipliers={categoryMultipliers}
-              starGoals={starGoals}
+              categoryMultipliers={{}}
+              starGoals={{}}
               timeRemaining={timeRemaining}
+              calculateStudentLearning={calculateStudentLearning}
             />
           </div>
         </div>

@@ -67,7 +67,7 @@ export default function StudentLogin({ onLoginSuccess }) {
             color: "#333",
           }}
         >
-          Can you beat Park?
+          Teaching Challenge: Can you beat Park?
         </h1>
 
         <p

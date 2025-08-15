@@ -11,6 +11,15 @@ export default function NavTabsEnhanced({
   categoryPoints = {},
   timeRemaining = null,
 }) {
+  // Calculate student learning score
+  const calculateStudentLearning = () => {
+    const materialsPoints = categoryPoints.materials || 0;
+    const researchMultiplier = 1 + (categoryPoints.research || 0) * 0.05;
+    const engagementMultiplier = 1 + (categoryPoints.engagement || 0) * 0.01;
+
+    return materialsPoints * researchMultiplier * engagementMultiplier;
+  };
+
   // Generate all 45 tabs (15 per game)
   const tabs = [];
   for (let game = 1; game <= 3; game++) {
@@ -68,19 +77,6 @@ export default function NavTabsEnhanced({
     3: "engagement",
   };
 
-  // Calculate total points
-  const getTotalPoints = () => {
-    if (categoryPoints) {
-      return (
-        (categoryPoints.materials || 0) +
-        (categoryPoints.research || 0) +
-        (categoryPoints.engagement || 0) +
-        (categoryPoints.bonus || 0)
-      );
-    }
-    return Object.values(taskPoints).reduce((sum, points) => sum + points, 0);
-  };
-
   return (
     <div
       style={{
@@ -105,8 +101,14 @@ export default function NavTabsEnhanced({
             (t) => completed[t.id]
           ).length;
           const categoryName = gameCategoryMap[gameNum];
-          const hasMultiplier = categoryMultipliers[categoryName] > 0;
           const currentGameLevel = completedInGame + 1;
+
+          // Show multiplier based on new formula
+          const researchMult =
+            gameNum === "1" ? (categoryPoints.research || 0) * 0.05 : 0;
+          const engagementMult =
+            gameNum === "3" ? (categoryPoints.engagement || 0) * 0.01 : 0;
+          const hasMultiplier = researchMult > 0 || engagementMult > 0;
 
           return (
             <div
@@ -174,7 +176,7 @@ export default function NavTabsEnhanced({
               </div>
 
               {/* Multiplier indicator */}
-              {hasMultiplier && (
+              {gameNum === "1" && categoryPoints.research > 0 && (
                 <div
                   style={{
                     position: "absolute",
@@ -189,7 +191,25 @@ export default function NavTabsEnhanced({
                     border: "1px solid #ffc107",
                   }}
                 >
-                  ×{(1 + categoryMultipliers[categoryName]).toFixed(1)}
+                  +{categoryPoints.research * 5}%
+                </div>
+              )}
+              {gameNum === "3" && categoryPoints.engagement > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "10px",
+                    right: "10px",
+                    background: "#fff3cd",
+                    color: "#856404",
+                    padding: "4px 8px",
+                    borderRadius: "12px",
+                    fontSize: "11px",
+                    fontWeight: "bold",
+                    border: "1px solid #ffc107",
+                  }}
+                >
+                  +{categoryPoints.engagement * 1}%
                 </div>
               )}
 
@@ -379,60 +399,21 @@ export default function NavTabsEnhanced({
           </div>
         </div>
 
-        {/* Total points */}
+        {/* Student Learning Score */}
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: "12px", color: "#666", marginBottom: "2px" }}>
-            Total Points
+            Student Learning
           </div>
           <div
             style={{ fontSize: "24px", fontWeight: "bold", color: "#2196F3" }}
           >
-            {getTotalPoints()}
+            {Math.round(calculateStudentLearning())}
+          </div>
+          <div style={{ fontSize: "10px", color: "#999" }}>
+            M×{(1 + (categoryPoints.research || 0) * 0.05).toFixed(2)}×
+            {(1 + (categoryPoints.engagement || 0) * 0.01).toFixed(2)}
           </div>
         </div>
-
-        {/* Star goals */}
-        {starGoals && (
-          <div
-            style={{
-              display: "flex",
-              gap: "12px",
-              padding: "8px 16px",
-              background: "white",
-              borderRadius: "20px",
-              border: "1px solid #e0e0e0",
-            }}
-          >
-            {[1, 2, 3].map((star) => {
-              const starData = starGoals[`star${star}`];
-              const isAchieved = starData?.achieved || false;
-              return (
-                <div
-                  key={star}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    opacity: isAchieved ? 1 : 0.5,
-                  }}
-                >
-                  <span style={{ fontSize: "16px" }}>{"⭐".repeat(star)}</span>
-                  {isAchieved && (
-                    <span
-                      style={{
-                        color: "#4CAF50",
-                        fontWeight: "bold",
-                        fontSize: "14px",
-                      }}
-                    >
-                      ✓
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
 
         {/* Current task */}
         {current && (
