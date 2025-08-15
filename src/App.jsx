@@ -1,4 +1,4 @@
-// src/App.jsx - Complete version with Star Goals
+// src/App.jsx - Complete Teaching Simulation Version
 import React, { useState, useEffect, useRef } from "react";
 import CountingTask from "./components/CountingTask";
 import SliderTask from "./components/SliderTask";
@@ -7,7 +7,6 @@ import NavTabsEnhanced from "./components/NavTabsEnhanced";
 import PracticeMode from "./components/PracticeMode";
 import ChatContainer from "./components/ChatContainer";
 import StudentLogin from "./components/StudentLogin";
-import StarProgress from "./components/StarProgress";
 import { sessionManager } from "./utils/sessionManager";
 import { eventTracker } from "./utils/eventTracker";
 import { taskDependencies } from "./utils/taskDependencies";
@@ -29,8 +28,9 @@ function App() {
   const [mode, setMode] = useState("landing");
   const [gameMode, setGameMode] = useState(null);
   const [practiceChoice, setPracticeChoice] = useState(null);
-  const [currentTab, setCurrentTab] = useState("g1t1");
+  const [currentTab, setCurrentTab] = useState("g2t1"); // Start with materials (slider)
   const [completed, setCompleted] = useState({});
+  const [completedLevels, setCompletedLevels] = useState(0);
   const [sessionId, setSessionId] = useState(null);
   const [accessDenied, setAccessDenied] = useState(false);
   const [accessDeniedReason, setAccessDeniedReason] = useState("");
@@ -47,14 +47,16 @@ function App() {
   const [idleCountdown, setIdleCountdown] = useState(5);
   const [gameBlocked, setGameBlocked] = useState(false);
   const [pausedTime, setPausedTime] = useState(0);
-  const [currentRound, setCurrentRound] = useState(1);
-  const [totalRounds] = useState(4);
-  const [roundHistory, setRoundHistory] = useState([]);
+  const [currentSemester, setCurrentSemester] = useState(1);
+  const [totalSemesters] = useState(2);
+  const [semesterHistory, setSemesterHistory] = useState([]);
   const [randomSeed, setRandomSeed] = useState(null);
+  const [checkpointReached, setCheckpointReached] = useState(false);
+  const [checkpointBonus, setCheckpointBonus] = useState(0);
 
-  // NEW: Star goal states
-  const [timeLimit] = useState(720); // 12 minutes in seconds
-  const [timeRemaining, setTimeRemaining] = useState(720);
+  // NEW: Teaching simulation states
+  const [timeLimit] = useState(1200); // 20 minutes per semester
+  const [timeRemaining, setTimeRemaining] = useState(1200);
   const [starGoals, setStarGoals] = useState({
     star1: { achieved: false, points: 0, bonusEarned: 0 },
     star2: { achieved: false, focusCategory: null, points: 0, bonusEarned: 0 },
@@ -66,16 +68,18 @@ function App() {
     },
   });
   const [categoryPoints, setCategoryPoints] = useState({
-    counting: 0,
-    slider: 0,
-    typing: 0,
+    materials: 0, // Slider (was counting)
+    research: 0, // Counting (was slider)
+    engagement: 0, // Typing
+    bonus: 0, // Checkpoint bonuses
   });
   const [categoryMultipliers, setCategoryMultipliers] = useState({
-    counting: 0,
-    slider: 0,
-    typing: 0,
+    materials: 0,
+    research: 0,
+    engagement: 0,
   });
-  const [taskAttempts, setTaskAttempts] = useState({}); // Track attempts per task
+  const [taskAttempts, setTaskAttempts] = useState({});
+  const [taskPoints, setTaskPoints] = useState({});
 
   // Refs
   const startTimeRef = useRef(Date.now());
@@ -102,201 +106,12 @@ function App() {
     };
   }, []);
 
-  // Set up focus and idle detection when mode changes
-  useEffect(() => {
-    if (mode === "challenge") {
-      console.log("Setting up idle detection for challenge mode");
-      setupFocusAndIdleDetection();
-    }
-
-    return () => {
-      if (idleTimerRef.current) {
-        clearInterval(idleTimerRef.current);
-        idleTimerRef.current = null;
-      }
-    };
-  }, [mode, gameBlocked, isInBreak, isIdle]);
-
-  // Focus and idle detection setup
-  const setupFocusAndIdleDetection = () => {
-    // Track user activity
-    const updateActivity = () => {
-      lastActivityRef.current = Date.now();
-      console.log("Activity detected, resetting timer");
-      if (isIdle) {
-        setIsIdle(false);
-        setIdleCountdown(5);
-        if (idleTimerRef.current) {
-          clearInterval(idleTimerRef.current);
-          idleTimerRef.current = null;
-        }
-      }
-    };
-
-    // Add activity listeners
-    const eventListeners = [
-      "mousedown",
-      "mousemove",
-      "keypress",
-      "keydown",
-      "scroll",
-      "touchstart",
-      "click",
-      "input",
-      "change",
-    ];
-
-    eventListeners.forEach((event) => {
-      document.addEventListener(event, updateActivity);
-    });
-
-    // Focus detection
-    const handleFocus = () => {
-      setIsOutOfFocus(false);
-      setOutOfFocusCountdown(30);
-      if (outOfFocusTimerRef.current) {
-        clearInterval(outOfFocusTimerRef.current);
-        outOfFocusTimerRef.current = null;
-      }
-
-      // Track focus return
-      eventTracker.trackUserAction("focus_returned", {
-        currentTask: currentTab,
-        gameTime: globalTimer,
-      });
-    };
-
-    const handleBlur = () => {
-      if (mode === "challenge" && !gameBlocked && !isInBreak) {
-        setIsOutOfFocus(true);
-        startOutOfFocusCountdown();
-
-        // Track focus lost
-        eventTracker.trackUserAction("focus_lost", {
-          currentTask: currentTab,
-          gameTime: globalTimer,
-        });
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("blur", handleBlur);
-
-    // Start idle detection timer
-    const idleCheckInterval = setInterval(() => {
-      console.log(
-        "Idle check - mode:",
-        mode,
-        "blocked:",
-        gameBlocked,
-        "break:",
-        isInBreak,
-        "idle:",
-        isIdle
-      );
-
-      if (mode === "challenge" && !gameBlocked && !isInBreak && !isIdle) {
-        const timeSinceActivity = Date.now() - lastActivityRef.current;
-        console.log(
-          "Time since last activity:",
-          Math.floor(timeSinceActivity / 1000),
-          "seconds"
-        );
-
-        if (timeSinceActivity > 120000) {
-          // 120 seconds (2 minutes)
-          console.log("Starting idle countdown!");
-          setIsIdle(true);
-          startIdleCountdown();
-        }
-      }
-    }, 1000);
-
-    idleTimerRef.current = idleCheckInterval;
-
-    return () => {
-      if (idleCheckInterval) {
-        clearInterval(idleCheckInterval);
-      }
-    };
-  };
-
-  // Out of focus countdown
-  const startOutOfFocusCountdown = () => {
-    outOfFocusTimerRef.current = setInterval(() => {
-      setOutOfFocusCountdown((prev) => {
-        if (prev <= 1) {
-          setGameBlocked(true);
-          setIsOutOfFocus(false);
-          clearInterval(outOfFocusTimerRef.current);
-
-          // Track game blocked due to focus
-          eventTracker.trackUserAction("game_blocked_focus", {
-            currentTask: currentTab,
-            gameTime: globalTimer,
-          });
-
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  // Idle countdown
-  const startIdleCountdown = () => {
-    let countdown = 5;
-    setIdleCountdown(countdown);
-
-    const idleCountdownInterval = setInterval(() => {
-      countdown -= 1;
-      setIdleCountdown(countdown);
-
-      if (countdown <= 0) {
-        setGameBlocked(true);
-        setIsIdle(false);
-        clearInterval(idleCountdownInterval);
-
-        // Track game blocked due to idle
-        eventTracker.trackUserAction("game_blocked_idle", {
-          currentTask: currentTab,
-          gameTime: globalTimer,
-          timeSinceLastActivity: Date.now() - lastActivityRef.current,
-        });
-      }
-    }, 1000);
-
-    // Store the interval ID so we can clear it if user becomes active
-    idleTimerRef.current = idleCountdownInterval;
-  };
-
-  // Handle user response to idle warning
-  const handleIdleResponse = () => {
-    setIsIdle(false);
-    setIdleCountdown(5);
-    lastActivityRef.current = Date.now();
-
-    // Clear the countdown interval
-    if (idleTimerRef.current) {
-      clearInterval(idleTimerRef.current);
-      idleTimerRef.current = null;
-    }
-
-    // Track idle response
-    eventTracker.trackUserAction("idle_warning_dismissed", {
-      currentTask: currentTab,
-      gameTime: globalTimer,
-    });
-  };
-
   // Session management
   const checkAndInitSession = async () => {
     try {
-      // Check if there's a code in the URL
       const urlParams = new URLSearchParams(window.location.search);
       const hasCode = urlParams.has("code") || urlParams.has("c");
 
-      // If no code, show student login
       if (!hasCode) {
         setMode("studentLogin");
         setIsLoading(false);
@@ -329,7 +144,7 @@ function App() {
     }
   };
 
-  // UPDATED: Start timer with time limit
+  // Start timer with checkpoint logic
   const startTimer = () => {
     startTimeRef.current = Date.now();
     timerIntervalRef.current = setInterval(() => {
@@ -342,17 +157,69 @@ function App() {
       const remaining = Math.max(0, timeLimit - elapsed);
       setTimeRemaining(remaining);
 
+      // Check for 10-minute checkpoint (exam season)
+      if (elapsed === 600 && !checkpointReached) {
+        handleCheckpoint();
+      }
+
       if (remaining === 0) {
-        handleGameComplete("time_up");
+        handleGameComplete("semester_complete");
       }
     }, 1000);
+  };
+
+  // Handle checkpoint (exam season)
+  const handleCheckpoint = () => {
+    setCheckpointReached(true);
+
+    // Calculate checkpoint bonus
+    const bonus = calculateCheckpointBonus();
+    setCheckpointBonus(bonus);
+
+    // Show checkpoint modal
+    setIsInBreak(true);
+    setBreakDestination("checkpoint");
+
+    // Log checkpoint event
+    eventTracker.logEvent("checkpoint_reached", {
+      semester: currentSemester,
+      time: 600,
+      completedTasks: Object.keys(completed).length,
+      completedLevels: completedLevels,
+      categoryPoints,
+      bonusEarned: bonus,
+    });
+
+    // Add bonus to score
+    setCategoryPoints((prev) => ({
+      ...prev,
+      bonus: (prev.bonus || 0) + bonus,
+    }));
+
+    // Continue after showing checkpoint
+    setTimeout(() => {
+      setIsInBreak(false);
+      setBreakDestination(null);
+    }, 5000);
+  };
+
+  const calculateCheckpointBonus = () => {
+    // Bonus for balanced teaching performance
+    const total =
+      categoryPoints.materials +
+      categoryPoints.research +
+      categoryPoints.engagement;
+    const balance = Math.min(
+      categoryPoints.materials,
+      categoryPoints.research,
+      categoryPoints.engagement
+    );
+    return Math.round(balance * 2 + total * 0.1);
   };
 
   // Handle practice choice
   const handlePracticeChoice = (choice) => {
     setPracticeChoice(choice);
-
-    // Track practice choice
     eventTracker.trackUserAction("practice_choice", {
       choice: choice,
       timestamp: Date.now(),
@@ -367,35 +234,33 @@ function App() {
 
   // Start main game
   const startMainGame = () => {
-    // Clear all dependencies before starting main game
     taskDependencies.clearAllDependencies();
 
-    // Generate random seed if not set
     if (!randomSeed) {
       const seed = Math.floor(Math.random() * 1000000);
       setRandomSeed(seed);
       patternGenerator.initializeSeed(seed);
 
-      // Store seed to Firebase (hidden from player)
       if (sessionId && !sessionId.startsWith("offline-")) {
         updateDoc(doc(db, "sessions", sessionId), {
           randomSeed: seed,
-          [`roundSeeds.round${currentRound}`]: seed,
+          [`semesterSeeds.semester${currentSemester}`]: seed,
         });
       }
     }
 
-    // Clear any practice-related state
     setMode("challenge");
     setCompleted({});
+    setCompletedLevels(0);
     setSwitches(0);
     setBonusPrompts(0);
-    setCurrentTab("g1t1");
+    setCurrentTab("g2t1"); // Start with materials
+    setCheckpointReached(false);
 
-    // Reset star goal states
+    // Reset teaching points
     setTimeRemaining(timeLimit);
-    setCategoryPoints({ counting: 0, slider: 0, typing: 0 });
-    setCategoryMultipliers({ counting: 0, slider: 0, typing: 0 });
+    setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
+    setCategoryMultipliers({ materials: 0, research: 0, engagement: 0 });
     setStarGoals({
       star1: { achieved: false, points: 0, bonusEarned: 0 },
       star2: {
@@ -412,47 +277,48 @@ function App() {
       },
     });
     setTaskAttempts({});
+    setTaskPoints({});
 
     startTimer();
-    setTaskStartTimes({ g1t1: Date.now() });
-    eventTracker.setPageStartTime("g1t1");
+    setTaskStartTimes({ g2t1: Date.now() });
+    eventTracker.setPageStartTime("g2t1");
     eventTracker.logEvent("game_start", {
       practiceCompleted: practiceChoice === "yes",
       timestamp: Date.now(),
       gameMode: gameMode,
-      currentRound: currentRound,
-      totalRounds: totalRounds,
+      currentSemester: currentSemester,
+      totalSemesters: totalSemesters,
     });
   };
 
-  // UPDATED: Handle task completion with star goals
+  // Handle task completion
   const handleComplete = async (tabId, data) => {
-    // Reset idle timer on task completion
     lastActivityRef.current = Date.now();
 
-    // Calculate points based on accuracy
     const points = data.accuracy >= 95 ? 2 : data.accuracy >= 70 ? 1 : 0;
 
-    // Determine category
+    // Map to teaching categories
     const category = tabId.startsWith("g1")
-      ? "counting"
+      ? "research"
       : tabId.startsWith("g2")
-      ? "slider"
-      : "typing";
+      ? "materials"
+      : "engagement";
 
-    // Update category points
     setCategoryPoints((prev) => ({
       ...prev,
       [category]: prev[category] + points,
     }));
 
-    // Track attempts for this task
+    setTaskPoints((prev) => ({
+      ...prev,
+      [tabId]: points,
+    }));
+
     setTaskAttempts((prev) => ({
       ...prev,
       [tabId]: (prev[tabId] || 0) + 1,
     }));
 
-    // Track for star 3 (perfection tracking)
     setStarGoals((prev) => ({
       ...prev,
       star3: {
@@ -462,20 +328,17 @@ function App() {
       },
     }));
 
-    // Update multipliers for star 2
     updateMultipliers(category, points);
 
-    // Mark task as completed
     setCompleted((prev) => ({ ...prev, [tabId]: true }));
+    setCompletedLevels((prev) => prev + 1);
     setBonusPrompts((prev) => prev + 1);
 
-    // Check and activate dependencies
     const activatedDeps = taskDependencies.checkDependencies(
       tabId,
       mode === "practice"
     );
 
-    // Enhanced tracking for task completion
     await eventTracker.trackTaskComplete(
       tabId,
       data.attempts,
@@ -483,7 +346,6 @@ function App() {
       data.accuracy
     );
 
-    // Log completion event with full context
     await eventTracker.logEvent("task_complete", {
       taskId: tabId,
       ...data,
@@ -499,7 +361,6 @@ function App() {
       },
     });
 
-    // Update session
     if (sessionId && !sessionId.startsWith("offline-")) {
       await updateDoc(doc(db, "sessions", sessionId), {
         [`completedTasks.${tabId}`]: true,
@@ -513,38 +374,35 @@ function App() {
       });
     }
 
-    // Show completion notification
     showNotification(`Task Complete! +${points} points earned!`);
-
-    // Check star achievements after updating points
     checkStarGoals();
   };
 
-  // NEW: Update multipliers function
+  // Update multipliers
   const updateMultipliers = (category, points) => {
     setCategoryMultipliers((prev) => {
       const newMultipliers = { ...prev };
       const currentPoints = categoryPoints[category] + points;
 
-      // Update multipliers based on category and points
-      if (category === "counting") {
-        newMultipliers.counting = Math.floor(currentPoints / 2) * 0.2;
-      } else if (category === "slider") {
-        newMultipliers.slider = Math.floor(currentPoints / 3) * 0.3;
-      } else if (category === "typing") {
-        newMultipliers.typing = Math.floor(currentPoints / 2) * 0.2;
+      if (category === "research") {
+        newMultipliers.research = Math.floor(currentPoints / 2) * 0.2;
+      } else if (category === "materials") {
+        newMultipliers.materials = Math.floor(currentPoints / 3) * 0.3;
+      } else if (category === "engagement") {
+        newMultipliers.engagement = Math.floor(currentPoints / 2) * 0.2;
       }
 
       return newMultipliers;
     });
   };
 
-  // NEW: Check star goals
+  // Check star goals
   const checkStarGoals = () => {
     const total =
-      categoryPoints.counting + categoryPoints.slider + categoryPoints.typing;
+      categoryPoints.materials +
+      categoryPoints.research +
+      categoryPoints.engagement;
 
-    // Star 1: 25 points with diversity bonus
     if (!starGoals.star1.achieved && total >= 25) {
       const bonus = calculateStar1Bonus();
       setStarGoals((prev) => ({
@@ -554,7 +412,6 @@ function App() {
       showStarAchievement(1, bonus);
     }
 
-    // Star 2: 20 points in focus category (determine focus by highest category)
     if (!starGoals.star2.achieved && starGoals.star1.achieved) {
       const focusCategory = determineFocusCategory();
       const focusPoints = categoryPoints[focusCategory];
@@ -574,7 +431,6 @@ function App() {
       }
     }
 
-    // Star 3: 50 total points
     if (!starGoals.star3.achieved && total >= 50) {
       const bonus = calculateStar3Bonus();
       setStarGoals((prev) => ({
@@ -585,16 +441,16 @@ function App() {
     }
   };
 
-  // NEW: Calculate bonuses
+  // Calculate bonuses
   const calculateStar1Bonus = () => {
-    // C × S × T bonus
     return (
-      categoryPoints.counting * categoryPoints.slider * categoryPoints.typing
+      categoryPoints.materials *
+      categoryPoints.research *
+      categoryPoints.engagement
     );
   };
 
   const calculateStar2Bonus = (focusCategory) => {
-    // Focus category points × sum of other multipliers
     const otherMultipliers = Object.entries(categoryMultipliers)
       .filter(([cat]) => cat !== focusCategory)
       .reduce((sum, [_, mult]) => sum + mult, 0);
@@ -603,7 +459,6 @@ function App() {
   };
 
   const calculateStar3Bonus = () => {
-    // Perfection percentage bonus (c2 × %²)
     const perfectionRate =
       starGoals.star3.totalAttempts > 0
         ? starGoals.star3.perfectCount / starGoals.star3.totalAttempts
@@ -611,10 +466,10 @@ function App() {
     return Math.round(perfectionRate * perfectionRate * 1000);
   };
 
-  // NEW: Helper functions for star goals
   const determineFocusCategory = () => {
-    // Focus category is the one with most points
-    const categories = Object.entries(categoryPoints);
+    const categories = Object.entries(categoryPoints).filter(
+      ([cat]) => cat !== "bonus"
+    );
     return categories.reduce((a, b) => (a[1] > b[1] ? a : b))[0];
   };
 
@@ -629,7 +484,6 @@ function App() {
   const handleTabSwitch = async (newTab, isAutoAdvance = false) => {
     if (isInBreak) return;
 
-    // Track user action
     if (!isAutoAdvance) {
       await eventTracker.trackUserAction("manual_tab_switch", {
         from: currentTab,
@@ -638,7 +492,6 @@ function App() {
       });
     }
 
-    // Reset idle timer on tab switch
     lastActivityRef.current = Date.now();
     if (isIdle) {
       setIsIdle(false);
@@ -653,10 +506,8 @@ function App() {
       setSwitches((prev) => prev + 1);
     }
 
-    // Enhanced page switch tracking
     await eventTracker.trackPageSwitch(currentTab, newTab, isAutoAdvance);
 
-    // Track time on previous task
     if (taskStartTimes[currentTab]) {
       const timeSpent = Date.now() - taskStartTimes[currentTab];
       await eventTracker.logEvent("task_time", {
@@ -691,8 +542,8 @@ function App() {
     }, 3000);
   };
 
-  // UPDATED: Handle game completion
-  const handleGameComplete = async (reason = "all_levels_complete") => {
+  // Handle game completion
+  const handleGameComplete = async (reason = "semester_complete") => {
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
     }
@@ -701,9 +552,11 @@ function App() {
       (Date.now() - startTimeRef.current - pausedTime) / 1000
     );
 
-    // Calculate final scores
     const totalPoints =
-      categoryPoints.counting + categoryPoints.slider + categoryPoints.typing;
+      categoryPoints.materials +
+      categoryPoints.research +
+      categoryPoints.engagement +
+      categoryPoints.bonus;
     const totalBonus = Object.values(starGoals).reduce(
       (sum, star) => sum + star.bonusEarned,
       0
@@ -714,23 +567,19 @@ function App() {
       totalTime: finalTime,
       totalSwitches: switches,
       completedTasks: Object.keys(completed).length,
+      completedLevels: completedLevels,
       completionReason: reason,
       gameMode: gameMode,
-      currentRound: currentRound,
-
-      // Point breakdown
+      currentSemester: currentSemester,
       categoryPoints,
       starGoals,
       totalPoints,
       totalBonus,
       finalScore,
-
-      // Performance metrics
       perfectionRate:
         starGoals.star3.totalAttempts > 0
           ? starGoals.star3.perfectCount / starGoals.star3.totalAttempts
           : 0,
-
       finalContext: {
         practiceCompleted: practiceChoice === "yes",
         totalPrompts: 3 + bonusPrompts,
@@ -744,7 +593,7 @@ function App() {
         finalTime,
         totalSwitches: switches,
         completionReason: reason,
-        currentRound: currentRound,
+        currentSemester: currentSemester,
         finalScore,
         starGoals,
       });
@@ -850,14 +699,10 @@ function App() {
     );
   }
 
-  // UPDATED: Landing page with star goals
+  // Landing page
   if (mode === "landing") {
-    // Auto-set game mode
     if (!gameMode) {
-      setGameMode({
-        accuracy: "lenient",
-        limit: "time",
-      });
+      setGameMode({ accuracy: "lenient", limit: "time" });
     }
 
     return (
@@ -867,7 +712,7 @@ function App() {
             <h1
               style={{ color: "#333", marginBottom: "20px", fontSize: "28px" }}
             >
-              Can you beat Park? - Round {currentRound}/{totalRounds}
+              Can you beat Park? - Semester {currentSemester}/{totalSemesters}
             </h1>
 
             <div className="game-info">
@@ -878,24 +723,27 @@ function App() {
                   marginBottom: "15px",
                 }}
               >
-                Complete tasks to earn points and achieve star goals!
+                Complete teaching tasks to earn points and achieve star goals!
               </h2>
 
               <div style={{ marginBottom: "20px" }}>
-                <h3 style={{ color: "#9C27B0" }}>🔢 Counting Game</h3>
+                <h3 style={{ color: "#4CAF50" }}>🎯 Material Creation</h3>
                 <p>
-                  Count words or letters in text passages. Earn 1-2 points per
-                  task!
+                  Create teaching materials with precision. Perfect preparation
+                  = better teaching!
                 </p>
 
-                <h3 style={{ color: "#4CAF50" }}>🎯 Slider Game</h3>
+                <h3 style={{ color: "#9C27B0" }}>📚 Research Content</h3>
                 <p>
-                  Match target values with precision. Perfect accuracy = 2
-                  points!
+                  Research and analyze educational content. Accurate research =
+                  informed teaching!
                 </p>
 
-                <h3 style={{ color: "#f44336" }}>⌨️ Typing Game</h3>
-                <p>Type patterns exactly as shown. High accuracy pays off!</p>
+                <h3 style={{ color: "#f44336" }}>✉️ Student Engagement</h3>
+                <p>
+                  Communicate effectively with students. Clear communication =
+                  better learning!
+                </p>
               </div>
 
               <div
@@ -914,7 +762,7 @@ function App() {
                     marginBottom: "15px",
                   }}
                 >
-                  ⭐ Star Goals - Earn Bonus Points!
+                  📅 Semester Structure - 20 Minutes
                 </h3>
                 <ul
                   style={{
@@ -927,27 +775,22 @@ function App() {
                   }}
                 >
                   <li>
-                    <strong>⭐ Star 1 (25 pts):</strong> Balance all three games
-                    <br />
-                    <span style={{ marginLeft: "20px", color: "#666" }}>
-                      Bonus = Counting × Slider × Typing points
-                    </span>
+                    <strong>First 10 minutes:</strong> Regular teaching
+                    activities
                   </li>
                   <li>
-                    <strong>⭐⭐ Star 2 (20 pts in one category):</strong>{" "}
-                    Specialize wisely
-                    <br />
-                    <span style={{ marginLeft: "20px", color: "#666" }}>
-                      Build multipliers from other games first!
-                    </span>
+                    <strong>Minute 10:</strong> 📚 Exam Season Checkpoint (bonus
+                    points!)
                   </li>
                   <li>
-                    <strong>⭐⭐⭐ Star 3 (50 pts):</strong> Master the
-                    challenge
-                    <br />
-                    <span style={{ marginLeft: "20px", color: "#666" }}>
-                      Bonus based on your perfection rate²
-                    </span>
+                    <strong>Last 10 minutes:</strong> Continue teaching with
+                    renewed focus
+                  </li>
+                  <li>
+                    Complete as many tasks as possible within the time limit
+                  </li>
+                  <li>
+                    Balance all three teaching areas for maximum effectiveness
                   </li>
                 </ul>
               </div>
@@ -979,9 +822,9 @@ function App() {
                     fontSize: "14px",
                   }}
                 >
-                  <li>You have 12 minutes per round - use them wisely!</li>
+                  <li>You have 20 minutes per semester</li>
                   <li>Score 70%+ accuracy = 1 point, 95%+ = 2 points</li>
-                  <li>All games available from the start</li>
+                  <li>All tasks available from the start</li>
                   <li>Complete tasks to earn bonus chat prompts</li>
                   <li>Tasks get harder as you progress through levels</li>
                 </ul>
@@ -992,11 +835,10 @@ function App() {
               className="start-button"
               onClick={() => setMode("practiceChoice")}
             >
-              Start Round {currentRound}
+              Start Semester {currentSemester}
             </button>
 
-            {/* Show round history */}
-            {roundHistory.length > 0 && (
+            {semesterHistory.length > 0 && (
               <div
                 style={{
                   marginTop: "20px",
@@ -1006,11 +848,11 @@ function App() {
                   fontSize: "14px",
                 }}
               >
-                <strong>Previous Rounds:</strong>
-                {roundHistory.map((round, idx) => (
+                <strong>Previous Semesters:</strong>
+                {semesterHistory.map((sem, idx) => (
                   <div key={idx} style={{ marginTop: "5px" }}>
-                    Round {idx + 1}: {round.finalScore} points (
-                    {round.starsEarned} stars earned)
+                    Semester {idx + 1}: {sem.finalScore} points (
+                    {sem.starsEarned} stars earned)
                   </div>
                 ))}
               </div>
@@ -1031,7 +873,8 @@ function App() {
               Would you like to practice first?
             </h2>
             <p style={{ color: "#666", marginBottom: "20px" }}>
-              Practice mode lets you try each game type without time pressure.
+              Practice mode lets you try each teaching task without time
+              pressure.
             </p>
             <p
               style={{
@@ -1041,7 +884,8 @@ function App() {
                 fontStyle: "italic",
               }}
             >
-              Tip: Try different task difficulties to plan your strategy!
+              Tip: Try different task difficulties to plan your teaching
+              strategy!
             </p>
 
             <div
@@ -1073,7 +917,7 @@ function App() {
                   cursor: "pointer",
                 }}
               >
-                No, Start Main Game
+                No, Start Semester
               </button>
             </div>
           </div>
@@ -1086,7 +930,7 @@ function App() {
   if (mode === "practice") {
     return (
       <div className="app">
-        <h1>Multi-Task Challenge - Practice Mode</h1>
+        <h1>Teaching Simulation - Practice Mode</h1>
         <PracticeMode
           onStartMainGame={() => {
             taskDependencies.clearAllDependencies();
@@ -1098,12 +942,15 @@ function App() {
     );
   }
 
-  // UPDATED: Completion screen with star achievements
+  // Completion screen
   if (mode === "complete") {
     const minutes = Math.floor(globalTimer / 60);
     const seconds = globalTimer % 60;
     const totalPoints =
-      categoryPoints.counting + categoryPoints.slider + categoryPoints.typing;
+      categoryPoints.materials +
+      categoryPoints.research +
+      categoryPoints.engagement +
+      categoryPoints.bonus;
     const totalBonus = Object.values(starGoals).reduce(
       (sum, star) => sum + star.bonusEarned,
       0
@@ -1115,11 +962,10 @@ function App() {
       starGoals.star3.achieved,
     ].filter(Boolean).length;
 
-    // Store round data
-    const roundData = {
-      round: currentRound,
+    const semesterData = {
+      semester: currentSemester,
       totalTime: globalTimer,
-      completedLevels: Object.keys(completed).length,
+      completedLevels: completedLevels,
       categoryPoints,
       switches,
       gameMode,
@@ -1129,54 +975,44 @@ function App() {
       starsEarned,
     };
 
-    const handleNextRound = async () => {
-      // Save current round data
-      const newHistory = [...roundHistory, roundData];
-      setRoundHistory(newHistory);
+    const handleNextSemester = async () => {
+      const newHistory = [...semesterHistory, semesterData];
+      setSemesterHistory(newHistory);
 
-      // Store to Firebase
       if (sessionId && !sessionId.startsWith("offline-")) {
         await updateDoc(doc(db, "sessions", sessionId), {
-          [`roundHistory.round${currentRound}`]: roundData,
-          currentRound: currentRound + 1,
+          [`semesterHistory.semester${currentSemester}`]: semesterData,
+          currentSemester: currentSemester + 1,
           lastActivity: serverTimestamp(),
         });
       }
 
-      // Reset for next round
-      setCurrentRound(currentRound + 1);
+      setCurrentSemester(currentSemester + 1);
       setCompleted({});
+      setCompletedLevels(0);
       setSwitches(0);
       setBonusPrompts(0);
       setGlobalTimer(0);
       setPausedTime(0);
-      setCurrentTab("g1t1");
+      setCurrentTab("g2t1");
       setMode("challenge");
       taskDependencies.clearAllDependencies();
 
-      // Generate new seed for next round
       const newSeed = Math.floor(Math.random() * 1000000);
       setRandomSeed(newSeed);
       patternGenerator.initializeSeed(newSeed);
 
-      // Restart timer
       startTimer();
-      setTaskStartTimes({ g1t1: Date.now() });
-      eventTracker.setPageStartTime("g1t1");
+      setTaskStartTimes({ g2t1: Date.now() });
+      eventTracker.setPageStartTime("g2t1");
     };
 
-    const isLastRound = currentRound >= totalRounds;
+    const isLastSemester = currentSemester >= totalSemesters;
 
     return (
       <div className="app">
-        <div
-          style={{
-            maxWidth: "800px",
-            margin: "0 auto",
-            padding: "20px",
-          }}
-        >
-          {/* Round indicator */}
+        <div style={{ maxWidth: "800px", margin: "0 auto", padding: "20px" }}>
+          {/* Semester indicator */}
           <div
             style={{
               textAlign: "center",
@@ -1188,15 +1024,15 @@ function App() {
             }}
           >
             <h2 style={{ color: "#2196F3", margin: 0 }}>
-              Round {currentRound} of {totalRounds} Complete!
+              Semester {currentSemester} of {totalSemesters} Complete!
             </h2>
           </div>
 
-          {/* Show completion code only on last round */}
-          {isLastRound && (
+          {/* Show completion code only on last semester */}
+          {isLastSemester && (
             <CompletionCodeDisplay
               sessionId={sessionId}
-              completedLevels={Object.keys(completed).length}
+              completedLevels={completedLevels}
               totalTime={globalTimer}
               gameMode={gameMode}
             />
@@ -1214,7 +1050,7 @@ function App() {
             }}
           >
             <h2 style={{ color: "#333", marginBottom: "20px" }}>
-              📊 Round {currentRound} Performance
+              📊 Semester {currentSemester} Performance
             </h2>
 
             {/* Final Score */}
@@ -1229,7 +1065,7 @@ function App() {
               Final Score: {finalScore} points
             </div>
 
-            {/* Point Breakdown */}
+            {/* Stats Grid */}
             <div
               style={{
                 display: "grid",
@@ -1321,11 +1157,39 @@ function App() {
                   +{totalBonus}
                 </div>
               </div>
+
+              <div
+                style={{
+                  background: "#f8f9fa",
+                  padding: "20px",
+                  borderRadius: "8px",
+                  border: "2px solid #e0e0e0",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "14px",
+                    color: "#666",
+                    marginBottom: "5px",
+                  }}
+                >
+                  Tasks Completed
+                </div>
+                <div
+                  style={{
+                    fontSize: "24px",
+                    fontWeight: "bold",
+                    color: "#333",
+                  }}
+                >
+                  {completedLevels}
+                </div>
+              </div>
             </div>
 
-            {/* Category breakdown */}
+            {/* Teaching Performance Breakdown */}
             <h3 style={{ color: "#666", marginBottom: "15px" }}>
-              Points by Category
+              Teaching Performance by Category
             </h3>
             <div
               style={{
@@ -1335,28 +1199,6 @@ function App() {
                 marginBottom: "30px",
               }}
             >
-              <div
-                style={{
-                  background: "#f8f0ff",
-                  padding: "15px",
-                  borderRadius: "6px",
-                  border: "2px solid #9C27B020",
-                }}
-              >
-                <div
-                  style={{
-                    color: "#9C27B0",
-                    fontWeight: "bold",
-                    marginBottom: "5px",
-                  }}
-                >
-                  🔢 Counting
-                </div>
-                <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {categoryPoints.counting}
-                </div>
-              </div>
-
               <div
                 style={{
                   background: "#f0f8f0",
@@ -1372,10 +1214,32 @@ function App() {
                     marginBottom: "5px",
                   }}
                 >
-                  🎯 Slider
+                  🎯 Materials
                 </div>
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {categoryPoints.slider}
+                  {categoryPoints.materials}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "#f8f0ff",
+                  padding: "15px",
+                  borderRadius: "6px",
+                  border: "2px solid #9C27B020",
+                }}
+              >
+                <div
+                  style={{
+                    color: "#9C27B0",
+                    fontWeight: "bold",
+                    marginBottom: "5px",
+                  }}
+                >
+                  📚 Research
+                </div>
+                <div style={{ fontSize: "20px", fontWeight: "bold" }}>
+                  {categoryPoints.research}
                 </div>
               </div>
 
@@ -1394,13 +1258,39 @@ function App() {
                     marginBottom: "5px",
                   }}
                 >
-                  ⌨️ Typing
+                  ✉️ Engagement
                 </div>
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {categoryPoints.typing}
+                  {categoryPoints.engagement}
                 </div>
               </div>
             </div>
+
+            {/* Checkpoint Bonus Display */}
+            {categoryPoints.bonus > 0 && (
+              <div
+                style={{
+                  marginBottom: "20px",
+                  padding: "15px",
+                  background: "#fff3cd",
+                  borderRadius: "6px",
+                  border: "1px solid #ffc107",
+                }}
+              >
+                <strong style={{ color: "#856404" }}>
+                  📚 Exam Season Bonus:{" "}
+                </strong>
+                <span
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: "bold",
+                    color: "#856404",
+                  }}
+                >
+                  +{categoryPoints.bonus} points
+                </span>
+              </div>
+            )}
 
             {/* Star Achievements */}
             <div
@@ -1461,8 +1351,8 @@ function App() {
               </div>
             </div>
 
-            {/* Round history if not first round */}
-            {roundHistory.length > 0 && (
+            {/* Semester history */}
+            {semesterHistory.length > 0 && (
               <div
                 style={{
                   marginTop: "30px",
@@ -1472,7 +1362,7 @@ function App() {
                 }}
               >
                 <h4 style={{ color: "#666", marginBottom: "15px" }}>
-                  Progress Over Rounds
+                  Progress Over Semesters
                 </h4>
                 <div
                   style={{
@@ -1481,20 +1371,20 @@ function App() {
                     gap: "10px",
                   }}
                 >
-                  {[...roundHistory, roundData].map((round, idx) => (
+                  {[...semesterHistory, semesterData].map((sem, idx) => (
                     <div
                       key={idx}
                       style={{
                         padding: "10px",
                         background:
-                          idx === roundHistory.length ? "#e3f2fd" : "white",
+                          idx === semesterHistory.length ? "#e3f2fd" : "white",
                         borderRadius: "6px",
                         border: "1px solid #e0e0e0",
                         textAlign: "center",
                       }}
                     >
                       <div style={{ fontSize: "12px", color: "#666" }}>
-                        Round {idx + 1}
+                        Semester {idx + 1}
                       </div>
                       <div
                         style={{
@@ -1503,10 +1393,10 @@ function App() {
                           color: "#333",
                         }}
                       >
-                        {round.finalScore}
+                        {sem.finalScore}
                       </div>
                       <div style={{ fontSize: "10px", color: "#999" }}>
-                        {round.starsEarned} stars
+                        {sem.starsEarned} stars
                       </div>
                     </div>
                   ))}
@@ -1515,16 +1405,11 @@ function App() {
             )}
           </div>
 
-          {/* Next round or finish button */}
-          <div
-            style={{
-              marginTop: "30px",
-              textAlign: "center",
-            }}
-          >
-            {!isLastRound ? (
+          {/* Next semester or finish button */}
+          <div style={{ marginTop: "30px", textAlign: "center" }}>
+            {!isLastSemester ? (
               <button
-                onClick={handleNextRound}
+                onClick={handleNextSemester}
                 style={{
                   padding: "15px 40px",
                   background: "#4CAF50",
@@ -1537,7 +1422,7 @@ function App() {
                   boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
                 }}
               >
-                Start Round {currentRound + 1} →
+                Start Semester {currentSemester + 1} →
               </button>
             ) : (
               <div
@@ -1550,7 +1435,7 @@ function App() {
                 }}
               >
                 <h3 style={{ color: "#856404", marginBottom: "10px" }}>
-                  ⚠️ All rounds complete!
+                  ⚠️ All semesters complete!
                 </h3>
                 <p style={{ color: "#856404", marginBottom: "0" }}>
                   Return to the Qualtrics survey and enter your completion code
@@ -1567,6 +1452,55 @@ function App() {
   // Main challenge mode
   return (
     <div className="app">
+      {/* Checkpoint Modal */}
+      {isInBreak && breakDestination === "checkpoint" && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            background: "rgba(0, 0, 0, 0.8)",
+            zIndex: 999999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "40px",
+              borderRadius: "12px",
+              textAlign: "center",
+              maxWidth: "600px",
+            }}
+          >
+            <h2 style={{ color: "#4CAF50", marginBottom: "20px" }}>
+              📚 Exam Season Checkpoint!
+            </h2>
+            <p style={{ fontSize: "18px", marginBottom: "20px" }}>
+              Halfway through the semester - time for exams!
+            </p>
+            <div style={{ marginBottom: "20px" }}>
+              <h3>Teaching Performance Summary:</h3>
+              <div>Materials Created: {categoryPoints.materials} points</div>
+              <div>Research Completed: {categoryPoints.research} points</div>
+              <div>Student Engagement: {categoryPoints.engagement} points</div>
+            </div>
+            <div
+              style={{ fontSize: "24px", fontWeight: "bold", color: "#4CAF50" }}
+            >
+              Checkpoint Bonus: +{checkpointBonus} points!
+            </div>
+            <p style={{ marginTop: "20px", color: "#666" }}>
+              Continuing in 5 seconds...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Game blocked overlay */}
       {gameBlocked && (
         <div
@@ -1593,7 +1527,7 @@ function App() {
             }}
           >
             <h2 style={{ color: "#f44336", marginBottom: "20px" }}>
-              Game Session Ended
+              Session Ended
             </h2>
             <p style={{ marginBottom: "30px" }}>
               Your session has been terminated due to inactivity or switching
@@ -1669,7 +1603,11 @@ function App() {
               Auto-closing in {idleCountdown} seconds due to inactivity
             </p>
             <button
-              onClick={handleIdleResponse}
+              onClick={() => {
+                setIsIdle(false);
+                setIdleCountdown(5);
+                lastActivityRef.current = Date.now();
+              }}
               style={{
                 padding: "10px 20px",
                 background: "#4CAF50",
@@ -1686,20 +1624,20 @@ function App() {
       )}
 
       <h1>
-        Can you beat Park? - Round {currentRound}/{totalRounds}
+        Can you beat Park? - Semester {currentSemester}/{totalSemesters}
       </h1>
 
-      {/* Use NavTabsEnhanced */}
+      {/* Use NavTabsEnhanced with star progress */}
       <NavTabsEnhanced
         current={currentTab}
         completed={completed}
         onSwitch={handleTabSwitch}
         limitMode="time"
-        taskPoints={taskPoints} // This might need to be added if not there
+        taskPoints={taskPoints}
         categoryMultipliers={categoryMultipliers}
-        starGoals={starGoals} // ADD THIS
-        categoryPoints={categoryPoints} // ADD THIS
-        timeRemaining={timeRemaining} // ADD THIS
+        starGoals={starGoals}
+        categoryPoints={categoryPoints}
+        timeRemaining={timeRemaining}
       />
 
       {/* Side-by-side layout: Game + Chat */}

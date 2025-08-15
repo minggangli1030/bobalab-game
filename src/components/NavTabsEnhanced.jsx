@@ -16,7 +16,7 @@ export default function NavTabsEnhanced({
   const tabs = [];
   for (let game = 1; game <= 3; game++) {
     for (let level = 1; level <= 15; level++) {
-      const gameLabel = ["Count", "Slide", "Type"][game - 1];
+      const gameLabel = ["Research", "Materials", "Engage"][game - 1];
       tabs.push({
         id: `g${game}t${level}`,
         label: `${gameLabel} ${level}`,
@@ -60,9 +60,9 @@ export default function NavTabsEnhanced({
   };
 
   const gameNames = {
-    1: "Counting",
-    2: "Slider",
-    3: "Typing",
+    1: "Research",
+    2: "Materials",
+    3: "Engagement",
   };
 
   const gameCategoryMap = {
