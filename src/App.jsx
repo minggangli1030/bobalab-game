@@ -1623,83 +1623,85 @@ function App() {
         </div>
       )}
 
-      <h1>
-        Can you beat Park? - Semester {currentSemester}/{totalSemesters}
-      </h1>
+      <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
+        <h1 style={{ marginBottom: "30px", textAlign: "center" }}>
+          Can you beat Park? - Semester {currentSemester}/{totalSemesters}
+        </h1>
 
-      {/* Use NavTabsEnhanced with star progress */}
-      <NavTabsEnhanced
-        current={currentTab}
-        completed={completed}
-        onSwitch={handleTabSwitch}
-        limitMode="time"
-        taskPoints={taskPoints}
-        categoryMultipliers={categoryMultipliers}
-        starGoals={starGoals}
-        categoryPoints={categoryPoints}
-        timeRemaining={timeRemaining}
-      />
+        {/* Use NavTabsEnhanced with star progress */}
+        <NavTabsEnhanced
+          current={currentTab}
+          completed={completed}
+          onSwitch={handleTabSwitch}
+          limitMode="time"
+          taskPoints={taskPoints}
+          categoryMultipliers={categoryMultipliers}
+          starGoals={starGoals}
+          categoryPoints={categoryPoints}
+          timeRemaining={timeRemaining}
+        />
 
-      {/* Side-by-side layout: Game + Chat */}
-      <div
-        style={{
-          display: "flex",
-          gap: "20px",
-          alignItems: "stretch",
-          marginTop: "20px",
-          minHeight: "650px",
-          width: "100%",
-        }}
-      >
-        {/* Game area - 2/3 width */}
+        {/* Side-by-side layout: Game + Chat */}
         <div
           style={{
-            flex: "0 0 66.666%",
-            minHeight: "650px",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "white",
-            borderRadius: "8px",
-            border: "1px solid #e0e0e0",
-            overflow: "visible",
+            gap: "20px",
+            alignItems: "stretch",
+            marginTop: "20px",
+            minHeight: "650px",
+            width: "100%",
           }}
         >
+          {/* Game area - 2/3 width */}
           <div
-            className="task-container"
             style={{
-              width: "100%",
+              flex: "0 0 66.666%",
               minHeight: "650px",
-              padding: "20px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              background: "white",
+              borderRadius: "8px",
+              border: "1px solid #e0e0e0",
               overflow: "visible",
             }}
           >
-            {renderTask()}
+            <div
+              className="task-container"
+              style={{
+                width: "100%",
+                minHeight: "650px",
+                padding: "20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "visible",
+              }}
+            >
+              {renderTask()}
+            </div>
           </div>
-        </div>
 
-        {/* Chat area - 1/3 width */}
-        <div
-          style={{
-            flex: "0 0 33.333%",
-            background: "white",
-            borderRadius: "8px",
-            border: "1px solid #e0e0e0",
-            overflow: "hidden",
-            height: "650px",
-          }}
-        >
-          <ChatContainer
-            bonusPrompts={bonusPrompts}
-            currentTask={currentTab}
-            categoryPoints={categoryPoints}
-            categoryMultipliers={categoryMultipliers}
-            starGoals={starGoals}
-            timeRemaining={timeRemaining}
-          />
+          {/* Chat area - 1/3 width */}
+          <div
+            style={{
+              flex: "0 0 33.333%",
+              background: "white",
+              borderRadius: "8px",
+              border: "1px solid #e0e0e0",
+              overflow: "hidden",
+              height: "650px",
+            }}
+          >
+            <ChatContainer
+              bonusPrompts={bonusPrompts}
+              currentTask={currentTab}
+              categoryPoints={categoryPoints}
+              categoryMultipliers={categoryMultipliers}
+              starGoals={starGoals}
+              timeRemaining={timeRemaining}
+            />
+          </div>
         </div>
       </div>
     </div>

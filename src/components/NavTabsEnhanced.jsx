@@ -24,22 +24,20 @@ export default function NavTabsEnhanced({
     }
   }
 
-  // Task availability logic remains the same
+  // Task availability logic
   const isTaskAvailable = (tab) => {
     const game = tab.id[1];
     const taskNum = parseInt(tab.id.substring(3));
 
-    // First task of each game is always available
     if (taskNum === 1) {
       return true;
     }
 
-    // For other tasks, check if previous task in same game is completed
     const previousTask = `g${game}t${taskNum - 1}`;
     return completed[previousTask] === true;
   };
 
-  // Group tabs by game for better visualization
+  // Group tabs by game
   const gameGroups = {
     1: tabs.filter((t) => t.game === 1),
     2: tabs.filter((t) => t.game === 2),
@@ -47,9 +45,9 @@ export default function NavTabsEnhanced({
   };
 
   const gameColors = {
-    1: "#9C27B0", // Purple for counting
-    2: "#4CAF50", // Green for slider
-    3: "#f44336", // Red for typing
+    1: "#9C27B0", // Purple for research
+    2: "#4CAF50", // Green for materials
+    3: "#f44336", // Red for engagement
   };
 
   const gameIcons = {
@@ -70,90 +68,14 @@ export default function NavTabsEnhanced({
     3: "engagement",
   };
 
-  // Helper function to convert hex to RGB
-  const hexToRgb = (hex) => {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result
-      ? {
-          r: parseInt(result[1], 16),
-          g: parseInt(result[2], 16),
-          b: parseInt(result[3], 16),
-        }
-      : { r: 0, g: 0, b: 0 };
-  };
-
-  // Calculate color intensity based on completion count for each game
-  const getButtonColorIntensity = (gameNum) => {
-    const gameTabs = gameGroups[gameNum];
-    const completedCount = gameTabs.filter((t) => completed[t.id]).length;
-    // Scale from 0.2 (pale) to 1.0 (full color) based on completion
-    const intensity = Math.min(0.2 + (completedCount / 15) * 0.8, 1.0);
-    return intensity;
-  };
-
-  const getButtonStyles = (
-    tab,
-    isAvailable,
-    isCompleted,
-    isCurrent,
-    gameNum
-  ) => {
-    const baseColor = gameColors[gameNum];
-    const intensity = getButtonColorIntensity(gameNum);
-    const rgb = hexToRgb(baseColor);
-
-    // Fade the color based on intensity
-    const fadedColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${intensity})`;
-    const fadedBorderColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${
-      intensity * 0.8
-    })`;
-    const fadedBgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${
-      intensity * 0.15
-    })`;
-
-    return {
-      position: "relative",
-      padding: "10px 4px",
-      fontSize: "14px",
-      fontWeight: isCurrent ? "bold" : "500",
-      border: `2px solid ${
-        isCurrent ? baseColor : isCompleted ? fadedBorderColor : "#e0e0e0"
-      }`,
-      borderRadius: "8px",
-      background: isCurrent
-        ? baseColor
-        : isCompleted
-        ? fadedBgColor
-        : isAvailable
-        ? "white"
-        : "#f5f5f5",
-      color: isCurrent
-        ? "white"
-        : isCompleted
-        ? baseColor
-        : isAvailable
-        ? "#333"
-        : "#999",
-      cursor: isAvailable ? "pointer" : "not-allowed",
-      transition: "all 0.2s",
-      overflow: "hidden",
-      boxShadow: isCurrent ? `0 2px 8px ${fadedColor}` : "none",
-    };
-  };
-
-  // Calculate total points earned per game
-  const getGamePoints = (gameNum) => {
-    const gameTabs = gameGroups[gameNum];
-    return gameTabs.reduce((sum, tab) => sum + (taskPoints[tab.id] || 0), 0);
-  };
-
-  // Calculate actual category points from categoryPoints prop
+  // Calculate total points
   const getTotalPoints = () => {
     if (categoryPoints) {
       return (
         (categoryPoints.materials || 0) +
         (categoryPoints.research || 0) +
-        (categoryPoints.engagement || 0)
+        (categoryPoints.engagement || 0) +
+        (categoryPoints.bonus || 0)
       );
     }
     return Object.values(taskPoints).reduce((sum, points) => sum + points, 0);
@@ -164,313 +86,378 @@ export default function NavTabsEnhanced({
       style={{
         background: "white",
         borderRadius: "12px",
-        padding: "20px",
+        padding: "25px",
         boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
         marginBottom: "20px",
       }}
     >
-      {/* Navigation tabs - compact single line layout */}
+      {/* Game progress sections */}
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr 1fr",
-          gap: "15px",
-          marginBottom: "20px",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: "20px",
+          marginBottom: "25px",
         }}
       >
         {Object.entries(gameGroups).map(([gameNum, gameTabs]) => {
           const completedInGame = gameTabs.filter(
             (t) => completed[t.id]
           ).length;
-          const intensity = getButtonColorIntensity(gameNum);
-          const gamePoints = getGamePoints(gameNum);
           const categoryName = gameCategoryMap[gameNum];
           const hasMultiplier = categoryMultipliers[categoryName] > 0;
+          const currentGameLevel = completedInGame + 1;
 
           return (
             <div
               key={gameNum}
               style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "12px",
-                background: `rgba(${hexToRgb(gameColors[gameNum]).r}, ${
-                  hexToRgb(gameColors[gameNum]).g
-                }, ${hexToRgb(gameColors[gameNum]).b}, 0.05)`,
-                borderRadius: "8px",
-                border: `1px solid ${gameColors[gameNum]}20`,
+                background: `linear-gradient(135deg, ${gameColors[gameNum]}10 0%, ${gameColors[gameNum]}05 100%)`,
+                borderRadius: "12px",
+                border: `2px solid ${gameColors[gameNum]}20`,
+                padding: "20px",
+                position: "relative",
+                overflow: "hidden",
                 boxShadow: hasMultiplier
-                  ? `0 0 12px ${gameColors[gameNum]}30`
+                  ? `0 0 20px ${gameColors[gameNum]}20`
                   : "none",
-                transition: "all 0.3s",
+                transition: "all 0.3s ease",
               }}
             >
-              {/* Game icon */}
-              <span style={{ fontSize: "20px" }}>{gameIcons[gameNum]}</span>
-
-              {/* Game name */}
-              <h4
+              {/* Header */}
+              <div
                 style={{
-                  color: gameColors[gameNum],
-                  margin: 0,
-                  fontSize: "14px",
-                  fontWeight: "bold",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                  marginBottom: "15px",
                 }}
               >
-                {gameNames[gameNum]}
-              </h4>
+                <span style={{ fontSize: "28px" }}>{gameIcons[gameNum]}</span>
+                <div style={{ flex: 1 }}>
+                  <h3
+                    style={{
+                      margin: 0,
+                      color: gameColors[gameNum],
+                      fontSize: "18px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {gameNames[gameNum]}
+                  </h3>
+                  <div
+                    style={{
+                      fontSize: "12px",
+                      color: "#666",
+                      marginTop: "2px",
+                    }}
+                  >
+                    Level {Math.min(currentGameLevel, 15)}
+                  </div>
+                </div>
 
-              {/* Points earned - use categoryPoints if available */}
-              {categoryPoints && categoryPoints[categoryName] > 0 && (
-                <span
-                  style={{
-                    fontSize: "12px",
-                    color: gameColors[gameNum],
-                    background: `${gameColors[gameNum]}20`,
-                    padding: "2px 6px",
-                    borderRadius: "10px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {categoryPoints[categoryName]} pts
-                </span>
-              )}
+                {/* Points badge */}
+                {categoryPoints && categoryPoints[categoryName] > 0 && (
+                  <div
+                    style={{
+                      background: gameColors[gameNum],
+                      color: "white",
+                      padding: "6px 12px",
+                      borderRadius: "20px",
+                      fontSize: "14px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {categoryPoints[categoryName]} pts
+                  </div>
+                )}
+              </div>
 
               {/* Multiplier indicator */}
               {hasMultiplier && (
-                <span
+                <div
                   style={{
-                    fontSize: "11px",
-                    color: "#ff9800",
+                    position: "absolute",
+                    top: "10px",
+                    right: "10px",
                     background: "#fff3cd",
-                    padding: "2px 6px",
-                    borderRadius: "10px",
+                    color: "#856404",
+                    padding: "4px 8px",
+                    borderRadius: "12px",
+                    fontSize: "11px",
                     fontWeight: "bold",
                     border: "1px solid #ffc107",
                   }}
                 >
-                  ×{categoryMultipliers[categoryName].toFixed(1)}
-                </span>
+                  ×{(1 + categoryMultipliers[categoryName]).toFixed(1)}
+                </div>
               )}
 
-              {/* Level indicator */}
-              <span
-                style={{
-                  marginLeft: "auto",
-                  fontSize: "12px",
-                  color: "#666",
-                  background: `rgba(${intensity * 255}, ${intensity * 255}, ${
-                    intensity * 255
-                  }, 0.1)`,
-                  padding: "4px 8px",
-                  borderRadius: "12px",
-                  fontWeight: "500",
-                }}
-              >
-                Level {completedInGame + 1}
-              </span>
-
-              {/* Level buttons - horizontal */}
+              {/* Level buttons - visible levels only */}
               <div
                 style={{
                   display: "flex",
-                  gap: "4px",
-                  maxWidth: "200px",
-                  overflowX: "auto",
-                  overflowY: "hidden",
-                  scrollbarWidth: "thin",
+                  gap: "8px",
+                  flexWrap: "wrap",
                 }}
               >
-                {gameTabs.map((tab) => {
-                  const isAvailable = isTaskAvailable(tab);
-                  const isCompleted = completed[tab.id];
-                  const isCurrent = current === tab.id;
-                  const taskNum = parseInt(tab.id.substring(3));
-                  const points = taskPoints[tab.id] || 0;
+                {gameTabs
+                  .filter((tab) => {
+                    const taskNum = parseInt(tab.id.substring(3));
+                    return taskNum <= currentGameLevel;
+                  })
+                  .map((tab) => {
+                    const isAvailable = isTaskAvailable(tab);
+                    const isCompleted = completed[tab.id];
+                    const isCurrent = current === tab.id;
+                    const taskNum = parseInt(tab.id.substring(3));
+                    const points = taskPoints[tab.id] || 0;
 
-                  // Only show completed tasks and the next available one
-                  if (!isCompleted && !isAvailable) return null;
-                  if (!isCompleted && taskNum > completedInGame + 1)
-                    return null;
-
-                  return (
-                    <button
-                      key={tab.id}
-                      disabled={!isAvailable}
-                      onClick={() => isAvailable && onSwitch(tab.id)}
-                      style={{
-                        ...getButtonStyles(
-                          tab,
-                          isAvailable,
-                          isCompleted,
-                          isCurrent,
-                          gameNum
-                        ),
-                        minWidth: "32px",
-                        height: "32px",
-                        padding: "4px",
-                        fontSize: "12px",
-                        flexShrink: 0,
-                      }}
-                      onMouseEnter={(e) => {
-                        if (isAvailable && !isCurrent) {
-                          e.currentTarget.style.transform = "scale(1.1)";
+                    return (
+                      <button
+                        key={tab.id}
+                        disabled={!isAvailable || isCompleted}
+                        onClick={() =>
+                          isAvailable && !isCompleted && onSwitch(tab.id)
                         }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (isAvailable && !isCurrent) {
-                          e.currentTarget.style.transform = "scale(1)";
+                        style={{
+                          position: "relative",
+                          width: "40px",
+                          height: "40px",
+                          padding: "0",
+                          fontSize: "14px",
+                          fontWeight: isCurrent ? "bold" : "500",
+                          border: `2px solid ${
+                            isCurrent
+                              ? gameColors[gameNum]
+                              : isCompleted
+                              ? `${gameColors[gameNum]}40`
+                              : "#e0e0e0"
+                          }`,
+                          borderRadius: "8px",
+                          background: isCurrent
+                            ? gameColors[gameNum]
+                            : isCompleted
+                            ? `${gameColors[gameNum]}10`
+                            : "white",
+                          color: isCurrent
+                            ? "white"
+                            : isCompleted
+                            ? gameColors[gameNum]
+                            : "#333",
+                          cursor:
+                            isAvailable && !isCompleted
+                              ? "pointer"
+                              : "not-allowed",
+                          transition: "all 0.2s ease",
+                          opacity: isCompleted ? 0.7 : 1,
+                          boxShadow: isCurrent
+                            ? `0 2px 8px ${gameColors[gameNum]}40`
+                            : "none",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (isAvailable && !isCurrent && !isCompleted) {
+                            e.currentTarget.style.transform =
+                              "translateY(-2px)";
+                            e.currentTarget.style.boxShadow = `0 4px 12px ${gameColors[gameNum]}30`;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (isAvailable && !isCurrent && !isCompleted) {
+                            e.currentTarget.style.transform = "translateY(0)";
+                            e.currentTarget.style.boxShadow = "none";
+                          }
+                        }}
+                        title={
+                          isCompleted
+                            ? `Level ${taskNum} completed (${points} pts)`
+                            : isAvailable
+                            ? `Start Level ${taskNum}`
+                            : `Complete Level ${taskNum - 1} first`
                         }
-                      }}
-                    >
-                      {taskNum}
-                      {isCompleted && (
-                        <>
+                      >
+                        {taskNum}
+                        {isCompleted && (
                           <span
                             style={{
                               position: "absolute",
-                              top: "1px",
-                              right: "1px",
-                              fontSize: "8px",
-                              color: gameColors[gameNum],
+                              top: "-4px",
+                              right: "-4px",
+                              background: gameColors[gameNum],
+                              color: "white",
+                              width: "16px",
+                              height: "16px",
+                              borderRadius: "50%",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "10px",
+                              fontWeight: "bold",
                             }}
                           >
                             ✓
                           </span>
-                          {/* Points indicator */}
-                          {points > 0 && (
-                            <span
-                              style={{
-                                position: "absolute",
-                                bottom: "2px",
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                                fontSize: "6px",
-                                color: gameColors[gameNum],
-                                fontWeight: "bold",
-                              }}
-                            >
-                              {"•".repeat(points)}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </button>
-                  );
-                })}
+                        )}
+                        {/* Points dots */}
+                        {isCompleted && points > 0 && (
+                          <div
+                            style={{
+                              position: "absolute",
+                              bottom: "2px",
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                              display: "flex",
+                              gap: "2px",
+                            }}
+                          >
+                            {[...Array(points)].map((_, i) => (
+                              <div
+                                key={i}
+                                style={{
+                                  width: "4px",
+                                  height: "4px",
+                                  borderRadius: "50%",
+                                  background: gameColors[gameNum],
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Progress summary with integrated star goals */}
+      {/* Bottom status bar */}
       <div
         style={{
-          marginTop: "20px",
-          padding: "15px",
-          background: "#f8f9fa",
-          borderRadius: "8px",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          padding: "20px",
+          background: "#f8f9fa",
+          borderRadius: "8px",
           flexWrap: "wrap",
-          gap: "10px",
+          gap: "20px",
         }}
       >
         {/* Timer */}
         {timeRemaining !== null && (
-          <div
-            style={{
-              fontSize: "16px",
-              color: timeRemaining < 60 ? "#f44336" : "#333",
-              fontWeight: "bold",
-            }}
-          >
-            ⏱️ {Math.floor(timeRemaining / 60)}:
-            {(timeRemaining % 60).toString().padStart(2, "0")}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "24px" }}>⏱️</span>
+            <div>
+              <div
+                style={{
+                  fontSize: "20px",
+                  fontWeight: "bold",
+                  color: timeRemaining < 60 ? "#f44336" : "#333",
+                }}
+              >
+                {Math.floor(timeRemaining / 60)}:
+                {(timeRemaining % 60).toString().padStart(2, "0")}
+              </div>
+              {timeRemaining < 180 && timeRemaining > 0 && (
+                <div style={{ fontSize: "11px", color: "#ff9800" }}>
+                  Hurry up!
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        <div style={{ fontSize: "14px", color: "#666" }}>
-          <strong>Tasks Completed:</strong>{" "}
-          <span style={{ color: "#333", fontSize: "16px", fontWeight: "bold" }}>
+        {/* Tasks completed */}
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: "12px", color: "#666", marginBottom: "2px" }}>
+            Tasks Completed
+          </div>
+          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#333" }}>
             {Object.keys(completed).length}
-          </span>
+          </div>
         </div>
 
-        <div style={{ fontSize: "14px", color: "#666" }}>
-          <strong>Total Points:</strong>{" "}
-          <span
-            style={{ color: "#2196F3", fontSize: "16px", fontWeight: "bold" }}
+        {/* Total points */}
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: "12px", color: "#666", marginBottom: "2px" }}>
+            Total Points
+          </div>
+          <div
+            style={{ fontSize: "24px", fontWeight: "bold", color: "#2196F3" }}
           >
             {getTotalPoints()}
-          </span>
+          </div>
         </div>
 
-        {/* Compact Star Goals Display */}
+        {/* Star goals */}
         {starGoals && (
-          <div style={{ display: "flex", gap: "15px", fontSize: "14px" }}>
-            <span
-              style={{ color: starGoals.star1?.achieved ? "#4CAF50" : "#999" }}
-            >
-              ⭐ {starGoals.star1?.achieved ? "✓" : "25pts"}
-            </span>
-            <span
-              style={{ color: starGoals.star2?.achieved ? "#4CAF50" : "#999" }}
-            >
-              ⭐⭐ {starGoals.star2?.achieved ? "✓" : "20pts"}
-            </span>
-            <span
-              style={{ color: starGoals.star3?.achieved ? "#4CAF50" : "#999" }}
-            >
-              ⭐⭐⭐ {starGoals.star3?.achieved ? "✓" : "50pts"}
-            </span>
+          <div
+            style={{
+              display: "flex",
+              gap: "12px",
+              padding: "8px 16px",
+              background: "white",
+              borderRadius: "20px",
+              border: "1px solid #e0e0e0",
+            }}
+          >
+            {[1, 2, 3].map((star) => {
+              const starData = starGoals[`star${star}`];
+              const isAchieved = starData?.achieved || false;
+              return (
+                <div
+                  key={star}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    opacity: isAchieved ? 1 : 0.5,
+                  }}
+                >
+                  <span style={{ fontSize: "16px" }}>{"⭐".repeat(star)}</span>
+                  {isAchieved && (
+                    <span
+                      style={{
+                        color: "#4CAF50",
+                        fontWeight: "bold",
+                        fontSize: "14px",
+                      }}
+                    >
+                      ✓
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 
+        {/* Current task */}
         {current && (
           <div
             style={{
+              padding: "8px 16px",
+              background: current.startsWith("g1")
+                ? "#9C27B0"
+                : current.startsWith("g2")
+                ? "#4CAF50"
+                : "#f44336",
+              color: "white",
+              borderRadius: "20px",
               fontSize: "14px",
-              color: "#666",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
+              fontWeight: "bold",
             }}
           >
-            <strong>Current:</strong>
-            <span
-              style={{
-                background: current.startsWith("g1")
-                  ? "#9C27B0"
-                  : current.startsWith("g2")
-                  ? "#4CAF50"
-                  : "#f44336",
-                color: "white",
-                padding: "2px 8px",
-                borderRadius: "4px",
-                fontSize: "12px",
-                fontWeight: "bold",
-              }}
-            >
-              {current
-                .replace("g1t", "Research ")
-                .replace("g2t", "Materials ")
-                .replace("g3t", "Engage ")}
-            </span>
+            Current:{" "}
+            {current
+              .replace("g1t", "Research ")
+              .replace("g2t", "Materials ")
+              .replace("g3t", "Engage ")}
           </div>
         )}
       </div>
-
-      <style>{`
-        @keyframes pulse {
-          0% { opacity: 0.5; }
-          50% { opacity: 1; }
-          100% { opacity: 0.5; }
-        }
-      `}</style>
     </div>
   );
 }
