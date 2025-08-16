@@ -268,7 +268,7 @@ export default function StudentLogin({ onLoginSuccess }) {
               lineHeight: "1.2",
             }}
           >
-            Scedueling Challenge:
+            Scheduling Challenge:
             <br />
             Can you beat Park?
           </h1>
