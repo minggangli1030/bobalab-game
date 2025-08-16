@@ -6,7 +6,7 @@ export default function StudentLogin({ onLoginSuccess }) {
   const [identifier, setIdentifier] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showTestCodes, setShowTestCodes] = useState(false);
+  const [showTestCodes, setShowTestCodes] = useState(false); // Keep hidden by default
 
   // Student ID regex patterns
   const idPatterns = {
@@ -159,7 +159,7 @@ export default function StudentLogin({ onLoginSuccess }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        background: "#f5f5f5", // Back to clean minimalist background
         padding: "20px",
       }}
     >
@@ -234,9 +234,9 @@ export default function StudentLogin({ onLoginSuccess }) {
                 outline: "none",
               }}
               onFocus={(e) => {
-                e.target.style.borderColor = "#667eea";
+                e.target.style.borderColor = "#2196F3"; // Blue instead of purple
                 e.target.style.background = "white";
-                e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+                e.target.style.boxShadow = "0 0 0 3px rgba(33, 150, 243, 0.1)";
               }}
               onBlur={(e) => {
                 e.target.style.borderColor = "#e2e8f0";
@@ -297,9 +297,7 @@ export default function StudentLogin({ onLoginSuccess }) {
               padding: "14px 24px",
               fontSize: "16px",
               fontWeight: "600",
-              background: loading
-                ? "#cbd5e0"
-                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+              background: loading ? "#cbd5e0" : "#2196F3", // Simple blue instead of gradient
               color: "white",
               border: "none",
               borderRadius: "8px",
@@ -307,21 +305,29 @@ export default function StudentLogin({ onLoginSuccess }) {
               transition: "all 0.2s ease",
               boxShadow: loading
                 ? "none"
-                : "0 4px 6px rgba(102, 126, 234, 0.25)",
+                : "0 4px 6px rgba(33, 150, 243, 0.25)", // Match blue color
               transform: loading ? "none" : "translateY(0)",
             }}
             onMouseDown={(e) => {
               if (!loading) {
                 e.target.style.transform = "translateY(2px)";
-                e.target.style.boxShadow =
-                  "0 2px 4px rgba(102, 126, 234, 0.25)";
+                e.target.style.boxShadow = "0 2px 4px rgba(33, 150, 243, 0.25)";
               }
             }}
             onMouseUp={(e) => {
               if (!loading) {
                 e.target.style.transform = "translateY(0)";
-                e.target.style.boxShadow =
-                  "0 4px 6px rgba(102, 126, 234, 0.25)";
+                e.target.style.boxShadow = "0 4px 6px rgba(33, 150, 243, 0.25)";
+              }
+            }}
+            onMouseOver={(e) => {
+              if (!loading) {
+                e.target.style.background = "#1976D2";
+              }
+            }}
+            onMouseOut={(e) => {
+              if (!loading) {
+                e.target.style.background = "#2196F3";
               }
             }}
           >
@@ -386,7 +392,8 @@ export default function StudentLogin({ onLoginSuccess }) {
             Having trouble? Contact your instructor.
           </p>
 
-          {/* Test Codes - Remove in production */}
+          {/* Test Codes - Hidden by default, remove entire section in production */}
+          {/* Uncomment the button below to show test codes during development
           <button
             onClick={() => setShowTestCodes(!showTestCodes)}
             style={{
@@ -429,6 +436,7 @@ export default function StudentLogin({ onLoginSuccess }) {
             </svg>
             Test Codes
           </button>
+          */}
 
           {showTestCodes && (
             <div
