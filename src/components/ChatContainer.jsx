@@ -89,8 +89,9 @@ class AITaskHelper {
     // ALWAYS return the exact pattern (perfect for typing)
     return {
       action: "autoType",
-      text: pattern,
+      text: pattern || "", // Ensure pattern is not undefined
       typeSpeed: 50,
+      message: this.getVagueResponse(),
       perfect: true,
     };
   }

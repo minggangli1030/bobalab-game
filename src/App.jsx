@@ -261,28 +261,32 @@ function App() {
 
   const startTimer = () => {
     startTimeRef.current = Date.now();
+
+    // Clear any existing timer first
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+    }
+
     timerIntervalRef.current = setInterval(() => {
       const elapsed = Math.floor(
         (Date.now() - startTimeRef.current - pausedTime) / 1000
       );
       setGlobalTimer(elapsed);
 
-      // Time limit countdown - use functional update to ensure state updates
-      setTimeRemaining((prev) => {
-        const remaining = Math.max(0, timeLimit - elapsed);
-        return remaining;
-      });
-
-      // Check for 10-minute checkpoint (exam season)
-      // Admin mode: checkpoint at 1 minute
+      // Get fresh config for time limit
       const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
-      let checkpointTime = 600; // Default 10 minutes
+      const duration = config.semesterDuration || 1200000;
+      const limitInSeconds = Math.floor(duration / 1000);
 
+      // Calculate remaining time
+      const remaining = Math.max(0, limitInSeconds - elapsed);
+      setTimeRemaining(remaining);
+
+      // Check for checkpoint
+      let checkpointTime = 600; // Default 10 minutes
       if (config.role === "admin") {
         if (config.semesterDuration === 120000) {
-          checkpointTime = 60; // 1 minute checkpoint for 2-minute mode
-        } else if (config.semesterDuration === 30000) {
-          checkpointTime = 15; // 15 seconds for 30-second mode (if you ever use it)
+          checkpointTime = 60; // 1 minute for 2-minute mode
         }
       }
 
@@ -393,12 +397,16 @@ function App() {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
     const duration = config.semesterDuration || 1200000;
     const durationInSeconds = Math.floor(duration / 1000);
+
+    setTimeLimit(durationInSeconds);
     setTimeRemaining(durationInSeconds);
+
     setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
     setTaskAttempts({});
     setTaskPoints({});
 
     startTimer();
+
     setTaskStartTimes({ g2t1: Date.now() });
     eventTracker.setPageStartTime("g2t1");
     eventTracker.logEvent("game_start", {

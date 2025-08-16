@@ -60,15 +60,17 @@ export default function TypingTask({
     const handleAIHelp = (event) => {
       const { action, text, typeSpeed } = event.detail;
 
-      if (action === "autoType") {
+      if (action === "autoType" && text) {
         setIsAITyping(true);
         setInput(""); // Clear input first
 
         // Type character by character
+        let typedText = "";
         let index = 0;
         const typeInterval = setInterval(() => {
           if (index < text.length) {
-            setInput((prev) => prev + text[index]);
+            typedText += text[index];
+            setInput(typedText);
             index++;
           } else {
             clearInterval(typeInterval);
