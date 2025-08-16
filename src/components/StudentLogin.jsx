@@ -1,4 +1,4 @@
-// src/components/StudentLogin.jsx - Updated with Student ID validation
+// src/components/StudentLogin.jsx - Updated with better styling and 2-minute ADMIN-FAST
 import React, { useState } from "react";
 import { codeVerification } from "../utils/codeVerification";
 
@@ -6,6 +6,7 @@ export default function StudentLogin({ onLoginSuccess }) {
   const [identifier, setIdentifier] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showTestCodes, setShowTestCodes] = useState(false);
 
   // Student ID regex patterns
   const idPatterns = {
@@ -23,7 +24,7 @@ export default function StudentLogin({ onLoginSuccess }) {
     },
     "ADMIN-FAST": {
       role: "admin",
-      semesterDuration: 30000, // 30 sec for accelerated testing
+      semesterDuration: 120000, // 2 minutes for accelerated testing
       name: "Admin Fast Mode",
     },
   };
@@ -158,48 +159,58 @@ export default function StudentLogin({ onLoginSuccess }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f5f5f5",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
         padding: "20px",
       }}
     >
       <div
         style={{
           background: "white",
-          padding: "40px",
-          borderRadius: "12px",
-          boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-          maxWidth: "500px",
+          padding: "48px",
+          borderRadius: "16px",
+          boxShadow: "0 20px 40px rgba(0,0,0,0.15)",
+          maxWidth: "480px",
           width: "100%",
         }}
       >
-        <h1
-          style={{
-            textAlign: "center",
-            marginBottom: "10px",
-            color: "#333",
-          }}
-        >
-          Teaching Challenge: Can you beat Park?
-        </h1>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: "40px" }}>
+          <h1
+            style={{
+              fontSize: "32px",
+              fontWeight: "700",
+              color: "#1a202c",
+              marginBottom: "8px",
+              lineHeight: "1.2",
+            }}
+          >
+            Teaching Challenge:
+            <br />
+            Can you beat Park?
+          </h1>
+          <p
+            style={{
+              fontSize: "16px",
+              color: "#718096",
+              marginTop: "12px",
+            }}
+          >
+            Enter your Student ID to access the game
+          </p>
+        </div>
 
-        <p
-          style={{
-            textAlign: "center",
-            color: "#666",
-            marginBottom: "30px",
-          }}
-        >
-          Enter your Student ID to access the game
-        </p>
-
+        {/* Form */}
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: "20px" }}>
+          <div style={{ marginBottom: "24px" }}>
             <label
               style={{
                 display: "block",
                 marginBottom: "8px",
-                color: "#555",
-                fontWeight: "500",
+                color: "#2d3748",
+                fontWeight: "600",
+                fontSize: "14px",
+                textTransform: "uppercase",
+                letterSpacing: "0.025em",
               }}
             >
               Berkeley Student ID:
@@ -212,90 +223,288 @@ export default function StudentLogin({ onLoginSuccess }) {
               disabled={loading}
               style={{
                 width: "100%",
-                padding: "12px",
+                padding: "14px 16px",
                 fontSize: "16px",
-                border: "2px solid #e0e0e0",
-                borderRadius: "6px",
+                border: "2px solid #e2e8f0",
+                borderRadius: "8px",
                 boxSizing: "border-box",
-                fontFamily: "monospace", // Makes IDs easier to read
+                fontFamily: "'SF Mono', Monaco, 'Courier New', monospace",
+                transition: "all 0.2s ease",
+                background: "#f7fafc",
+                outline: "none",
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = "#667eea";
+                e.target.style.background = "white";
+                e.target.style.boxShadow = "0 0 0 3px rgba(102, 126, 234, 0.1)";
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = "#e2e8f0";
+                e.target.style.background = "#f7fafc";
+                e.target.style.boxShadow = "none";
               }}
             />
-            <small
+            <div
               style={{
-                color: "#888",
-                fontSize: "12px",
-                marginTop: "4px",
-                display: "block",
+                marginTop: "8px",
+                fontSize: "13px",
+                color: "#a0aec0",
+                lineHeight: "1.4",
               }}
             >
               Valid formats: 8 digits (15177695) or 10 digits (30xxxxxxxx)
-            </small>
+            </div>
           </div>
 
+          {/* Error Message */}
           {error && (
             <div
               style={{
-                background: "#ffebee",
-                color: "#c62828",
-                padding: "12px",
-                borderRadius: "6px",
-                marginBottom: "20px",
+                background: "#fed7d7",
+                color: "#c53030",
+                padding: "12px 16px",
+                borderRadius: "8px",
+                marginBottom: "24px",
                 fontSize: "14px",
+                display: "flex",
+                alignItems: "center",
+                border: "1px solid #fc8181",
               }}
             >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                style={{ marginRight: "8px", flexShrink: 0 }}
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
               {error}
             </div>
           )}
 
+          {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
             style={{
               width: "100%",
-              padding: "14px",
+              padding: "14px 24px",
               fontSize: "16px",
-              fontWeight: "bold",
-              background: loading ? "#ccc" : "#2196F3",
+              fontWeight: "600",
+              background: loading
+                ? "#cbd5e0"
+                : "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
               color: "white",
               border: "none",
-              borderRadius: "6px",
+              borderRadius: "8px",
               cursor: loading ? "not-allowed" : "pointer",
-              transition: "background 0.3s ease",
+              transition: "all 0.2s ease",
+              boxShadow: loading
+                ? "none"
+                : "0 4px 6px rgba(102, 126, 234, 0.25)",
+              transform: loading ? "none" : "translateY(0)",
             }}
-            onMouseOver={(e) =>
-              !loading && (e.target.style.background = "#1976D2")
-            }
-            onMouseOut={(e) =>
-              !loading && (e.target.style.background = "#2196F3")
-            }
+            onMouseDown={(e) => {
+              if (!loading) {
+                e.target.style.transform = "translateY(2px)";
+                e.target.style.boxShadow =
+                  "0 2px 4px rgba(102, 126, 234, 0.25)";
+              }
+            }}
+            onMouseUp={(e) => {
+              if (!loading) {
+                e.target.style.transform = "translateY(0)";
+                e.target.style.boxShadow =
+                  "0 4px 6px rgba(102, 126, 234, 0.25)";
+              }
+            }}
           >
-            {loading ? "Verifying Student ID..." : "Access Game"}
+            {loading ? (
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <svg
+                  className="animate-spin"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  style={{
+                    marginRight: "8px",
+                    animation: "spin 1s linear infinite",
+                  }}
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeOpacity="0.25"
+                  />
+                  <path
+                    d="M4 12a8 8 0 018-8"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Verifying Student ID...
+              </span>
+            ) : (
+              "Access Game"
+            )}
           </button>
         </form>
 
+        {/* Footer */}
         <div
           style={{
-            marginTop: "30px",
-            paddingTop: "20px",
-            borderTop: "1px solid #e0e0e0",
-            fontSize: "14px",
-            color: "#888",
+            marginTop: "32px",
+            paddingTop: "24px",
+            borderTop: "1px solid #e2e8f0",
             textAlign: "center",
           }}
         >
-          <p>Having trouble? Contact your instructor.</p>
-          {/* Remove this in production - just for testing */}
-          <details style={{ marginTop: "10px", fontSize: "12px" }}>
-            <summary style={{ cursor: "pointer", color: "#aaa" }}>
-              Test Codes
-            </summary>
-            <div style={{ marginTop: "8px", lineHeight: "1.6" }}>
-              <div>ADMIN-REGULAR (20min)</div>
-              <div>ADMIN-FAST (30s)</div>
+          <p
+            style={{
+              fontSize: "14px",
+              color: "#718096",
+              marginBottom: "12px",
+            }}
+          >
+            Having trouble? Contact your instructor.
+          </p>
+
+          {/* Test Codes - Remove in production */}
+          <button
+            onClick={() => setShowTestCodes(!showTestCodes)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#a0aec0",
+              fontSize: "13px",
+              cursor: "pointer",
+              padding: "4px 8px",
+              borderRadius: "4px",
+              transition: "all 0.2s ease",
+              display: "inline-flex",
+              alignItems: "center",
+            }}
+            onMouseOver={(e) => {
+              e.target.style.background = "#f7fafc";
+              e.target.style.color = "#718096";
+            }}
+            onMouseOut={(e) => {
+              e.target.style.background = "none";
+              e.target.style.color = "#a0aec0";
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              style={{
+                marginRight: "4px",
+                transform: showTestCodes ? "rotate(90deg)" : "rotate(0)",
+                transition: "transform 0.2s ease",
+              }}
+            >
+              <path
+                fillRule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Test Codes
+          </button>
+
+          {showTestCodes && (
+            <div
+              style={{
+                marginTop: "12px",
+                padding: "12px",
+                background: "#f7fafc",
+                borderRadius: "8px",
+                fontSize: "13px",
+                color: "#4a5568",
+                lineHeight: "1.6",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-around",
+                  flexWrap: "wrap",
+                  gap: "8px",
+                }}
+              >
+                <div
+                  style={{
+                    padding: "6px 12px",
+                    background: "white",
+                    borderRadius: "6px",
+                    border: "1px solid #e2e8f0",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  <strong>ADMIN-REGULAR</strong>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#718096",
+                      marginTop: "2px",
+                    }}
+                  >
+                    20 minutes
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: "6px 12px",
+                    background: "white",
+                    borderRadius: "6px",
+                    border: "1px solid #e2e8f0",
+                    fontFamily: "monospace",
+                  }}
+                >
+                  <strong>ADMIN-FAST</strong>
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#718096",
+                      marginTop: "2px",
+                    }}
+                  >
+                    2 minutes
+                  </div>
+                </div>
+              </div>
             </div>
-          </details>
+          )}
         </div>
       </div>
+
+      {/* Add spinning animation keyframes */}
+      <style>
+        {`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 }

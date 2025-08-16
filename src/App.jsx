@@ -186,8 +186,15 @@ function App() {
       // Check for 10-minute checkpoint (exam season)
       // Admin mode: checkpoint at 1 minute
       const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
-      const checkpointTime =
-        config.role === "admin" && config.semesterDuration === 30000 ? 15 : 600; // 15 seconds for ADMIN-FAST, 10 minutes for others
+      let checkpointTime = 600; // Default 10 minutes
+
+      if (config.role === "admin") {
+        if (config.semesterDuration === 120000) {
+          checkpointTime = 60; // 1 minute checkpoint for 2-minute mode
+        } else if (config.semesterDuration === 30000) {
+          checkpointTime = 15; // 15 seconds for 30-second mode (if you ever use it)
+        }
+      }
 
       if (elapsed === checkpointTime && !checkpointReached) {
         handleCheckpoint();
