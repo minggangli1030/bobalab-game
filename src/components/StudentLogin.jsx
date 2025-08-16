@@ -184,7 +184,7 @@ export default function StudentLogin({ onLoginSuccess }) {
               lineHeight: "1.2",
             }}
           >
-            Teaching Challenge:
+            Scedueling Challenge:
             <br />
             Can you beat Park?
           </h1>
@@ -391,52 +391,6 @@ export default function StudentLogin({ onLoginSuccess }) {
           >
             Having trouble? Contact your instructor.
           </p>
-
-          {/* Test Codes - Hidden by default, remove entire section in production */}
-          {/* Uncomment the button below to show test codes during development
-          <button
-            onClick={() => setShowTestCodes(!showTestCodes)}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#a0aec0",
-              fontSize: "13px",
-              cursor: "pointer",
-              padding: "4px 8px",
-              borderRadius: "4px",
-              transition: "all 0.2s ease",
-              display: "inline-flex",
-              alignItems: "center",
-            }}
-            onMouseOver={(e) => {
-              e.target.style.background = "#f7fafc";
-              e.target.style.color = "#718096";
-            }}
-            onMouseOut={(e) => {
-              e.target.style.background = "none";
-              e.target.style.color = "#a0aec0";
-            }}
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              style={{
-                marginRight: "4px",
-                transform: showTestCodes ? "rotate(90deg)" : "rotate(0)",
-                transition: "transform 0.2s ease",
-              }}
-            >
-              <path
-                fillRule="evenodd"
-                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Test Codes
-          </button>
-          */}
 
           {showTestCodes && (
             <div
