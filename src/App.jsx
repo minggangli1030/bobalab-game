@@ -260,34 +260,40 @@ function App() {
   };
 
   const startTimer = () => {
-    startTimeRef.current = Date.now();
-
     // Clear any existing timer first
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
     }
 
+    // Reset the start time and paused time
+    startTimeRef.current = Date.now();
+    setPausedTime(0); // Reset paused time
+
+    // Get config immediately
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const duration = config.semesterDuration || 1200000;
+    const limitInSeconds = Math.floor(duration / 1000);
+
+    // Set both timeLimit and timeRemaining
+    setTimeLimit(limitInSeconds);
+    setTimeRemaining(limitInSeconds);
+
+    console.log("Starting timer with limit:", limitInSeconds); // Debug log
+
     timerIntervalRef.current = setInterval(() => {
-      const elapsed = Math.floor(
-        (Date.now() - startTimeRef.current - pausedTime) / 1000
-      );
+      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
       setGlobalTimer(elapsed);
 
-      // Get fresh config for time limit
-      const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
-      const duration = config.semesterDuration || 1200000;
-      const limitInSeconds = Math.floor(duration / 1000);
-
-      // Calculate remaining time
       const remaining = Math.max(0, limitInSeconds - elapsed);
       setTimeRemaining(remaining);
 
+      console.log("Timer tick - elapsed:", elapsed, "remaining:", remaining); // Debug log
+
       // Check for checkpoint
-      let checkpointTime = 600; // Default 10 minutes
-      if (config.role === "admin") {
-        if (config.semesterDuration === 120000) {
-          checkpointTime = 60; // 1 minute for 2-minute mode
-        }
+      let checkpointTime = 600;
+      if (config.role === "admin" && config.semesterDuration === 120000) {
+        checkpointTime = 60;
       }
 
       if (elapsed === checkpointTime && !checkpointReached) {
@@ -296,9 +302,12 @@ function App() {
 
       if (remaining === 0) {
         clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
         handleGameComplete("semester_complete");
       }
     }, 1000);
+
+    console.log("Timer interval ID:", timerIntervalRef.current); // Debug log
   };
 
   // Handle checkpoint (exam season)
@@ -405,9 +414,9 @@ function App() {
     setTaskAttempts({});
     setTaskPoints({});
 
-    startTimer();
-
     setTaskStartTimes({ g2t1: Date.now() });
+
+    startTimer();
     eventTracker.setPageStartTime("g2t1");
     eventTracker.logEvent("game_start", {
       practiceCompleted: practiceChoice === "yes",
@@ -459,7 +468,7 @@ function App() {
 
     // Show learning score update
     showNotification(
-      `Complete! +${points} ${category} points | Student Learning: ${Math.round(
+      `+${points} ${category} pts | Student Learning: ${Math.round(
         newStudentLearning
       )} pts`
     );
@@ -1697,6 +1706,16 @@ function App() {
         <h1 style={{ marginBottom: "30px", textAlign: "center" }}>
           Can you beat Park? - Semester {currentSemester}/{totalSemesters}
         </h1>
+
+        {/* ADD THIS DEBUG LINE HERE */}
+        {console.log(
+          "Current timeRemaining:",
+          timeRemaining,
+          "timeLimit:",
+          timeLimit,
+          "globalTimer:",
+          globalTimer
+        )}
 
         {/* Use NavTabsEnhanced with star progress */}
         <NavTabsEnhanced

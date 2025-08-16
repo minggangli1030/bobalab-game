@@ -55,6 +55,13 @@ export default function TypingTask({
     setPatternImageUrl(imageUrl);
   }, [taskNum]);
 
+  // Clear input when task changes
+  useEffect(() => {
+    setInput("");
+    setFeedback(null);
+    attemptsRef.current = 0;
+  }, [taskNum]);
+
   // ADD THIS: Listen for AI help
   useEffect(() => {
     const handleAIHelp = (event) => {
