@@ -77,6 +77,8 @@ function App() {
   const outOfFocusTimerRef = useRef(null);
   const idleTimerRef = useRef(null);
   const lastActivityRef = useRef(Date.now());
+  const timeRemainingRef = useRef(1200);
+  const timeLimitRef = useRef(1200);
 
   // Initialize session on mount
   // Initialize session on mount
@@ -260,70 +262,62 @@ function App() {
   };
 
   const startTimer = () => {
-    // Clear any existing timer first
+    // Clear any existing timer
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
       timerIntervalRef.current = null;
     }
 
-    // Get config immediately
+    // Get config
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
     const duration = config.semesterDuration || 1200000;
     const limitInSeconds = Math.floor(duration / 1000);
 
-    // Set initial values
+    // Initialize refs and state
+    timeLimitRef.current = limitInSeconds;
+    timeRemainingRef.current = limitInSeconds;
     setTimeLimit(limitInSeconds);
     setTimeRemaining(limitInSeconds);
     setGlobalTimer(0);
     setPausedTime(0);
 
-    // Store start time
     const gameStartTime = Date.now();
     startTimeRef.current = gameStartTime;
 
-    console.log(
-      "Starting timer - limit:",
-      limitInSeconds,
-      "start time:",
-      gameStartTime
-    );
+    console.log("Starting timer with limit:", limitInSeconds);
 
+    // Use a simple countdown approach
     timerIntervalRef.current = setInterval(() => {
-      const elapsed = Math.floor((now - gameStartTime) / 1000);
-      const remaining = Math.max(0, limitInSeconds - elapsed);
+      timeRemainingRef.current -= 1;
 
-      console.log("⏱️ Timer tick:", {
-        elapsed,
-        limitInSeconds,
-        remaining,
-        willSetTimeRemaining: remaining,
-      });
+      if (timeRemainingRef.current < 0) {
+        timeRemainingRef.current = 0;
+      }
 
-      setGlobalTimer(elapsed);
-      setTimeRemaining(remaining);
+      // Update state
+      setTimeRemaining(timeRemainingRef.current);
+      setGlobalTimer(timeLimitRef.current - timeRemainingRef.current);
+
+      console.log("Timer tick - remaining:", timeRemainingRef.current);
 
       // Check for checkpoint
+      const elapsed = timeLimitRef.current - timeRemainingRef.current;
       const checkpointTime =
         config.role === "admin" && config.semesterDuration === 120000
           ? 60
           : 600;
 
-      setCheckpointReached((prevReached) => {
-        if (elapsed === checkpointTime && !prevReached) {
-          handleCheckpoint();
-          return true;
-        }
-        return prevReached;
-      });
+      if (elapsed === checkpointTime && !checkpointReached) {
+        handleCheckpoint();
+      }
 
-      if (elapsed >= limitInSeconds) {
+      // Check for completion
+      if (timeRemainingRef.current <= 0) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
         handleGameComplete("semester_complete");
       }
     }, 1000);
-
-    console.log("Timer started with interval ID:", timerIntervalRef.current);
   };
 
   useEffect(() => {
