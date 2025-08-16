@@ -132,6 +132,12 @@ export default function CountingTask({
   };
 
   useEffect(() => {
+    setInput(0);
+    setFeedback(null);
+    attemptsRef.current = 0;
+  }, [taskNum]);
+
+  useEffect(() => {
     const handleAIHelp = async (event) => {
       const { action, highlightWords, suggestedCount, animate } =
         event.detail || {};

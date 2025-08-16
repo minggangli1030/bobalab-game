@@ -32,6 +32,8 @@ export default function SliderTask({
     setStep(pattern.step);
     setShowValue(pattern.showValue);
     setInput(0);
+    setFeedback(null);
+    attemptsRef.current = 0;
   }, [taskNum]);
 
   useEffect(() => {
