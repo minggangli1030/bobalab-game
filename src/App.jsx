@@ -290,6 +290,7 @@ function App() {
       }
 
       if (remaining === 0) {
+        clearInterval(timerIntervalRef.current);
         handleGameComplete("semester_complete");
       }
     }, 1000);
@@ -490,6 +491,28 @@ function App() {
         lastActivity: serverTimestamp(),
       });
     }
+    // Auto-advance to next task after 2 seconds
+    setTimeout(() => {
+      const currentGame = tabId[1];
+      const currentTaskNum = parseInt(tabId[3]);
+
+      // Try next task in same game
+      if (currentTaskNum < 15) {
+        const nextTask = `g${currentGame}t${currentTaskNum + 1}`;
+        if (!completed[nextTask]) {
+          handleTabSwitch(nextTask, true);
+        }
+      } else {
+        // Try to switch to next game
+        const nextGame = parseInt(currentGame) + 1;
+        if (nextGame <= 3) {
+          const nextTask = `g${nextGame}t1`;
+          if (!completed[nextTask]) {
+            handleTabSwitch(nextTask, true);
+          }
+        }
+      }
+    }, 2000);
   };
 
   // Handle tab switching

@@ -11,17 +11,6 @@ class AITaskHelper {
       research: 0,
       engagement: 0,
     };
-
-    this.vagueResponses = [
-      "I've analyzed the task and provided assistance!",
-      "My calculations are complete!",
-      "I've done my best to help!",
-      "Task assistance delivered!",
-      "Here's what I came up with!",
-      "Analysis complete!",
-      "I hope this helps!",
-      "Processed and ready!",
-    ];
   }
 
   getVagueResponse() {
@@ -228,7 +217,7 @@ export default function ChatContainer({
       ...prev,
       {
         sender: "bot",
-        text: `📊 Materials Help: ${help.message}`,
+        text: `📊 Helping with materials...`,
       },
     ]);
   };
@@ -259,7 +248,7 @@ export default function ChatContainer({
         ...prev,
         {
           sender: "bot",
-          text: `🔬 Research Help: ${help.message}`,
+          text: `🔬 Helping with research...`,
         },
       ]);
     } else {
@@ -293,7 +282,7 @@ export default function ChatContainer({
           ...prev,
           {
             sender: "bot",
-            text: `✉️ Engagement Help: ${help.message}`,
+            text: `✉️ Helping with engagement...`,
           },
         ]);
       }
@@ -421,6 +410,20 @@ export default function ChatContainer({
           </div>
         )}
         <div ref={messagesEndRef} />
+      </div>
+
+      {/* Chat Input */}
+      <div className="chat-input-sidebar">
+        <input
+          type="text"
+          placeholder="Ask about strategy, tips, or type 'help'..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={(e) => e.key === "Enter" && handleSend()}
+        />
+        <button onClick={handleSend} disabled={!input.trim()}>
+          Send
+        </button>
       </div>
 
       {/* SMART HELP BUTTONS */}
@@ -571,20 +574,6 @@ export default function ChatContainer({
             </span>
           )}
         </div>
-      </div>
-
-      {/* Chat Input */}
-      <div className="chat-input-sidebar">
-        <input
-          type="text"
-          placeholder="Ask about strategy, tips, or type 'help'..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && handleSend()}
-        />
-        <button onClick={handleSend} disabled={!input.trim()}>
-          Send
-        </button>
       </div>
     </div>
   );
