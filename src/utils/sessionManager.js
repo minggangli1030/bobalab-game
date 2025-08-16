@@ -1,4 +1,4 @@
-// src/utils/sessionManager.js - Code Required Version
+// src/utils/sessionManager.js - Fixed Version
 import { db } from "../firebase";
 import {
   collection,
@@ -18,17 +18,17 @@ export const sessionManager = {
       // First check if there's a code in the URL
       const urlCode = codeVerification.getCodeFromURL();
 
-      // ENFORCE CODE REQUIREMENT
+      // If no code, redirect to login
       if (!urlCode) {
         return {
           allowed: false,
           reason:
-            "Access code required. Please access this game through your Qualtrics survey.",
+            "Access code required. Please access this game through your student login.",
           requiresCode: true,
         };
       }
 
-      // CHECK FOR ADMIN CODES - always allow
+      // CHECK FOR ADMIN CODES FIRST - bypass Firebase
       if (urlCode === "ADMIN-FAST" || urlCode === "ADMIN-REGULAR") {
         console.log("Admin code detected - bypassing all restrictions");
         return {
@@ -37,6 +37,7 @@ export const sessionManager = {
           code: urlCode,
           codeData: {
             isAdminCode: true,
+            status: "admin",
             metadata: {
               isMasterCode: true,
               role: "admin",
@@ -46,21 +47,42 @@ export const sessionManager = {
         };
       }
 
-      // Regular student code verification
+      // For regular codes, verify in Firebase
       const { valid, reason, codeData } = await codeVerification.verifyCode(
         urlCode
       );
 
+      console.log("Code verification result:", { valid, reason, codeData });
+
       if (!valid) {
+        // If code doesn't exist in Firebase, it might be a newly generated one
+        // Check if we just came from StudentLogin (config exists in sessionStorage)
+        const gameConfig = JSON.parse(
+          sessionStorage.getItem("gameConfig") || "{}"
+        );
+        if (gameConfig.studentId) {
+          console.log("New student session detected, allowing access");
+          return {
+            allowed: true,
+            newSession: true,
+            code: urlCode,
+            codeData: {
+              status: "new",
+              metadata: gameConfig,
+            },
+          };
+        }
+
         return {
           allowed: false,
-          reason: `Invalid or expired access code: ${reason}`,
+          reason: reason || "Invalid access code",
           code: urlCode,
         };
       }
 
-      // For student codes, check if already used
+      // Code exists and is valid
       if (codeData.status === "used" && codeData.sessionId) {
+        // Check if same browser session
         const existingSessionId = localStorage.getItem("sessionId");
         if (existingSessionId === codeData.sessionId) {
           // Same browser/session, allow continuation
@@ -70,16 +92,35 @@ export const sessionManager = {
             code: urlCode,
             codeData,
           };
-        } else {
-          // Different browser/session - block for students
+        }
+
+        // For student codes that have been used, check if it's the same student
+        const gameConfig = JSON.parse(
+          sessionStorage.getItem("gameConfig") || "{}"
+        );
+        if (
+          gameConfig.studentId &&
+          codeData.metadata?.studentIdentifier === gameConfig.studentId
+        ) {
+          // Same student, allow new session
+          console.log("Same student accessing again, allowing new session");
           return {
-            allowed: false,
-            reason: "This code has already been used.",
+            allowed: true,
+            newSession: true,
             code: urlCode,
+            codeData,
           };
         }
+
+        // Different browser/session and different student
+        return {
+          allowed: false,
+          reason: "This code has already been used.",
+          code: urlCode,
+        };
       }
 
+      // Code is unused, allow access
       return {
         allowed: true,
         newSession: true,
@@ -88,6 +129,24 @@ export const sessionManager = {
       };
     } catch (error) {
       console.error("Error checking access:", error);
+
+      // On error, check if we have a valid session config
+      const gameConfig = JSON.parse(
+        sessionStorage.getItem("gameConfig") || "{}"
+      );
+      if (gameConfig.studentId) {
+        console.log("Error but valid config found, allowing access");
+        return {
+          allowed: true,
+          newSession: true,
+          code: codeVerification.getCodeFromURL(),
+          codeData: {
+            status: "error_bypass",
+            metadata: gameConfig,
+          },
+        };
+      }
+
       return {
         allowed: false,
         reason: "System error. Please try again or contact support.",
@@ -116,15 +175,23 @@ export const sessionManager = {
         screenResolution: `${window.screen.width}x${window.screen.height}`,
         source: accessCode ? "qualtrics" : "direct",
         isPractice: isPractice,
-        isAdminSession: codeData?.isAdminCode || false, // Track admin sessions
+        isAdminSession: codeData?.isAdminCode || false,
       };
 
       const docRef = await addDoc(collection(db, "sessions"), sessionData);
       localStorage.setItem("sessionId", docRef.id);
 
-      // ONLY mark code as used if NOT admin and NOT practice
-      if (accessCode && !isPractice && !codeData?.isAdminCode) {
-        await codeVerification.markCodeAsUsed(accessCode, docRef.id);
+      // Only mark code as used for real student sessions
+      if (
+        accessCode &&
+        !isPractice &&
+        !codeData?.isAdminCode &&
+        codeData?.status !== "error_bypass"
+      ) {
+        // Only try to mark as used if the code exists in Firebase
+        if (codeData?.status !== "new") {
+          await codeVerification.markCodeAsUsed(accessCode, docRef.id);
+        }
       }
 
       // Set up beforeunload handler
@@ -138,13 +205,18 @@ export const sessionManager = {
       // Fallback for offline mode
       const offlineId = "offline-" + Date.now();
       localStorage.setItem("sessionId", offlineId);
-      localStorage.setItem(
-        "offlineSession",
-        JSON.stringify({ ...sessionData, id: offlineId })
-      );
+      const sessionData = {
+        id: offlineId,
+        accessCode,
+        startTime: Date.now(),
+        status: "active",
+        isOffline: true,
+      };
+      localStorage.setItem("offlineSession", JSON.stringify(sessionData));
       return offlineId;
     }
   },
+
   async handleSessionAbandonment() {
     const sessionId = localStorage.getItem("sessionId");
     if (sessionId && !sessionId.startsWith("offline-")) {

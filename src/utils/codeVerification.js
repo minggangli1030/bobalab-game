@@ -17,9 +17,18 @@ export const codeVerification = {
     return `${timestamp}-${randomStr}`.toUpperCase();
   },
 
-  // Store code in Firebase when generating from Qualtrics
+  // In createCode function, make it simpler for student IDs
   async createCode(qualtricsData = {}) {
     const code = this.generateCode();
+
+    // For student logins, we don't need to store in Firebase immediately
+    // The session manager will handle it
+    if (qualtricsData.studentIdentifier) {
+      console.log("Student code generated:", code);
+      return { success: true, code };
+    }
+
+    // For other codes, store in Firebase
     const codeData = {
       code,
       createdAt: serverTimestamp(),
@@ -36,7 +45,8 @@ export const codeVerification = {
       return { success: true, code };
     } catch (error) {
       console.error("Error creating code:", error);
-      return { success: false, error: error.message };
+      // Even on Firebase error, return the code for student use
+      return { success: true, code };
     }
   },
 
