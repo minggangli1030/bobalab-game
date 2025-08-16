@@ -477,8 +477,26 @@ export default function ChatContainer({
                 })`
               : "Start a task to enable help"}
           </button>
-
           {/* Individual Task Buttons */}
+          <button
+            onClick={() => handleSmartHelp("research")}
+            disabled={!currentTask.startsWith("g1")}
+            style={{
+              padding: "10px",
+              background: currentTask.startsWith("g1") ? "#9C27B0" : "#e0e0e0",
+              color: currentTask.startsWith("g1") ? "white" : "#999",
+              border: "none",
+              borderRadius: "6px",
+              cursor: currentTask.startsWith("g1") ? "pointer" : "not-allowed",
+              fontWeight: "bold",
+              fontSize: "12px",
+              transition: "all 0.2s",
+            }}
+            title="Help with Research (Counting) task"
+          >
+            📚 Research
+          </button>
+
           <button
             onClick={() => handleSmartHelp("materials")}
             disabled={!currentTask.startsWith("g2")}
@@ -495,7 +513,7 @@ export default function ChatContainer({
             }}
             title="Help with Materials (Slider) task"
           >
-            📚 Research
+            🎯 Materials
           </button>
 
           <button
@@ -513,25 +531,6 @@ export default function ChatContainer({
               transition: "all 0.2s",
             }}
             title="Help with Engagement (Typing) task"
-          >
-            🎯 Materials
-          </button>
-
-          <button
-            onClick={() => handleSmartHelp("research")}
-            disabled={!currentTask.startsWith("g1")}
-            style={{
-              padding: "10px",
-              background: currentTask.startsWith("g1") ? "#9C27B0" : "#e0e0e0",
-              color: currentTask.startsWith("g1") ? "white" : "#999",
-              border: "none",
-              borderRadius: "6px",
-              cursor: currentTask.startsWith("g1") ? "pointer" : "not-allowed",
-              fontWeight: "bold",
-              fontSize: "12px",
-              transition: "all 0.2s",
-            }}
-            title="Help with Research (Counting) task"
           >
             ✉️ Engage
           </button>
