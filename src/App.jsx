@@ -79,10 +79,100 @@ function App() {
   const lastActivityRef = useRef(Date.now());
 
   // Initialize session on mount
+  // Initialize session on mount
   useEffect(() => {
     checkAndInitSession();
 
+    // Add focus/blur detection
+    const handleFocus = () => {
+      if (isOutOfFocus) {
+        setIsOutOfFocus(false);
+        setOutOfFocusCountdown(30);
+        if (outOfFocusTimerRef.current) {
+          clearInterval(outOfFocusTimerRef.current);
+          outOfFocusTimerRef.current = null;
+        }
+      }
+    };
+
+    const handleBlur = () => {
+      // Only trigger in challenge mode, not for admin
+      const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+      if (mode === "challenge" && config.role !== "admin") {
+        setIsOutOfFocus(true);
+        let countdown = 30;
+
+        outOfFocusTimerRef.current = setInterval(() => {
+          countdown--;
+          setOutOfFocusCountdown(countdown);
+
+          if (countdown <= 0) {
+            // Block the game
+            setGameBlocked(true);
+            clearInterval(outOfFocusTimerRef.current);
+            eventTracker.logEvent("game_blocked", {
+              reason: "out_of_focus",
+              timestamp: Date.now(),
+            });
+          }
+        }, 1000);
+      }
+    };
+
+    // Add idle detection
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+      if (isIdle) {
+        setIsIdle(false);
+        setIdleCountdown(5);
+        if (idleTimerRef.current) {
+          clearInterval(idleTimerRef.current);
+          idleTimerRef.current = null;
+        }
+      }
+    };
+
+    // Check for idle every 30 seconds
+    const idleCheckInterval = setInterval(() => {
+      const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+      if (mode === "challenge" && config.role !== "admin") {
+        const timeSinceActivity = Date.now() - lastActivityRef.current;
+        if (timeSinceActivity > 60000 && !isIdle) {
+          // 60 seconds of inactivity
+          setIsIdle(true);
+          let countdown = 5;
+
+          idleTimerRef.current = setInterval(() => {
+            countdown--;
+            setIdleCountdown(countdown);
+
+            if (countdown <= 0) {
+              setGameBlocked(true);
+              clearInterval(idleTimerRef.current);
+              eventTracker.logEvent("game_blocked", {
+                reason: "idle",
+                timestamp: Date.now(),
+              });
+            }
+          }, 1000);
+        }
+      }
+    }, 30000);
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("mousemove", handleActivity);
+    window.addEventListener("keypress", handleActivity);
+    window.addEventListener("click", handleActivity);
+
     return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keypress", handleActivity);
+      window.removeEventListener("click", handleActivity);
+      clearInterval(idleCheckInterval);
+
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
       }
@@ -93,7 +183,7 @@ function App() {
         clearInterval(idleTimerRef.current);
       }
     };
-  }, []);
+  }, [mode, isOutOfFocus, isIdle]); // ← Note the dependencies added here
 
   useEffect(() => {
     // Read config from sessionStorage (set by StudentLogin)
@@ -288,26 +378,6 @@ function App() {
           randomSeed: seed,
           [`semesterSeeds.semester${currentSemester}`]: seed,
         });
-      }
-      // AUTO-ADVANCE TO NEXT LEVEL IN SAME CATEGORY
-      const game = tabId.substring(0, 2);
-      const currentLevel = parseInt(tabId.substring(3));
-      const nextLevel = currentLevel + 1;
-
-      // Check if next level exists (max 15 levels per game)
-      if (nextLevel <= 15) {
-        const nextTaskId = `${game}t${nextLevel}`;
-
-        // Short delay before auto-advancing
-        setTimeout(() => {
-          showNotification(`Auto-advancing to ${category} Level ${nextLevel}!`);
-          handleTabSwitch(nextTaskId, true);
-        }, 1500);
-      } else {
-        // Completed all levels in this category!
-        showNotification(
-          `🎉 All ${category} levels complete! Choose another category.`
-        );
       }
     }
 

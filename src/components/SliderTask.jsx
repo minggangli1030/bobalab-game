@@ -75,25 +75,25 @@ export default function SliderTask({
     return () => window.removeEventListener("aiSliderHelp", handleAIHelp);
   }, [input]);
 
-  // ADD this entire block:
-  // Handle drag mechanics
   const handleMouseDown = (e) => {
     if (isAIControlled) return;
 
     const slider = sliderRef.current;
     if (!slider) return;
 
-    // Only start dragging if clicking on the thumb
+    // Prevent default to avoid text selection
+    e.preventDefault();
+
+    // Get click position (handle both mouse and touch)
     const rect = slider.getBoundingClientRect();
     const percent = input / 10;
     const thumbPosition = rect.left + rect.width * percent;
     const clickX = e.clientX || (e.touches && e.touches[0].clientX);
 
-    // Check if click is near the thumb (within 20px)
-    if (Math.abs(clickX - thumbPosition) < 20) {
+    // Check if click is near the thumb (within 30px for easier grabbing)
+    if (Math.abs(clickX - thumbPosition) < 30) {
       setIsDragging(true);
       setHasInteracted(true);
-      e.preventDefault();
     }
   };
 
@@ -289,27 +289,17 @@ export default function SliderTask({
               max="10"
               step={step}
               value={input}
-              onChange={() => {}} // Empty function - no direct changes allowed
+              onChange={(e) => {
+                // Allow direct value changes when not dragging
+                if (!isDragging && !isAIControlled) {
+                  setInput(parseFloat(e.target.value));
+                  setHasInteracted(true);
+                }
+              }}
               className="slider-input"
               style={{
                 width: "100%",
                 cursor: isDragging ? "grabbing" : "grab",
-              }}
-            />
-
-            {/* Invisible overlay that only responds at thumb position */}
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: `${(input / 10) * 100}%`,
-                transform: "translate(-50%, -50%)",
-                width: "30px",
-                height: "30px",
-                cursor: isDragging ? "grabbing" : "grab",
-                zIndex: 20,
-                // Debug: uncomment to see the hit area
-                // background: "rgba(255, 0, 0, 0.3)",
               }}
               onMouseDown={handleMouseDown}
               onTouchStart={handleMouseDown}
