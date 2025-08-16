@@ -1,4 +1,4 @@
-// src/components/ChatContainer.jsx - COMPLETE FILE
+// src/components/ChatContainer.jsx - FIXED WITH CORRECT TERMINOLOGY
 import React, { useState, useEffect, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
 import "./ChatContainer.css";
@@ -57,40 +57,49 @@ class AITaskHelper {
     this.usageCount.counting++;
     const accuracy = Math.max(0.2, 0.6 - (this.usageCount.counting - 1) * 0.1);
 
-    const words = text.split(/(\s+)/);
-    const highlights = new Set();
+    // Split text into words properly
+    const words = text.split(/\s+/);
+    const highlightWords = [];
     let aiCount = 0;
 
-    words.forEach((word, idx) => {
-      if (word.toLowerCase().includes(targetPattern.toLowerCase())) {
+    // Find which words to highlight
+    words.forEach((word) => {
+      const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
+      const shouldBeHighlighted = cleanWord === targetPattern.toLowerCase();
+
+      if (shouldBeHighlighted) {
+        // AI might miss this correct word
         if (Math.random() < accuracy) {
-          highlights.add(idx);
+          highlightWords.push(word);
           aiCount++;
         }
       } else {
-        if (Math.random() < (1 - accuracy) * 0.3) {
-          highlights.add(idx);
+        // AI might wrongly highlight this word
+        if (Math.random() < (1 - accuracy) * 0.2) {
+          highlightWords.push(word);
           aiCount++;
         }
       }
     });
 
-    if (Math.random() < 0.4) {
+    // Add some counting error
+    if (Math.random() < 0.3) {
       aiCount += Math.random() < 0.5 ? 1 : -1;
+      aiCount = Math.max(0, aiCount);
     }
 
     return {
       action: "highlightAndCount",
-      highlightIndices: Array.from(highlights),
-      suggestedCount: Math.max(0, aiCount),
+      highlightWords: highlightWords, // Send actual words to highlight
+      suggestedCount: aiCount,
       message: this.getVagueResponse(),
-      actualText: words,
     };
   }
 
   helpWithTyping(pattern) {
     this.usageCount.typing++;
 
+    // ALWAYS return the exact pattern for typing (perfect every time)
     return {
       action: "autoType",
       text: pattern,
@@ -115,7 +124,7 @@ export default function ChatContainer({
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Hello! I'm your AI teaching assistant. I can help with slider, counting, and typing tasks. Try asking 'slider help', 'count help', or 'type help'!",
+      text: "Hello! I'm your AI teaching assistant. I can help with materials, research, and engagement tasks. Try asking 'materials help', 'research help', or 'engagement help'!",
     },
   ]);
   const [input, setInput] = useState("");
@@ -130,7 +139,7 @@ export default function ChatContainer({
     scrollToBottom();
   }, [messages]);
 
-  // Handler for slider help
+  // Handler for slider help (Materials)
   const handleSliderHelp = () => {
     const sliderTarget =
       document
@@ -157,25 +166,34 @@ export default function ChatContainer({
     ]);
   };
 
-  // Handler for counting help
+  // Handler for counting help (Research)
   const handleCountingHelp = () => {
+    // Get the actual text content
     const textElement =
       document.querySelector(".text-to-count") ||
-      document.querySelector(".counting-text") ||
       document.querySelector("[data-counting-text]");
+
+    // Get the target pattern
     const patternElement =
       document.querySelector(".count-target") ||
-      document.querySelector("[data-pattern]") ||
-      document.querySelector(".counting-pattern");
+      document.querySelector("[data-pattern]");
 
     if (textElement && patternElement) {
+      // Get text - try data attribute first, then textContent
       const text =
-        textElement.textContent ||
-        textElement.getAttribute("data-counting-text");
+        textElement.getAttribute("data-counting-text") ||
+        textElement.textContent;
+
+      // Get pattern and clean it
       const pattern = (
-        patternElement.textContent ||
-        patternElement.getAttribute("data-pattern")
-      ).replace(/['"]/g, "");
+        patternElement.getAttribute("data-pattern") ||
+        patternElement.textContent
+      )
+        .replace(/['"]/g, "")
+        .trim();
+
+      console.log("Counting help - Text:", text);
+      console.log("Counting help - Pattern:", pattern);
 
       const help = aiTaskHelper.helpWithCounting(text, pattern);
 
@@ -197,24 +215,33 @@ export default function ChatContainer({
         ...prev,
         {
           sender: "bot",
-          text: "Make sure you're on the counting tab to use counting help!",
+          text: "Make sure you're on the research tab to use research help!",
         },
       ]);
     }
   };
 
-  // Handler for typing help
+  // Handler for typing help (Engagement)
   const handleTypingHelp = () => {
-    const patternElement =
-      document.querySelector(".typing-pattern") ||
-      document.querySelector("[data-typing-pattern]") ||
-      document.querySelector(".pattern-to-type");
+    let pattern = null;
 
+    // Look for the pattern in the hidden div
+    const patternElement = document.querySelector("[data-typing-pattern]");
     if (patternElement) {
-      const pattern = (
-        patternElement.textContent ||
-        patternElement.getAttribute("data-typing-pattern")
-      ).replace(/['"]/g, "");
+      pattern = patternElement.getAttribute("data-typing-pattern");
+    }
+
+    if (!pattern) {
+      const hiddenPattern = document.querySelector(".typing-pattern");
+      if (hiddenPattern) {
+        pattern = hiddenPattern.textContent;
+      }
+    }
+
+    if (pattern) {
+      pattern = pattern.replace(/['"]/g, "").trim();
+      console.log("Typing help - Pattern:", pattern);
+
       const help = aiTaskHelper.helpWithTyping(pattern);
 
       window.dispatchEvent(
@@ -235,7 +262,7 @@ export default function ChatContainer({
         ...prev,
         {
           sender: "bot",
-          text: "Make sure you're on the typing tab to use typing help!",
+          text: "Make sure you're on the engagement tab to use engagement help!",
         },
       ]);
     }
@@ -253,20 +280,23 @@ export default function ChatContainer({
     setTimeout(() => {
       let response = "";
 
-      // Check for specific help commands
-      if (userMessage.includes("slider") && userMessage.includes("help")) {
+      // Check for specific help commands - with both old and new terminology
+      if (
+        (userMessage.includes("slider") || userMessage.includes("material")) &&
+        userMessage.includes("help")
+      ) {
         handleSliderHelp();
         setIsTyping(false);
         return;
       } else if (
-        userMessage.includes("count") &&
+        (userMessage.includes("count") || userMessage.includes("research")) &&
         userMessage.includes("help")
       ) {
         handleCountingHelp();
         setIsTyping(false);
         return;
       } else if (
-        (userMessage.includes("type") || userMessage.includes("typing")) &&
+        (userMessage.includes("typ") || userMessage.includes("engagement")) &&
         userMessage.includes("help")
       ) {
         handleTypingHelp();
@@ -274,14 +304,15 @@ export default function ChatContainer({
         return;
       } else if (userMessage.includes("help")) {
         response =
-          "I can help with specific tasks! Try 'slider help', 'count help', or 'type help'.";
+          "I can help with specific tasks! Try 'materials help' for slider tasks, 'research help' for counting tasks, or 'engagement help' for typing tasks.";
       } else {
-        // Generic responses
+        // Generic responses with correct terminology
         const genericResponses = [
           "Try asking for task-specific help!",
-          "Need help? Try 'slider help', 'count help', or 'type help'!",
-          "I'm here to assist with your tasks.",
-          "Focus on the current task - you've got this!",
+          "Need help? Try 'materials help', 'research help', or 'engagement help'!",
+          "I'm here to assist with your teaching tasks.",
+          "Focus on maximizing student learning - you've got this!",
+          "Remember: Materials × Research × Engagement = Student Learning!",
         ];
         response =
           genericResponses[Math.floor(Math.random() * genericResponses.length)];
@@ -326,7 +357,7 @@ export default function ChatContainer({
       <div className="chat-input-sidebar">
         <input
           type="text"
-          placeholder="Ask for help... (try 'slider help')"
+          placeholder="Ask for help... (try 'materials help')"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && handleSend()}

@@ -47,16 +47,22 @@ export default function TypingTask({
     const generatedPattern = patternGenerator.generateTypingPattern(taskNum);
 
     const dependency = taskDependencies.getActiveDependency(`g3t${taskNum}`);
+
+    // Store the actual pattern that will be used
+    let actualPattern;
     if (dependency && dependency.type === "simple_pattern") {
       const easyPattern = patternGenerator.generateTypingPattern(
         Math.min(taskNum, 5)
       );
-      setPattern(easyPattern.pattern);
+      actualPattern = easyPattern.pattern;
     } else {
-      setPattern(generatedPattern.pattern);
+      actualPattern = generatedPattern.pattern;
     }
 
-    const imageUrl = generatePatternImage(generatedPattern.pattern);
+    setPattern(actualPattern);
+
+    // Generate image with the actual pattern
+    const imageUrl = generatePatternImage(actualPattern);
     setPatternImageUrl(imageUrl);
   }, [taskNum]);
 
@@ -180,6 +186,7 @@ export default function TypingTask({
       <p className="instruction">Type this pattern exactly:</p>
 
       <div className="pattern-display">
+        {/* Store pattern in hidden div for AI to find */}
         <div
           className="typing-pattern"
           data-typing-pattern={pattern}

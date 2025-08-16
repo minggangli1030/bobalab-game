@@ -189,80 +189,126 @@ export default function CountingTask({
   }, [text, taskNum]);
 
   useEffect(() => {
-    const pattern = patternGenerator.generateCountingPattern(taskNum);
-    const selectedText = patternGenerator.getTextPassage(taskNum);
+    const handleAIHelp = (event) => {
+      const { action, highlightWords, suggestedCount } = event.detail;
 
-    setText(selectedText);
-    setInstruction(pattern.instruction);
+      if (action === "highlightAndCount") {
+        // Regenerate the image with AI highlights
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
 
-    let correctAnswer;
-    if (pattern.type === "word") {
-      correctAnswer = (
-        selectedText.match(new RegExp(`\\b${pattern.target}\\b`, "gi")) || []
-      ).length;
-    } else if (pattern.type === "letter") {
-      correctAnswer = (
-        selectedText.match(new RegExp(pattern.target, "gi")) || []
-      ).length;
-    } else {
-      correctAnswer =
-        (selectedText.match(new RegExp(pattern.targets[0], "gi")) || [])
-          .length +
-        (selectedText.match(new RegExp(pattern.targets[1], "gi")) || []).length;
-    }
+        canvas.width = 900;
+        canvas.height = 350;
 
-    setAnswer(correctAnswer);
-    setTarget(pattern.target || pattern.targets);
+        ctx.fillStyle = "#fafafa";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const dependency = taskDependencies.getActiveDependency(`g1t${taskNum}`);
-    const hasHighlight = dependency && dependency.type === "highlight";
+        ctx.strokeStyle = "#e0e0e0";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-    let highlights = null;
-    if (hasHighlight) {
-      if (pattern.type === "word") {
-        highlights = [pattern.target];
-      } else if (pattern.type === "letter") {
-        highlights = [pattern.target];
-      } else {
-        highlights = pattern.targets;
-      }
-    }
+        ctx.font = "20px monospace";
 
-    const imageUrl = generateTextImage(selectedText, highlights);
-    setTextImageUrl(imageUrl);
+        const lineHeight = 30;
+        const padding = 20;
+        const maxWidth = canvas.width - padding * 2;
 
-    if (hasHighlight) {
-      let highlighted = selectedText;
-      if (pattern.type === "word") {
-        const regex = new RegExp(`\\b${pattern.target}\\b`, "gi");
-        highlighted = selectedText.replace(
-          regex,
-          (match) => `<span class="highlighted-word">${match}</span>`
-        );
-      } else if (pattern.type === "letter") {
-        const regex = new RegExp(pattern.target, "gi");
-        highlighted = selectedText.replace(
-          regex,
-          (match) => `<span class="highlighted-letter">${match}</span>`
-        );
-      } else {
-        pattern.targets.forEach((letter) => {
-          highlighted = highlighted
-            .split("")
-            .map((char) => {
-              if (char.toLowerCase() === letter.toLowerCase()) {
-                return `<span class="highlighted-letter">${char}</span>`;
-              }
-              return char;
-            })
-            .join("");
+        // Word wrap function
+        const wrapText = (text, maxWidth) => {
+          const words = text.split(" ");
+          const lines = [];
+          let currentLine = "";
+
+          for (let word of words) {
+            const testLine = currentLine + (currentLine ? " " : "") + word;
+            const metrics = ctx.measureText(testLine);
+
+            if (metrics.width > maxWidth && currentLine) {
+              lines.push(currentLine);
+              currentLine = word;
+            } else {
+              currentLine = testLine;
+            }
+          }
+
+          if (currentLine) {
+            lines.push(currentLine);
+          }
+
+          return lines;
+        };
+
+        const lines = wrapText(text, maxWidth);
+
+        // Draw text with AI highlights
+        lines.forEach((line, lineIndex) => {
+          const y = padding + (lineIndex + 1) * lineHeight;
+          let x = padding;
+
+          const words = line.split(" ");
+
+          words.forEach((word) => {
+            const wordWidth = ctx.measureText(word).width;
+
+            // Check if this word should be highlighted by AI
+            const shouldHighlight =
+              highlightWords &&
+              highlightWords.some((hw) => {
+                // Compare cleaned versions of words
+                const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
+                const cleanHighlight = hw.replace(/[.,;!?]/g, "").toLowerCase();
+                return cleanWord === cleanHighlight;
+              });
+
+            if (shouldHighlight) {
+              // Draw yellow highlight for AI-selected words
+              ctx.fillStyle = "yellow";
+              ctx.fillRect(x - 2, y - 18, wordWidth + 4, 24);
+            }
+
+            // Draw the word
+            ctx.fillStyle = "#333";
+            ctx.fillText(word, x, y);
+            x += ctx.measureText(word + " ").width;
+          });
         });
+
+        // Update the image
+        const newImageUrl = canvas.toDataURL();
+        setTextImageUrl(newImageUrl);
+
+        // Set the count after a small delay
+        setTimeout(() => {
+          setInput(suggestedCount.toString());
+        }, 500);
+
+        // Remove highlights after 3 seconds
+        setTimeout(() => {
+          // Regenerate original image without AI highlights
+          const pattern = patternGenerator.generateCountingPattern(taskNum);
+          const dependency = taskDependencies.getActiveDependency(
+            `g1t${taskNum}`
+          );
+
+          let highlights = null;
+          if (dependency && dependency.type === "highlight") {
+            highlights =
+              pattern.type === "word"
+                ? [pattern.target]
+                : pattern.type === "letter"
+                ? [pattern.target]
+                : pattern.targets;
+          }
+
+          const originalImageUrl = generateTextImage(text, highlights);
+          setTextImageUrl(originalImageUrl);
+        }, 3000);
       }
-      setDisplayText(highlighted);
-    } else {
-      setDisplayText(selectedText);
-    }
-  }, [taskNum]);
+    };
+
+    window.addEventListener("aiCountingHelp", handleAIHelp);
+    return () => window.removeEventListener("aiCountingHelp", handleAIHelp);
+  }, [text, taskNum]);
 
   const calculateAccuracy = (userAnswer, correctAnswer) => {
     if (userAnswer === correctAnswer) return 100;
