@@ -1,4 +1,4 @@
-// src/components/StudentLogin.jsx - Updated with Oski Bear example
+// src/components/StudentLogin.jsx - Updated with Student ID validation
 import React, { useState } from "react";
 import { codeVerification } from "../utils/codeVerification";
 
@@ -7,11 +7,82 @@ export default function StudentLogin({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Student ID regex patterns
+  const idPatterns = {
+    legacy8: /^\d{8}$/, // 15177695
+    legacy10: /^\d{10}$/, // 3031977170
+    standard: /^30\d{8}$/, // 30xxxxxxxx format
+  };
+
+  // Master codes for testing - NO URL params needed!
+  const MASTER_CODES = {
+    "ADMIN-REGULAR": {
+      role: "admin",
+      semesterDuration: 1200000, // 20 min (same as normal gameplay)
+      name: "Admin Regular Mode",
+    },
+    "ADMIN-FAST": {
+      role: "admin",
+      semesterDuration: 30000, // 30 sec for accelerated testing
+      name: "Admin Fast Mode",
+    },
+  };
+
+  // Sample valid student IDs (you'll replace with Google Sheets API call)
+  const VALID_STUDENT_IDS = [
+    "15177695",
+    "18565110",
+    "22900589",
+    "26416809",
+    "3031977170",
+    "3036343361",
+    "3039754031",
+    "3039838870",
+    "3039840443",
+    "3039840222",
+    "3039840209",
+    "3039842887",
+    "3039845630",
+    "3039850713",
+    "3039850622",
+    "3039850570",
+    "3039850830",
+    "3040682661",
+    "3040702603",
+    "3040701758",
+    "3040702343",
+    "3040705047",
+    "3040729812",
+  ];
+
+  const validateStudentId = (id) => {
+    // Check master codes first
+    if (MASTER_CODES[id]) {
+      return { valid: true, type: "master", data: MASTER_CODES[id] };
+    }
+
+    // Check student ID formats
+    for (const [type, pattern] of Object.entries(idPatterns)) {
+      if (pattern.test(id)) {
+        // Check if ID exists in database
+        if (VALID_STUDENT_IDS.includes(id)) {
+          return { valid: true, type: "student", format: type };
+        }
+        return { valid: false, error: "Student ID not found in registry" };
+      }
+    }
+
+    return {
+      valid: false,
+      error: "Invalid ID format. Must be 8-10 digit Student ID",
+    };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!identifier.trim()) {
-      setError("Please enter your name, email, or student ID");
+      setError("Please enter your Student ID or access code");
       return;
     }
 
@@ -19,20 +90,61 @@ export default function StudentLogin({ onLoginSuccess }) {
     setError("");
 
     try {
-      // For now, generate a code directly
-      // Later you can implement the student registry check
-      const result = await codeVerification.createCode({
-        studentIdentifier: identifier,
+      const validation = validateStudentId(identifier.trim());
+
+      if (!validation.valid) {
+        setError(validation.error || "Invalid Student ID");
+        setLoading(false);
+        return;
+      }
+
+      let codeData = {
         timestamp: new Date().toISOString(),
-      });
+      };
+
+      if (validation.type === "master") {
+        // Handle master code
+        codeData = {
+          ...codeData,
+          studentIdentifier: identifier,
+          role: validation.data.role,
+          semesterDuration: validation.data.semesterDuration,
+          displayName: validation.data.name,
+          isMasterCode: true,
+        };
+      } else {
+        // Regular student
+        codeData = {
+          ...codeData,
+          studentIdentifier: identifier,
+          role: "student",
+          semesterDuration: 1200000, // Normal 20 min
+          displayName: `Student ${identifier}`,
+          isMasterCode: false,
+        };
+      }
+
+      const result = await codeVerification.createCode(codeData);
 
       if (result.success) {
+        // Store the config in sessionStorage for the game to read
+        sessionStorage.setItem(
+          "gameConfig",
+          JSON.stringify({
+            semesterDuration: codeData.semesterDuration,
+            role: codeData.role,
+            studentId: identifier,
+            displayName: codeData.displayName,
+          })
+        );
+
         // Redirect with the code
         window.location.href = `${window.location.origin}?code=${result.code}`;
       } else {
         setError("Failed to generate access code. Please try again.");
       }
     } catch (err) {
+      console.error("Login error:", err);
       setError("System error. Please try again.");
     } finally {
       setLoading(false);
@@ -77,7 +189,7 @@ export default function StudentLogin({ onLoginSuccess }) {
             marginBottom: "30px",
           }}
         >
-          Enter your information to access the game
+          Enter your Student ID to access the game
         </p>
 
         <form onSubmit={handleSubmit}>
@@ -90,13 +202,13 @@ export default function StudentLogin({ onLoginSuccess }) {
                 fontWeight: "500",
               }}
             >
-              Name, Email, or Student ID:
+              Berkeley Student ID:
             </label>
             <input
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="e.g., Oski Bear or oskibear@berkeley.edu"
+              placeholder="e.g., 3040729812"
               disabled={loading}
               style={{
                 width: "100%",
@@ -105,8 +217,19 @@ export default function StudentLogin({ onLoginSuccess }) {
                 border: "2px solid #e0e0e0",
                 borderRadius: "6px",
                 boxSizing: "border-box",
+                fontFamily: "monospace", // Makes IDs easier to read
               }}
             />
+            <small
+              style={{
+                color: "#888",
+                fontSize: "12px",
+                marginTop: "4px",
+                display: "block",
+              }}
+            >
+              Valid formats: 8 digits (15177695) or 10 digits (30xxxxxxxx)
+            </small>
           </div>
 
           {error && (
@@ -137,9 +260,16 @@ export default function StudentLogin({ onLoginSuccess }) {
               border: "none",
               borderRadius: "6px",
               cursor: loading ? "not-allowed" : "pointer",
+              transition: "background 0.3s ease",
             }}
+            onMouseOver={(e) =>
+              !loading && (e.target.style.background = "#1976D2")
+            }
+            onMouseOut={(e) =>
+              !loading && (e.target.style.background = "#2196F3")
+            }
           >
-            {loading ? "Processing..." : "Access Game"}
+            {loading ? "Verifying Student ID..." : "Access Game"}
           </button>
         </form>
 
@@ -154,6 +284,16 @@ export default function StudentLogin({ onLoginSuccess }) {
           }}
         >
           <p>Having trouble? Contact your instructor.</p>
+          {/* Remove this in production - just for testing */}
+          <details style={{ marginTop: "10px", fontSize: "12px" }}>
+            <summary style={{ cursor: "pointer", color: "#aaa" }}>
+              Test Codes
+            </summary>
+            <div style={{ marginTop: "8px", lineHeight: "1.6" }}>
+              <div>ADMIN-REGULAR (20min)</div>
+              <div>ADMIN-FAST (30s)</div>
+            </div>
+          </details>
         </div>
       </div>
     </div>
