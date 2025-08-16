@@ -28,7 +28,25 @@ export const sessionManager = {
         };
       }
 
-      // Verify the code
+      // CHECK FOR ADMIN CODES - always allow
+      if (urlCode === "ADMIN-FAST" || urlCode === "ADMIN-REGULAR") {
+        console.log("Admin code detected - bypassing all restrictions");
+        return {
+          allowed: true,
+          newSession: true,
+          code: urlCode,
+          codeData: {
+            isAdminCode: true,
+            metadata: {
+              isMasterCode: true,
+              role: "admin",
+              semesterDuration: urlCode === "ADMIN-FAST" ? 120000 : 1200000,
+            },
+          },
+        };
+      }
+
+      // Regular student code verification
       const { valid, reason, codeData } = await codeVerification.verifyCode(
         urlCode
       );
@@ -41,22 +59,9 @@ export const sessionManager = {
         };
       }
 
-      // Code is valid, check if it's already been used for a real session
+      // For student codes, check if already used
       if (codeData.status === "used" && codeData.sessionId) {
-        // Check if this is the same browser/session
         const existingSessionId = localStorage.getItem("sessionId");
-
-        // For admin codes, always allow reuse
-        if (codeData.metadata?.isMasterCode) {
-          return {
-            allowed: true,
-            resumeSession: existingSessionId || codeData.sessionId,
-            code: urlCode,
-            codeData,
-          };
-        }
-
-        // For regular codes, check if same session
         if (existingSessionId === codeData.sessionId) {
           // Same browser/session, allow continuation
           return {
@@ -66,13 +71,11 @@ export const sessionManager = {
             codeData,
           };
         } else {
-          // Different browser/session - still allow for testing
-          console.warn("Code already used, but allowing for testing");
+          // Different browser/session - block for students
           return {
-            allowed: true,
-            newSession: true,
+            allowed: false,
+            reason: "This code has already been used.",
             code: urlCode,
-            codeData,
           };
         }
       }
@@ -85,7 +88,6 @@ export const sessionManager = {
       };
     } catch (error) {
       console.error("Error checking access:", error);
-      // On error, still require code
       return {
         allowed: false,
         reason: "System error. Please try again or contact support.",
@@ -114,13 +116,14 @@ export const sessionManager = {
         screenResolution: `${window.screen.width}x${window.screen.height}`,
         source: accessCode ? "qualtrics" : "direct",
         isPractice: isPractice,
+        isAdminSession: codeData?.isAdminCode || false, // Track admin sessions
       };
 
       const docRef = await addDoc(collection(db, "sessions"), sessionData);
       localStorage.setItem("sessionId", docRef.id);
 
-      // Only mark code as used if this is NOT practice mode
-      if (accessCode && !isPractice) {
+      // ONLY mark code as used if NOT admin and NOT practice
+      if (accessCode && !isPractice && !codeData?.isAdminCode) {
         await codeVerification.markCodeAsUsed(accessCode, docRef.id);
       }
 
@@ -142,7 +145,6 @@ export const sessionManager = {
       return offlineId;
     }
   },
-
   async handleSessionAbandonment() {
     const sessionId = localStorage.getItem("sessionId");
     if (sessionId && !sessionId.startsWith("offline-")) {
