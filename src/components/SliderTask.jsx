@@ -1,8 +1,8 @@
-// src/components/SliderTask.jsx - Updated for 15 levels
+// src/components/SliderTask.jsx - COMPLETE FILE WITH AI INTEGRATION
 import React, { useEffect, useState, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
 import { taskDependencies } from "../utils/taskDependencies";
-import { patternGenerator } from "../utils/patternGenerator"; // NEW IMPORT
+import { patternGenerator } from "../utils/patternGenerator";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import "./SliderTask.css";
@@ -18,56 +18,65 @@ export default function SliderTask({
   const [input, setInput] = useState(5.0);
   const [feedback, setFeedback] = useState(null);
   const [startTime] = useState(Date.now());
-  const [step, setStep] = useState(1); // NEW: Track step value
-  const [showValue, setShowValue] = useState(true); // NEW: Track if value should be shown
+  const [step, setStep] = useState(1);
+  const [showValue, setShowValue] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isAIControlled, setIsAIControlled] = useState(false); // ADD THIS
   const attemptsRef = useRef(0);
 
   useEffect(() => {
-    // CHANGED: Use pattern generator for 15 levels
     const pattern = patternGenerator.generateSliderPattern(taskNum);
-
     setTarget(pattern.target);
     setStep(pattern.step);
     setShowValue(pattern.showValue);
-    setInput(5.0); // Always start at middle
+    setInput(5.0);
   }, [taskNum]);
 
-  // Listen for AI help
+  // ADD THIS: Listen for AI help
   useEffect(() => {
     const handleAIHelp = (event) => {
-      if (
-        event.detail.taskId === currentTaskId &&
-        event.detail.type === "slider"
-      ) {
-        // AI helps move the slider
-        setIsAnimating(true);
-        const aiTarget = event.detail.value;
+      const { action, value, animate } = event.detail;
 
-        // Animate slider movement
-        let currentValue = input;
-        const increment = (aiTarget - currentValue) / 20;
+      if (action === "moveSlider") {
+        setIsAIControlled(true);
 
-        const animationInterval = setInterval(() => {
-          currentValue += increment;
-          if (Math.abs(currentValue - aiTarget) < Math.abs(increment)) {
-            setInput(aiTarget);
-            setIsAnimating(false);
-            clearInterval(animationInterval);
-          } else {
-            setInput(currentValue);
-          }
-        }, 50);
+        if (animate) {
+          // Animate slider movement
+          const startValue = parseFloat(input);
+          const targetValue = parseFloat(value);
+          const duration = 1000; // 1 second
+          const steps = 30;
+          let step = 0;
+
+          const interval = setInterval(() => {
+            step++;
+            const progress = step / steps;
+            const easedProgress = 1 - Math.pow(1 - progress, 3);
+            const currentValue =
+              startValue + (targetValue - startValue) * easedProgress;
+
+            setInput(parseFloat(currentValue.toFixed(2)));
+
+            if (step >= steps) {
+              clearInterval(interval);
+              setIsAIControlled(false);
+              setInput(parseFloat(targetValue.toFixed(2)));
+            }
+          }, duration / steps);
+        } else {
+          setInput(parseFloat(value.toFixed(2)));
+          setIsAIControlled(false);
+        }
       }
     };
 
-    window.addEventListener("aiHelp", handleAIHelp);
-    return () => window.removeEventListener("aiHelp", handleAIHelp);
-  }, [currentTaskId, input]);
+    window.addEventListener("aiSliderHelp", handleAIHelp);
+    return () => window.removeEventListener("aiSliderHelp", handleAIHelp);
+  }, [input]);
 
   const calculateAccuracy = (userValue, targetValue) => {
     const difference = Math.abs(userValue - targetValue);
-    const maxRange = 10; // slider range is 0-10
+    const maxRange = 10;
     const accuracy = Math.max(0, 100 - (difference / maxRange) * 100);
     return Math.round(accuracy);
   };
@@ -77,7 +86,6 @@ export default function SliderTask({
     const userValue = parseFloat(input);
     const accuracy = calculateAccuracy(userValue, target);
 
-    // Different pass thresholds based on game mode
     const passThreshold = gameAccuracyMode === "strict" ? 100 : 0;
     const passed =
       gameAccuracyMode === "lenient" ? true : accuracy >= passThreshold;
@@ -93,7 +101,6 @@ export default function SliderTask({
       target
     );
 
-    // Store accuracy to database
     const sessionId = localStorage.getItem("sessionId");
     if (sessionId && !sessionId.startsWith("offline-")) {
       try {
@@ -134,13 +141,10 @@ export default function SliderTask({
   };
 
   const isEnhanced = taskDependencies.getActiveDependency(`g2t${taskNum}`);
-
-  // CHANGED: Get difficulty info from pattern generator
   const pattern = patternGenerator.generateSliderPattern(taskNum);
   const difficultyLabel = pattern.difficultyLabel;
   const difficultyColor = pattern.difficulty;
 
-  // Generate scale marks for enhanced slider
   const generateScaleMarks = () => {
     const marks = [];
     for (let i = 0; i <= 10; i++) {
@@ -178,27 +182,31 @@ export default function SliderTask({
   };
 
   return (
-    <div className={`task slider ${isEnhanced ? "enhanced-task" : ""}`}>
+    <div
+      className={`task slider ${isEnhanced ? "enhanced-task" : ""} ${
+        isAIControlled ? "ai-controlled" : ""
+      }`}
+    >
       <h3>Material Creation - Level {taskNum}</h3>
       <div className={`difficulty-badge ${difficultyColor}`}>
         {difficultyLabel}
       </div>
 
       <p className="instruction">
-        Move the slider to: <strong className="target-value">{target}</strong>
+        Move the slider to:{" "}
+        <strong className="target-value" data-target-value={target}>
+          {target}
+        </strong>
       </p>
 
       <div className="slider-container">
-        {/* Range labels */}
         <div className="range-labels">
           <span>0</span>
           <span>10</span>
         </div>
 
-        {/* Enhanced slider with comprehensive scale (when enhanced) */}
         {isEnhanced ? (
           <div style={{ position: "relative", padding: "20px 0 30px 0" }}>
-            {/* Scale marks */}
             <div
               style={{
                 position: "absolute",
@@ -209,16 +217,17 @@ export default function SliderTask({
             >
               {generateScaleMarks()}
             </div>
-
-            {/* Slider input */}
             <input
               type="range"
               min="0"
               max="10"
               step={step}
               value={input}
-              onChange={(e) => setInput(parseFloat(e.target.value))}
+              onChange={(e) =>
+                !isAIControlled && setInput(parseFloat(e.target.value))
+              }
               className="slider-input enhanced"
+              disabled={isAIControlled}
               style={{
                 width: "100%",
                 marginTop: "20px",
@@ -228,25 +237,30 @@ export default function SliderTask({
             />
           </div>
         ) : (
-          // Standard slider
           <input
             type="range"
             min="0"
             max="10"
             step={step}
             value={input}
-            onChange={(e) => setInput(parseFloat(e.target.value))}
+            onChange={(e) =>
+              !isAIControlled && setInput(parseFloat(e.target.value))
+            }
             className="slider-input"
+            disabled={isAIControlled}
           />
         )}
 
-        {/* Current value display - UPDATED for 15 levels */}
         <div className="current-value">
           {showValue ? parseFloat(input).toFixed(pattern.precision) : "??"}
         </div>
       </div>
 
-      <button onClick={handleSubmit} className="submit-btn">
+      <button
+        onClick={handleSubmit}
+        className="submit-btn"
+        disabled={isAIControlled}
+      >
         Submit
       </button>
 

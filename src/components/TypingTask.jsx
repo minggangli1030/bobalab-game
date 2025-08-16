@@ -1,8 +1,8 @@
-// src/components/TypingTask.jsx - Updated for 15 levels
+// src/components/TypingTask.jsx - COMPLETE FILE WITH AI INTEGRATION
 import React, { useEffect, useState, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
 import { taskDependencies } from "../utils/taskDependencies";
-import { patternGenerator } from "../utils/patternGenerator"; // NEW IMPORT
+import { patternGenerator } from "../utils/patternGenerator";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import "./TypingTask.css";
@@ -19,6 +19,7 @@ export default function TypingTask({
   const [feedback, setFeedback] = useState(null);
   const [startTime] = useState(Date.now());
   const [patternImageUrl, setPatternImageUrl] = useState("");
+  const [isAITyping, setIsAITyping] = useState(false); // ADD THIS
   const attemptsRef = useRef(0);
 
   // Generate uncopyable pattern image
@@ -26,34 +27,27 @@ export default function TypingTask({
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
-    // Set canvas size
     canvas.width = 600;
     canvas.height = 150;
 
-    // Set background
     ctx.fillStyle = "#f5f5f5";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Set text properties
     ctx.font = 'bold 40px "Courier New", monospace';
     ctx.fillStyle = "#333";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    // Draw pattern text
     ctx.fillText(patternText, canvas.width / 2, canvas.height / 2);
 
     return canvas.toDataURL();
   };
 
   useEffect(() => {
-    // CHANGED: Use pattern generator for 15 levels
     const generatedPattern = patternGenerator.generateTypingPattern(taskNum);
 
-    // Check for dependency that simplifies patterns
     const dependency = taskDependencies.getActiveDependency(`g3t${taskNum}`);
     if (dependency && dependency.type === "simple_pattern") {
-      // Use easy pattern regardless of level
       const easyPattern = patternGenerator.generateTypingPattern(
         Math.min(taskNum, 5)
       );
@@ -62,15 +56,43 @@ export default function TypingTask({
       setPattern(generatedPattern.pattern);
     }
 
-    // Generate pattern image
     const imageUrl = generatePatternImage(generatedPattern.pattern);
     setPatternImageUrl(imageUrl);
   }, [taskNum]);
 
+  // ADD THIS: Listen for AI help
+  useEffect(() => {
+    const handleAIHelp = (event) => {
+      const { action, text, typeSpeed } = event.detail;
+
+      if (action === "autoType") {
+        setIsAITyping(true);
+        setInput(""); // Clear input first
+
+        // Type character by character
+        let index = 0;
+        const typeInterval = setInterval(() => {
+          if (index < text.length) {
+            setInput((prev) => prev + text[index]);
+            index++;
+          } else {
+            clearInterval(typeInterval);
+            setIsAITyping(false);
+          }
+        }, typeSpeed || 50);
+
+        // Store interval for cleanup
+        return () => clearInterval(typeInterval);
+      }
+    };
+
+    window.addEventListener("aiTypingHelp", handleAIHelp);
+    return () => window.removeEventListener("aiTypingHelp", handleAIHelp);
+  }, []);
+
   const calculateAccuracy = (userInput, expectedPattern) => {
     if (userInput === expectedPattern) return 100;
 
-    // Calculate character-by-character accuracy
     const maxLength = Math.max(userInput.length, expectedPattern.length);
     if (maxLength === 0) return 0;
 
@@ -89,7 +111,6 @@ export default function TypingTask({
     const timeTaken = Date.now() - startTime;
     const accuracy = calculateAccuracy(input, pattern);
 
-    // Different pass thresholds based on game mode
     const passThreshold = gameAccuracyMode === "strict" ? 100 : 0;
     const passed =
       gameAccuracyMode === "lenient" ? true : accuracy >= passThreshold;
@@ -105,7 +126,6 @@ export default function TypingTask({
       pattern
     );
 
-    // Store accuracy to database
     const sessionId = localStorage.getItem("sessionId");
     if (sessionId && !sessionId.startsWith("offline-")) {
       try {
@@ -146,8 +166,6 @@ export default function TypingTask({
   };
 
   const isEnhanced = taskDependencies.getActiveDependency(`g3t${taskNum}`);
-
-  // CHANGED: Get difficulty info from pattern generator
   const patternInfo = patternGenerator.generateTypingPattern(taskNum);
   const difficultyLabel = patternInfo.difficultyLabel;
   const difficultyColor = patternInfo.difficulty;
@@ -162,6 +180,13 @@ export default function TypingTask({
       <p className="instruction">Type this pattern exactly:</p>
 
       <div className="pattern-display">
+        <div
+          className="typing-pattern"
+          data-typing-pattern={pattern}
+          style={{ display: "none" }}
+        >
+          {pattern}
+        </div>
         {patternImageUrl ? (
           <img
             src={patternImageUrl}
@@ -177,7 +202,6 @@ export default function TypingTask({
             draggable={false}
           />
         ) : (
-          // Fallback display
           <span className="pattern-text">{pattern}</span>
         )}
       </div>
@@ -186,13 +210,22 @@ export default function TypingTask({
         <input
           type="text"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
+          onChange={(e) => !isAITyping && setInput(e.target.value)}
           placeholder="Type here..."
           className="typing-input"
+          disabled={isAITyping}
+          style={{
+            backgroundColor: isAITyping ? "#e3f2fd" : "white",
+            transition: "background-color 0.3s",
+          }}
         />
       </div>
 
-      <button onClick={handleSubmit} className="submit-btn">
+      <button
+        onClick={handleSubmit}
+        className="submit-btn"
+        disabled={isAITyping}
+      >
         Submit
       </button>
 

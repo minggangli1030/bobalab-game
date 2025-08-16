@@ -1,8 +1,8 @@
-// src/components/CountingTask.jsx - Updated for 15 levels
+// src/components/CountingTask.jsx - COMPLETE FILE WITH AI INTEGRATION
 import React, { useEffect, useState, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
 import { taskDependencies } from "../utils/taskDependencies";
-import { patternGenerator } from "../utils/patternGenerator"; // NEW IMPORT
+import { patternGenerator } from "../utils/patternGenerator";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
 import "./CountingTask.css";
@@ -24,28 +24,29 @@ export default function CountingTask({
   const [startTime] = useState(Date.now());
   const [textImageUrl, setTextImageUrl] = useState("");
   const [aiHighlightActive, setAiHighlightActive] = useState(false);
+  const [highlightedIndices, setHighlightedIndices] = useState(new Set()); // ADD THIS
   const attemptsRef = useRef(0);
   const canvasRef = useRef(null);
 
-  // Generate uncopyable text image
-  const generateTextImage = (textContent, highlights = null) => {
+  // Generate uncopyable text image with AI highlights
+  const generateTextImage = (
+    textContent,
+    highlights = null,
+    aiHighlights = null
+  ) => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
-    // Set canvas size - wider for better fit
     canvas.width = 900;
     canvas.height = 350;
 
-    // Set background
     ctx.fillStyle = "#fafafa";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Set border
     ctx.strokeStyle = "#e0e0e0";
     ctx.lineWidth = 2;
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-    // Set text properties - larger font for better readability
     ctx.font = "20px monospace";
     ctx.fillStyle = "#333";
 
@@ -53,7 +54,6 @@ export default function CountingTask({
     const padding = 20;
     const maxWidth = canvas.width - padding * 2;
 
-    // Word wrap function
     const wrapText = (text, maxWidth) => {
       const words = text.split(" ");
       const lines = [];
@@ -83,73 +83,118 @@ export default function CountingTask({
     // Draw text with highlights
     lines.forEach((line, lineIndex) => {
       const y = padding + (lineIndex + 1) * lineHeight;
+      let x = padding;
 
-      if (highlights && highlights.length > 0) {
-        // Draw with highlights
-        let x = padding;
+      if (taskNum <= 5) {
+        const words = line.split(" ");
+        let wordIndex = 0;
 
-        if (taskNum <= 5) {
-          // CHANGED: Word highlighting for levels 1-5
-          // Highlight whole words
-          const words = line.split(" ");
+        words.forEach((word) => {
+          // Check if AI highlighted this word
+          const shouldHighlight = aiHighlights && aiHighlights.has(wordIndex);
 
-          words.forEach((word, wordIndex) => {
-            const shouldHighlight = highlights.some(
-              (highlight) => word.toLowerCase() === highlight.toLowerCase()
-            );
+          if (shouldHighlight) {
+            const wordWidth = ctx.measureText(word).width;
+            ctx.fillStyle = "yellow";
+            ctx.fillRect(x - 2, y - 18, wordWidth + 4, 24);
+          } else if (
+            highlights &&
+            highlights.some((h) => word.toLowerCase() === h.toLowerCase())
+          ) {
+            const wordWidth = ctx.measureText(word).width;
+            ctx.fillStyle = "rgba(255, 215, 0, 0.4)";
+            ctx.fillRect(x - 2, y - 18, wordWidth + 4, 24);
+          }
 
-            if (shouldHighlight) {
-              // Draw highlight background for whole word
-              const wordWidth = ctx.measureText(word).width;
-              ctx.fillStyle = "rgba(255, 215, 0, 0.4)";
-              ctx.fillRect(x - 2, y - 18, wordWidth + 4, 24);
-            }
+          ctx.fillStyle = "#333";
+          ctx.fillText(word, x, y);
+          x += ctx.measureText(word + " ").width;
+          wordIndex++;
+        });
+      } else {
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          const charWidth = ctx.measureText(char).width;
 
-            // Draw word
-            ctx.fillStyle = "#333";
-            ctx.fillText(word, x, y);
-            x += ctx.measureText(word + " ").width;
-          });
-        } else {
-          // Levels 6+: Highlight individual letters only
-          for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            const charWidth = ctx.measureText(char).width;
-
-            const shouldHighlightLetter = highlights.some(
+          const shouldHighlightLetter =
+            highlights &&
+            highlights.some(
               (highlight) => char.toLowerCase() === highlight.toLowerCase()
             );
 
-            if (shouldHighlightLetter) {
-              // Draw highlight background for single letter
-              ctx.fillStyle = "rgba(255, 215, 0, 0.4)";
-              ctx.fillRect(x - 1, y - 18, charWidth + 2, 24);
-            }
-
-            // Draw character
-            ctx.fillStyle = "#333";
-            ctx.fillText(char, x, y);
-            x += charWidth;
+          if (shouldHighlightLetter) {
+            ctx.fillStyle = "rgba(255, 215, 0, 0.4)";
+            ctx.fillRect(x - 1, y - 18, charWidth + 2, 24);
           }
+
+          ctx.fillStyle = "#333";
+          ctx.fillText(char, x, y);
+          x += charWidth;
         }
-      } else {
-        // Draw without highlights
-        ctx.fillText(line, padding, y);
       }
     });
 
     return canvas.toDataURL();
   };
 
+  // ADD THIS: Listen for AI help
   useEffect(() => {
-    // CHANGED: Use pattern generator for 15 levels
+    const handleAIHelp = (event) => {
+      const { action, highlightIndices, suggestedCount } = event.detail;
+
+      if (action === "highlightAndCount") {
+        // Highlight the words
+        setHighlightedIndices(new Set(highlightIndices));
+
+        // Update the image with AI highlights
+        const pattern = patternGenerator.generateCountingPattern(taskNum);
+        const dependency = taskDependencies.getActiveDependency(
+          `g1t${taskNum}`
+        );
+        let highlights = null;
+
+        if (dependency && dependency.type === "highlight") {
+          highlights =
+            pattern.type === "word"
+              ? [pattern.target]
+              : pattern.type === "letter"
+              ? [pattern.target]
+              : pattern.targets;
+        }
+
+        const imageUrl = generateTextImage(
+          text,
+          highlights,
+          new Set(highlightIndices)
+        );
+        setTextImageUrl(imageUrl);
+
+        // Set the count after a small delay
+        setTimeout(() => {
+          setInput(suggestedCount.toString());
+        }, 500);
+
+        // Remove highlights after 3 seconds
+        setTimeout(() => {
+          setHighlightedIndices(new Set());
+          // Regenerate image without AI highlights
+          const imageUrl = generateTextImage(text, highlights, null);
+          setTextImageUrl(imageUrl);
+        }, 3000);
+      }
+    };
+
+    window.addEventListener("aiCountingHelp", handleAIHelp);
+    return () => window.removeEventListener("aiCountingHelp", handleAIHelp);
+  }, [text, taskNum]);
+
+  useEffect(() => {
     const pattern = patternGenerator.generateCountingPattern(taskNum);
     const selectedText = patternGenerator.getTextPassage(taskNum);
 
     setText(selectedText);
     setInstruction(pattern.instruction);
 
-    // Calculate the correct answer based on pattern type
     let correctAnswer;
     if (pattern.type === "word") {
       correctAnswer = (
@@ -160,7 +205,6 @@ export default function CountingTask({
         selectedText.match(new RegExp(pattern.target, "gi")) || []
       ).length;
     } else {
-      // multi-letter
       correctAnswer =
         (selectedText.match(new RegExp(pattern.targets[0], "gi")) || [])
           .length +
@@ -170,11 +214,9 @@ export default function CountingTask({
     setAnswer(correctAnswer);
     setTarget(pattern.target || pattern.targets);
 
-    // Check for dependency enhancement
     const dependency = taskDependencies.getActiveDependency(`g1t${taskNum}`);
     const hasHighlight = dependency && dependency.type === "highlight";
 
-    // Prepare highlights
     let highlights = null;
     if (hasHighlight) {
       if (pattern.type === "word") {
@@ -186,11 +228,9 @@ export default function CountingTask({
       }
     }
 
-    // Generate text image
     const imageUrl = generateTextImage(selectedText, highlights);
     setTextImageUrl(imageUrl);
 
-    // For copyable display (fallback only)
     if (hasHighlight) {
       let highlighted = selectedText;
       if (pattern.type === "word") {
@@ -206,7 +246,6 @@ export default function CountingTask({
           (match) => `<span class="highlighted-letter">${match}</span>`
         );
       } else {
-        // Multi-letter highlighting
         pattern.targets.forEach((letter) => {
           highlighted = highlighted
             .split("")
@@ -227,12 +266,9 @@ export default function CountingTask({
 
   const calculateAccuracy = (userAnswer, correctAnswer) => {
     if (userAnswer === correctAnswer) return 100;
-
-    // Calculate accuracy based on how close the answer is
-    const maxPossible = Math.max(userAnswer, correctAnswer, 1); // Avoid division by zero
+    const maxPossible = Math.max(userAnswer, correctAnswer, 1);
     const difference = Math.abs(userAnswer - correctAnswer);
     const accuracy = Math.max(0, 100 - (difference / maxPossible) * 100);
-
     return Math.round(accuracy);
   };
 
@@ -241,7 +277,6 @@ export default function CountingTask({
     const userAnswer = parseInt(input, 10) || 0;
     const accuracy = calculateAccuracy(userAnswer, answer);
 
-    // Different pass thresholds based on game mode
     const passThreshold = gameAccuracyMode === "strict" ? 100 : 0;
     const passed =
       gameAccuracyMode === "lenient" ? true : accuracy >= passThreshold;
@@ -257,7 +292,6 @@ export default function CountingTask({
       answer
     );
 
-    // Store accuracy to database
     const sessionId = localStorage.getItem("sessionId");
     if (sessionId && !sessionId.startsWith("offline-")) {
       try {
@@ -298,8 +332,6 @@ export default function CountingTask({
   };
 
   const isEnhanced = taskDependencies.getActiveDependency(`g1t${taskNum}`);
-
-  // CHANGED: Get difficulty label from pattern generator
   const pattern = patternGenerator.generateCountingPattern(taskNum);
   const difficultyLabel = pattern.difficultyLabel;
   const difficultyColor =
@@ -318,8 +350,14 @@ export default function CountingTask({
         <span className="hint">(Case-insensitive)</span>
       </p>
 
-      {/* Use uncopyable image */}
-      <div className="text-display">
+      <div className="text-display text-to-count" data-counting-text={text}>
+        <div
+          className="count-target"
+          data-pattern={target}
+          style={{ display: "none" }}
+        >
+          {target}
+        </div>
         {textImageUrl ? (
           <img
             src={textImageUrl}
@@ -338,7 +376,6 @@ export default function CountingTask({
             draggable={false}
           />
         ) : (
-          // Fallback to HTML if image generation fails
           <div dangerouslySetInnerHTML={{ __html: displayText }} />
         )}
       </div>

@@ -59,8 +59,8 @@ function App() {
   const [checkpointBonus, setCheckpointBonus] = useState(0);
 
   // NEW: Teaching simulation states
-  const [timeLimit] = useState(isAdminMode ? 120 : 1200); // 2 min vs 20 min for admin
-  const [timeRemaining, setTimeRemaining] = useState(isAdminMode ? 120 : 1200);
+  const [timeLimit, setTimeLimit] = useState(1200); // Default 20 min
+  const [timeRemaining, setTimeRemaining] = useState(1200);
   const [studentLearningScore, setStudentLearningScore] = useState(0);
   const [categoryPoints, setCategoryPoints] = useState({
     materials: 0, // Slider (was counting)
@@ -94,6 +94,24 @@ function App() {
         clearInterval(idleTimerRef.current);
       }
     };
+  }, []);
+
+  useEffect(() => {
+    // Read config from sessionStorage (set by StudentLogin)
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const duration = config.semesterDuration || 1200000; // milliseconds
+    const durationInSeconds = Math.floor(duration / 1000);
+
+    setTimeLimit(durationInSeconds);
+    setTimeRemaining(durationInSeconds);
+
+    // Debug logging
+    console.log("=== Game Configuration Loaded ===");
+    console.log("Role:", config.role || "student");
+    console.log("Duration:", durationInSeconds + " seconds");
+    console.log("Display Name:", config.displayName || "Student");
+    console.log("Is Admin:", config.role === "admin");
+    console.log("================================");
   }, []);
 
   // Calculate student learning score with new formula
@@ -167,10 +185,11 @@ function App() {
 
       // Check for 10-minute checkpoint (exam season)
       // Admin mode: checkpoint at 1 minute
-      if (
-        (isAdminMode && elapsed === 60 && !checkpointReached) ||
-        (!isAdminMode && elapsed === 600 && !checkpointReached)
-      ) {
+      const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+      const checkpointTime =
+        config.role === "admin" && config.semesterDuration === 30000 ? 15 : 600; // 15 seconds for ADMIN-FAST, 10 minutes for others
+
+      if (elapsed === checkpointTime && !checkpointReached) {
         handleCheckpoint();
       }
 
@@ -275,7 +294,10 @@ function App() {
     setCheckpointReached(false);
 
     // Reset teaching points
-    setTimeRemaining(isAdminMode ? 120 : 1200);
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const duration = config.semesterDuration || 1200000;
+    const durationInSeconds = Math.floor(duration / 1000);
+    setTimeRemaining(durationInSeconds);
     setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
     setTaskAttempts({});
     setTaskPoints({});
