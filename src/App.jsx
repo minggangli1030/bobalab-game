@@ -382,8 +382,6 @@ function App() {
   };
 
   const startMainGame = () => {
-    taskDependencies.clearAllDependencies();
-
     if (!randomSeed) {
       const seed = Math.floor(Math.random() * 1000000);
       setRandomSeed(seed);
