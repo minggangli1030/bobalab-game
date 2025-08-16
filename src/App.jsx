@@ -290,6 +290,26 @@ function App() {
           [`semesterSeeds.semester${currentSemester}`]: seed,
         });
       }
+      // AUTO-ADVANCE TO NEXT LEVEL IN SAME CATEGORY
+      const game = tabId.substring(0, 2);
+      const currentLevel = parseInt(tabId.substring(3));
+      const nextLevel = currentLevel + 1;
+
+      // Check if next level exists (max 15 levels per game)
+      if (nextLevel <= 15) {
+        const nextTaskId = `${game}t${nextLevel}`;
+
+        // Short delay before auto-advancing
+        setTimeout(() => {
+          showNotification(`Auto-advancing to ${category} Level ${nextLevel}!`);
+          handleTabSwitch(nextTaskId, true);
+        }, 2000);
+      } else {
+        // Completed all levels in this category!
+        showNotification(
+          `🎉 All ${category} levels complete! Choose another category.`
+        );
+      }
     }
 
     setMode("challenge");

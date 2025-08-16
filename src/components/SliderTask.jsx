@@ -15,13 +15,16 @@ export default function SliderTask({
   currentTaskId,
 }) {
   const [target, setTarget] = useState(5);
-  const [input, setInput] = useState(5.0);
+  const [input, setInput] = useState(0);
   const [feedback, setFeedback] = useState(null);
   const [startTime] = useState(Date.now());
   const [step, setStep] = useState(1);
   const [showValue, setShowValue] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [isAIControlled, setIsAIControlled] = useState(false); // ADD THIS
+  const [isAIControlled, setIsAIControlled] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const sliderRef = useRef(null);
   const attemptsRef = useRef(0);
 
   useEffect(() => {
@@ -29,10 +32,9 @@ export default function SliderTask({
     setTarget(pattern.target);
     setStep(pattern.step);
     setShowValue(pattern.showValue);
-    setInput(5.0);
+    setInput(0);
   }, [taskNum]);
 
-  // ADD THIS: Listen for AI help
   useEffect(() => {
     const handleAIHelp = (event) => {
       const { action, value, animate } = event.detail;
@@ -73,6 +75,68 @@ export default function SliderTask({
     window.addEventListener("aiSliderHelp", handleAIHelp);
     return () => window.removeEventListener("aiSliderHelp", handleAIHelp);
   }, [input]);
+
+  // ADD this entire block:
+  // Handle drag mechanics
+  const handleMouseDown = (e) => {
+    if (isAIControlled) return;
+
+    const slider = sliderRef.current;
+    if (!slider) return;
+
+    // Only start dragging if clicking on the thumb
+    const rect = slider.getBoundingClientRect();
+    const percent = input / 10;
+    const thumbPosition = rect.left + rect.width * percent;
+    const clickX = e.clientX || (e.touches && e.touches[0].clientX);
+
+    // Check if click is near the thumb (within 20px)
+    if (Math.abs(clickX - thumbPosition) < 20) {
+      setIsDragging(true);
+      setHasInteracted(true);
+      e.preventDefault();
+    }
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging || isAIControlled) return;
+
+    const slider = sliderRef.current;
+    if (!slider) return;
+
+    const rect = slider.getBoundingClientRect();
+    const x = e.clientX || (e.touches && e.touches[0].clientX);
+    const percent = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+    const value = percent * 10;
+
+    // Snap to step
+    const snappedValue = Math.round(value / step) * step;
+    setInput(parseFloat(snappedValue.toFixed(2)));
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Add event listeners for drag
+  useEffect(() => {
+    if (isDragging) {
+      const handleGlobalMove = (e) => handleMouseMove(e);
+      const handleGlobalUp = () => handleMouseUp();
+
+      document.addEventListener("mousemove", handleGlobalMove);
+      document.addEventListener("mouseup", handleGlobalUp);
+      document.addEventListener("touchmove", handleGlobalMove);
+      document.addEventListener("touchend", handleGlobalUp);
+
+      return () => {
+        document.removeEventListener("mousemove", handleGlobalMove);
+        document.removeEventListener("mouseup", handleGlobalUp);
+        document.removeEventListener("touchmove", handleGlobalMove);
+        document.removeEventListener("touchend", handleGlobalUp);
+      };
+    }
+  }, [isDragging, step, isAIControlled]);
 
   const calculateAccuracy = (userValue, targetValue) => {
     const difference = Math.abs(userValue - targetValue);
@@ -197,6 +261,10 @@ export default function SliderTask({
         <strong className="target-value" data-target-value={target}>
           {target}
         </strong>
+        <br />
+        <span style={{ fontSize: "14px", color: "#666", fontStyle: "italic" }}>
+          {!hasInteracted && "Hold and drag the slider handle to move it"}
+        </span>
       </p>
 
       <div className="slider-container">
