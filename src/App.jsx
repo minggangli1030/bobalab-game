@@ -266,29 +266,40 @@ function App() {
       timerIntervalRef.current = null;
     }
 
-    // Reset the start time and paused time
-    startTimeRef.current = Date.now();
-    setPausedTime(0); // Reset paused time
-
     // Get config immediately
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
     const duration = config.semesterDuration || 1200000;
     const limitInSeconds = Math.floor(duration / 1000);
 
-    // Set both timeLimit and timeRemaining
+    // Set initial values
     setTimeLimit(limitInSeconds);
     setTimeRemaining(limitInSeconds);
+    setGlobalTimer(0);
+    setPausedTime(0);
 
-    console.log("Starting timer with limit:", limitInSeconds); // Debug log
+    // Store start time in a variable that persists
+    const gameStartTime = Date.now();
+    startTimeRef.current = gameStartTime;
+
+    console.log(
+      "Starting timer - limit:",
+      limitInSeconds,
+      "start time:",
+      gameStartTime
+    );
 
     timerIntervalRef.current = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+      const now = Date.now();
+      const elapsed = Math.floor((now - gameStartTime) / 1000);
+
+      console.log("Timer tick - elapsed:", elapsed);
+
       setGlobalTimer(elapsed);
-
-      const remaining = Math.max(0, limitInSeconds - elapsed);
-      setTimeRemaining(remaining);
-
-      console.log("Timer tick - elapsed:", elapsed, "remaining:", remaining); // Debug log
+      setTimeRemaining((prev) => {
+        const remaining = Math.max(0, limitInSeconds - elapsed);
+        console.log("Remaining time:", remaining);
+        return remaining;
+      });
 
       // Check for checkpoint
       let checkpointTime = 600;
@@ -300,14 +311,14 @@ function App() {
         handleCheckpoint();
       }
 
-      if (remaining === 0) {
+      if (elapsed >= limitInSeconds) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
         handleGameComplete("semester_complete");
       }
     }, 1000);
 
-    console.log("Timer interval ID:", timerIntervalRef.current); // Debug log
+    console.log("Timer started with interval ID:", timerIntervalRef.current);
   };
 
   // Handle checkpoint (exam season)
