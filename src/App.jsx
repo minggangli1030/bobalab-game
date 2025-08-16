@@ -259,7 +259,6 @@ function App() {
     }
   };
 
-  // Start timer with checkpoint logic
   const startTimer = () => {
     startTimeRef.current = Date.now();
     timerIntervalRef.current = setInterval(() => {
@@ -268,9 +267,11 @@ function App() {
       );
       setGlobalTimer(elapsed);
 
-      // Time limit countdown
-      const remaining = Math.max(0, timeLimit - elapsed);
-      setTimeRemaining(remaining);
+      // Time limit countdown - use functional update to ensure state updates
+      setTimeRemaining((prev) => {
+        const remaining = Math.max(0, timeLimit - elapsed);
+        return remaining;
+      });
 
       // Check for 10-minute checkpoint (exam season)
       // Admin mode: checkpoint at 1 minute
@@ -491,7 +492,7 @@ function App() {
         lastActivity: serverTimestamp(),
       });
     }
-    // Auto-advance to next task after 2 seconds
+    // Auto-advance to next task after 1 seconds
     setTimeout(() => {
       const currentGame = tabId[1];
       const currentTaskNum = parseInt(tabId[3]);
@@ -512,7 +513,7 @@ function App() {
           }
         }
       }
-    }, 2000);
+    }, 1000);
   };
 
   // Handle tab switching

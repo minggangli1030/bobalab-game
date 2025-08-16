@@ -13,12 +13,6 @@ class AITaskHelper {
     };
   }
 
-  getVagueResponse() {
-    return this.vagueResponses[
-      Math.floor(Math.random() * this.vagueResponses.length)
-    ];
-  }
-
   helpWithSlider(targetValue) {
     this.usageCount.materials++;
     const accuracy = Math.max(0.3, 0.5 - (this.usageCount.materials - 1) * 0.1);
@@ -37,7 +31,6 @@ class AITaskHelper {
       action: "moveSlider",
       value: suggestedValue,
       animate: true,
-      message: this.getVagueResponse(),
     };
   }
 
@@ -86,7 +79,6 @@ class AITaskHelper {
       action: "highlightAndCount",
       highlightWords: highlightWords,
       suggestedCount: aiCount,
-      message: this.getVagueResponse(),
       animate: true, // New flag for animation
     };
   }
@@ -99,7 +91,6 @@ class AITaskHelper {
       action: "autoType",
       text: pattern,
       typeSpeed: 50,
-      message: this.getVagueResponse(),
       perfect: true,
     };
   }

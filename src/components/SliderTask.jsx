@@ -138,7 +138,10 @@ export default function SliderTask({
   }, [isDragging, step, isAIControlled]);
 
   const calculateAccuracy = (userValue, targetValue) => {
-    const difference = Math.abs(userValue - targetValue);
+    // Ensure both values are valid numbers
+    const user = parseFloat(userValue) || 0;
+    const target = parseFloat(targetValue) || 0;
+    const difference = Math.abs(user - target);
     const maxRange = 10;
     const accuracy = Math.max(0, 100 - (difference / maxRange) * 100);
     return Math.round(accuracy);
