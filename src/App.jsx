@@ -262,57 +262,45 @@ function App() {
   };
 
   const startTimer = () => {
-    // Clear any existing timer
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
-    }
-
-    // Get config
+    // Get config and calculate limit FIRST
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
     const duration = config.semesterDuration || 1200000;
     const limitInSeconds = Math.floor(duration / 1000);
 
-    // Initialize refs and state
-    timeLimitRef.current = limitInSeconds;
-    timeRemainingRef.current = limitInSeconds;
+    console.log("Starting timer with limit:", limitInSeconds, "seconds");
+
+    // Set the time limit in state
     setTimeLimit(limitInSeconds);
     setTimeRemaining(limitInSeconds);
-    setGlobalTimer(0);
-    setPausedTime(0);
 
-    const gameStartTime = Date.now();
-    startTimeRef.current = gameStartTime;
+    // Use refs to avoid closure issues
+    startTimeRef.current = Date.now();
 
-    console.log("Starting timer with limit:", limitInSeconds);
-
-    // Use a simple countdown approach
     timerIntervalRef.current = setInterval(() => {
-      timeRemainingRef.current -= 1;
+      const now = Date.now();
+      const elapsedMs = now - startTimeRef.current;
+      const elapsedSeconds = Math.floor(elapsedMs / 1000);
 
-      if (timeRemainingRef.current < 0) {
-        timeRemainingRef.current = 0;
-      }
+      setGlobalTimer(elapsedSeconds);
 
-      // Update state
-      setTimeRemaining(timeRemainingRef.current);
-      setGlobalTimer(timeLimitRef.current - timeRemainingRef.current);
+      // Calculate remaining based on the limit we calculated above
+      const remaining = Math.max(0, limitInSeconds - elapsedSeconds);
+      setTimeRemaining(remaining);
 
-      console.log("Timer tick - remaining:", timeRemainingRef.current);
+      console.log(`Timer: elapsed=${elapsedSeconds}s, remaining=${remaining}s`);
 
       // Check for checkpoint
-      const elapsed = timeLimitRef.current - timeRemainingRef.current;
       const checkpointTime =
         config.role === "admin" && config.semesterDuration === 120000
           ? 60
           : 600;
 
-      if (elapsed === checkpointTime && !checkpointReached) {
+      if (elapsedSeconds === checkpointTime && !checkpointReached) {
         handleCheckpoint();
       }
 
       // Check for completion
-      if (timeRemainingRef.current <= 0) {
+      if (remaining <= 0) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
         handleGameComplete("semester_complete");
@@ -393,8 +381,9 @@ function App() {
     }
   };
 
-  // Start main game
   const startMainGame = () => {
+    taskDependencies.clearAllDependencies();
+
     if (!randomSeed) {
       const seed = Math.floor(Math.random() * 1000000);
       setRandomSeed(seed);
@@ -413,24 +402,18 @@ function App() {
     setCompletedLevels(0);
     setSwitches(0);
     setBonusPrompts(0);
-    setCurrentTab("g2t1"); // Start with materials
+    setCurrentTab("g2t1");
     setCheckpointReached(false);
 
     // Reset teaching points
-    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
-    const duration = config.semesterDuration || 1200000;
-    const durationInSeconds = Math.floor(duration / 1000);
-
-    setTimeLimit(durationInSeconds);
-    setTimeRemaining(durationInSeconds);
-
     setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
     setTaskAttempts({});
     setTaskPoints({});
 
-    setTaskStartTimes({ g2t1: Date.now() });
-
+    // Start timer (it will handle time limit setting)
     startTimer();
+
+    setTaskStartTimes({ g2t1: Date.now() });
     eventTracker.setPageStartTime("g2t1");
     eventTracker.logEvent("game_start", {
       practiceCompleted: practiceChoice === "yes",
