@@ -277,7 +277,7 @@ function App() {
     setGlobalTimer(0);
     setPausedTime(0);
 
-    // Store start time in a variable that persists
+    // Store start time
     const gameStartTime = Date.now();
     startTimeRef.current = gameStartTime;
 
@@ -295,21 +295,25 @@ function App() {
       console.log("Timer tick - elapsed:", elapsed);
 
       setGlobalTimer(elapsed);
-      setTimeRemaining((prev) => {
-        const remaining = Math.max(0, limitInSeconds - elapsed);
-        console.log("Remaining time:", remaining);
-        return remaining;
-      });
+
+      // Calculate remaining time based on elapsed, not using prev
+      const remaining = Math.max(0, limitInSeconds - elapsed);
+      setTimeRemaining(remaining);
+      console.log("Remaining time:", remaining);
 
       // Check for checkpoint
-      let checkpointTime = 600;
-      if (config.role === "admin" && config.semesterDuration === 120000) {
-        checkpointTime = 60;
-      }
+      const checkpointTime =
+        config.role === "admin" && config.semesterDuration === 120000
+          ? 60
+          : 600;
 
-      if (elapsed === checkpointTime && !checkpointReached) {
-        handleCheckpoint();
-      }
+      setCheckpointReached((prevReached) => {
+        if (elapsed === checkpointTime && !prevReached) {
+          handleCheckpoint();
+          return true;
+        }
+        return prevReached;
+      });
 
       if (elapsed >= limitInSeconds) {
         clearInterval(timerIntervalRef.current);
