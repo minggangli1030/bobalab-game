@@ -11,6 +11,7 @@ export default function NavTabsEnhanced({
   categoryPoints = {},
   timeRemaining = null,
 }) {
+  console.log("📊 NavTabsEnhanced received timeRemaining:", timeRemaining);
   // Calculate student learning score
   const calculateStudentLearning = () => {
     const materialsPoints = categoryPoints.materials || 0;

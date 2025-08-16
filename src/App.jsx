@@ -289,17 +289,18 @@ function App() {
     );
 
     timerIntervalRef.current = setInterval(() => {
-      const now = Date.now();
       const elapsed = Math.floor((now - gameStartTime) / 1000);
+      const remaining = Math.max(0, limitInSeconds - elapsed);
 
-      console.log("Timer tick - elapsed:", elapsed);
+      console.log("⏱️ Timer tick:", {
+        elapsed,
+        limitInSeconds,
+        remaining,
+        willSetTimeRemaining: remaining,
+      });
 
       setGlobalTimer(elapsed);
-
-      // Calculate remaining time based on elapsed, not using prev
-      const remaining = Math.max(0, limitInSeconds - elapsed);
       setTimeRemaining(remaining);
-      console.log("Remaining time:", remaining);
 
       // Check for checkpoint
       const checkpointTime =
@@ -324,6 +325,10 @@ function App() {
 
     console.log("Timer started with interval ID:", timerIntervalRef.current);
   };
+
+  useEffect(() => {
+    console.log("⏰ timeRemaining changed to:", timeRemaining);
+  }, [timeRemaining]);
 
   // Handle checkpoint (exam season)
   const handleCheckpoint = () => {
