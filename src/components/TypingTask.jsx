@@ -1,7 +1,6 @@
 // src/components/TypingTask.jsx - COMPLETE FILE WITH AI INTEGRATION
 import React, { useEffect, useState, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
-import { taskDependencies } from "../utils/taskDependencies";
 import { patternGenerator } from "../utils/patternGenerator";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -46,18 +45,8 @@ export default function TypingTask({
   useEffect(() => {
     const generatedPattern = patternGenerator.generateTypingPattern(taskNum);
 
-    const dependency = taskDependencies.getActiveDependency(`g3t${taskNum}`);
-
     // Store the actual pattern that will be used
-    let actualPattern;
-    if (dependency && dependency.type === "simple_pattern") {
-      const easyPattern = patternGenerator.generateTypingPattern(
-        Math.min(taskNum, 5)
-      );
-      actualPattern = easyPattern.pattern;
-    } else {
-      actualPattern = generatedPattern.pattern;
-    }
+    const actualPattern = generatedPattern.pattern;
 
     setPattern(actualPattern);
 
@@ -171,13 +160,12 @@ export default function TypingTask({
     }
   };
 
-  const isEnhanced = taskDependencies.getActiveDependency(`g3t${taskNum}`);
   const patternInfo = patternGenerator.generateTypingPattern(taskNum);
   const difficultyLabel = patternInfo.difficultyLabel;
   const difficultyColor = patternInfo.difficulty;
 
   return (
-    <div className={`task typing ${isEnhanced ? "enhanced-task" : ""}`}>
+    <div className="task typing">
       <h3>Student Engagement - Level {taskNum}</h3>
       <div className={`difficulty-badge ${difficultyColor}`}>
         {difficultyLabel}

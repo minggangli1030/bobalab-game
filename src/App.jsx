@@ -9,7 +9,6 @@ import ChatContainer from "./components/ChatContainer";
 import StudentLogin from "./components/StudentLogin";
 import { sessionManager } from "./utils/sessionManager";
 import { eventTracker } from "./utils/eventTracker";
-import { taskDependencies } from "./utils/taskDependencies";
 import { patternGenerator } from "./utils/patternGenerator";
 import { db } from "./firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -303,7 +302,7 @@ function App() {
         setTimeout(() => {
           showNotification(`Auto-advancing to ${category} Level ${nextLevel}!`);
           handleTabSwitch(nextTaskId, true);
-        }, 2000);
+        }, 1500);
       } else {
         // Completed all levels in this category!
         showNotification(
@@ -391,11 +390,6 @@ function App() {
     setCompletedLevels((prev) => prev + 1);
     setBonusPrompts((prev) => prev + 1);
 
-    const activatedDeps = taskDependencies.checkDependencies(
-      tabId,
-      mode === "practice"
-    );
-
     await eventTracker.trackTaskComplete(
       tabId,
       data.attempts,
@@ -409,7 +403,6 @@ function App() {
       pointsEarned: points,
       categoryPoints: newCategoryPoints,
       studentLearningScore: newStudentLearning,
-      activatedDependencies: activatedDeps,
       completionContext: {
         totalTasksCompleted: Object.keys(completed).length + 1,
         currentGameTime: globalTimer,
@@ -907,7 +900,6 @@ function App() {
         <h1>Teaching Simulation - Practice Mode</h1>
         <PracticeMode
           onStartMainGame={() => {
-            taskDependencies.clearAllDependencies();
             startMainGame();
           }}
           gameAccuracyMode="lenient"

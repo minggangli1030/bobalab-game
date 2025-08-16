@@ -54,42 +54,51 @@ class AITaskHelper {
 
   helpWithCounting(text, targetPattern) {
     this.usageCount.research++;
-    const accuracy = Math.max(0.2, 0.6 - (this.usageCount.research - 1) * 0.1);
+
+    // Reliability decreases with use AND task difficulty
+    let baseAccuracy;
+    const usageCount = this.usageCount.research;
+
+    if (usageCount <= 2) {
+      baseAccuracy = 1.0; // Perfect for first 2 uses
+    } else if (usageCount <= 5) {
+      baseAccuracy = 0.85; // Pretty good for next 3
+    } else if (usageCount <= 8) {
+      baseAccuracy = 0.7; // Getting worse
+    } else {
+      baseAccuracy = Math.max(0.3, 0.7 - (usageCount - 8) * 0.05);
+    }
 
     // Parse the text properly
     const words = text.split(/\s+/);
     const highlightWords = [];
     let aiCount = 0;
 
-    // Find matches with some errors
+    // Find matches with accuracy-based errors
     words.forEach((word) => {
       const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
       const shouldBeHighlighted = cleanWord === targetPattern.toLowerCase();
 
       if (shouldBeHighlighted) {
-        if (Math.random() < accuracy) {
+        if (Math.random() < baseAccuracy) {
           highlightWords.push(word);
           aiCount++;
         }
       } else {
-        if (Math.random() < (1 - accuracy) * 0.2) {
+        // False positives increase with poor accuracy
+        if (Math.random() < (1 - baseAccuracy) * 0.15) {
           highlightWords.push(word);
           aiCount++;
         }
       }
     });
 
-    // Add counting error
-    if (Math.random() < 0.3) {
-      aiCount += Math.random() < 0.5 ? 1 : -1;
-      aiCount = Math.max(0, aiCount);
-    }
-
     return {
       action: "highlightAndCount",
       highlightWords: highlightWords,
       suggestedCount: aiCount,
       message: this.getVagueResponse(),
+      animate: true, // New flag for animation
     };
   }
 

@@ -1,7 +1,6 @@
 // src/components/CountingTask.jsx - COMPLETE FILE WITH AI INTEGRATION (fixed)
 import React, { useEffect, useState, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
-import { taskDependencies } from "../utils/taskDependencies";
 import { patternGenerator } from "../utils/patternGenerator";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -132,106 +131,98 @@ export default function CountingTask({
     return canvas.toDataURL();
   };
 
-  // AI help listener (highlights + suggested count)
   useEffect(() => {
-    const handleAIHelp = (event) => {
-      const { action, highlightWords, suggestedCount } = event.detail || {};
+    const handleAIHelp = async (event) => {
+      const { action, highlightWords, suggestedCount, animate } =
+        event.detail || {};
 
       if (action === "highlightAndCount" && Array.isArray(highlightWords)) {
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
+        if (animate) {
+          // Animate highlighting word by word
+          const words = text.split(" ");
+          let highlightedSoFar = [];
 
-        canvas.width = 900;
-        canvas.height = 350;
+          for (let i = 0; i < highlightWords.length; i++) {
+            highlightedSoFar.push(highlightWords[i]);
 
-        // Background + border
-        ctx.fillStyle = "#fafafa";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "#e0e0e0";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+            // Generate image with current highlights
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = 900;
+            canvas.height = 350;
 
-        ctx.font = "20px monospace";
-        const lineHeight = 30;
-        const padding = 20;
-        const maxWidth = canvas.width - padding * 2;
+            // Background + border
+            ctx.fillStyle = "#fafafa";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "#e0e0e0";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-        const wrapText = (t, maxW) => {
-          const words = t.split(" ");
-          const lines = [];
-          let currentLine = "";
-          for (let word of words) {
-            const testLine = currentLine + (currentLine ? " " : "") + word;
-            const metrics = ctx.measureText(testLine);
-            if (metrics.width > maxW && currentLine) {
-              lines.push(currentLine);
-              currentLine = word;
-            } else {
-              currentLine = testLine;
-            }
-          }
-          if (currentLine) lines.push(currentLine);
-          return lines;
-        };
+            ctx.font = "20px monospace";
+            const lineHeight = 30;
+            const padding = 20;
+            const maxWidth = canvas.width - padding * 2;
 
-        const lines = wrapText(text, maxWidth);
+            const wrapText = (t, maxW) => {
+              const words = t.split(" ");
+              const lines = [];
+              let currentLine = "";
+              for (let word of words) {
+                const testLine = currentLine + (currentLine ? " " : "") + word;
+                const metrics = ctx.measureText(testLine);
+                if (metrics.width > maxW && currentLine) {
+                  lines.push(currentLine);
+                  currentLine = word;
+                } else {
+                  currentLine = testLine;
+                }
+              }
+              if (currentLine) lines.push(currentLine);
+              return lines;
+            };
 
-        // Draw with AI highlights
-        lines.forEach((line, lineIndex) => {
-          const y = padding + (lineIndex + 1) * lineHeight;
-          let x = padding;
-          const words = line.split(" ");
+            const lines = wrapText(text, maxWidth);
 
-          words.forEach((word) => {
-            const w = ctx.measureText(word).width;
+            // Draw with highlights
+            lines.forEach((line, lineIndex) => {
+              const y = padding + (lineIndex + 1) * lineHeight;
+              let x = padding;
+              const lineWords = line.split(" ");
 
-            const shouldHighlight = highlightWords.some((hw) => {
-              const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
-              const cleanHW = hw.replace(/[.,;!?]/g, "").toLowerCase();
-              return cleanWord === cleanHW;
+              lineWords.forEach((word) => {
+                const w = ctx.measureText(word).width;
+
+                // Check if this word should be highlighted
+                const shouldHighlight = highlightedSoFar.some((hw) => {
+                  const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
+                  const cleanHW = hw.replace(/[.,;!?]/g, "").toLowerCase();
+                  return cleanWord === cleanHW;
+                });
+
+                if (shouldHighlight) {
+                  ctx.fillStyle = "rgba(255, 255, 0, 0.5)";
+                  ctx.fillRect(x - 2, y - 18, w + 4, 24);
+                }
+
+                ctx.fillStyle = "#333";
+                ctx.fillText(word, x, y);
+                x += ctx.measureText(word + " ").width;
+              });
             });
 
-            if (shouldHighlight) {
-              ctx.fillStyle = "rgba(255, 255, 0, 0.5)";
-              ctx.fillRect(x - 2, y - 18, w + 4, 24);
-            }
+            setTextImageUrl(canvas.toDataURL());
 
-            ctx.fillStyle = "#333";
-            ctx.fillText(word, x, y);
-            x += ctx.measureText(word + " ").width;
-          });
-        });
+            // Wait 500ms before next highlight
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
 
-        // Update image immediately
-        setTextImageUrl(canvas.toDataURL());
-
-        // Fill suggested answer after a tiny beat
-        if (typeof suggestedCount === "number") {
+          // Fill in the count after animation completes
           setTimeout(() => {
             setInput(suggestedCount.toString());
           }, 300);
+
+          // Keep the final highlighted image (don't revert)
         }
-
-        // Restore original highlights after 3s
-        setTimeout(() => {
-          const pattern = patternGenerator.generateCountingPattern(taskNum);
-          const dependency = taskDependencies.getActiveDependency(
-            `g1t${taskNum}`
-          );
-
-          let highlights = null;
-          if (dependency && dependency.type === "highlight") {
-            highlights =
-              pattern.type === "word"
-                ? [pattern.target]
-                : pattern.type === "letter"
-                ? [pattern.target]
-                : pattern.targets;
-          }
-
-          const originalImageUrl = generateTextImage(text, highlights);
-          setTextImageUrl(originalImageUrl);
-        }, 3000);
       }
     };
 
@@ -268,19 +259,7 @@ export default function CountingTask({
 
     setAnswer(count);
 
-    // Initial highlights if dependency says so
-    const dependency = taskDependencies.getActiveDependency(`g1t${taskNum}`);
-    let highlights = null;
-    if (dependency && dependency.type === "highlight") {
-      highlights =
-        pattern.type === "word"
-          ? [pattern.target]
-          : pattern.type === "letter"
-          ? [pattern.target]
-          : pattern.targets;
-    }
-
-    const imageUrl = generateTextImage(textContent, highlights);
+    const imageUrl = generateTextImage(textContent, null);
     setTextImageUrl(imageUrl);
   }, [taskNum]);
 
@@ -352,14 +331,13 @@ export default function CountingTask({
   };
 
   // Derive difficulty UI from pattern
-  const isEnhanced = !!taskDependencies.getActiveDependency(`g1t${taskNum}`);
   const patternNow = patternGenerator.generateCountingPattern(taskNum);
   const difficultyLabel = patternNow.difficultyLabel;
   const difficultyColor =
     taskNum <= 5 ? "easy" : taskNum <= 10 ? "medium" : "hard";
 
   return (
-    <div className={`task counting ${isEnhanced ? "enhanced-task" : ""}`}>
+    <div className="task counting">
       <h3>Research Content - Level {taskNum}</h3>
 
       <div className={`difficulty-badge ${difficultyColor}`}>

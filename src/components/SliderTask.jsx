@@ -1,7 +1,6 @@
 // src/components/SliderTask.jsx - COMPLETE FILE WITH AI INTEGRATION
 import React, { useEffect, useState, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
-import { taskDependencies } from "../utils/taskDependencies";
 import { patternGenerator } from "../utils/patternGenerator";
 import { db } from "../firebase";
 import { doc, updateDoc, serverTimestamp } from "firebase/firestore";
@@ -204,7 +203,6 @@ export default function SliderTask({
     }
   };
 
-  const isEnhanced = taskDependencies.getActiveDependency(`g2t${taskNum}`);
   const pattern = patternGenerator.generateSliderPattern(taskNum);
   const difficultyLabel = pattern.difficultyLabel;
   const difficultyColor = pattern.difficulty;
@@ -246,11 +244,7 @@ export default function SliderTask({
   };
 
   return (
-    <div
-      className={`task slider ${isEnhanced ? "enhanced-task" : ""} ${
-        isAIControlled ? "ai-controlled" : ""
-      }`}
-    >
+    <div className={`task slider ${isAIControlled ? "ai-controlled" : ""}`}>
       <h3>Material Creation - Level {taskNum}</h3>
       <div className={`difficulty-badge ${difficultyColor}`}>
         {difficultyLabel}
@@ -273,51 +267,55 @@ export default function SliderTask({
           <span>10</span>
         </div>
 
-        {isEnhanced ? (
-          <div style={{ position: "relative", padding: "20px 0 30px 0" }}>
-            <div
-              style={{
-                position: "absolute",
-                width: "100%",
-                height: "20px",
-                top: "0",
-              }}
-            >
-              {generateScaleMarks()}
-            </div>
+        <div style={{ position: "relative", padding: "20px 0 30px 0" }}>
+          {/* Scale marks - only show if we want them */}
+          <div
+            style={{
+              position: "absolute",
+              width: "100%",
+              height: "20px",
+              top: "0",
+            }}
+          >
+            {generateScaleMarks()}
+          </div>
+
+          {/* Custom slider with click prevention */}
+          <div style={{ position: "relative", marginTop: "20px" }}>
             <input
+              ref={sliderRef}
               type="range"
               min="0"
               max="10"
               step={step}
               value={input}
-              onChange={(e) =>
-                !isAIControlled && setInput(parseFloat(e.target.value))
-              }
-              className="slider-input enhanced"
-              disabled={isAIControlled}
+              onChange={() => {}} // Empty function - no direct changes allowed
+              className="slider-input"
               style={{
                 width: "100%",
-                marginTop: "20px",
-                position: "relative",
-                zIndex: 10,
+                cursor: isDragging ? "grabbing" : "grab",
               }}
             />
+
+            {/* Invisible overlay that only responds at thumb position */}
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: `${(input / 10) * 100}%`,
+                transform: "translate(-50%, -50%)",
+                width: "30px",
+                height: "30px",
+                cursor: isDragging ? "grabbing" : "grab",
+                zIndex: 20,
+                // Debug: uncomment to see the hit area
+                // background: "rgba(255, 0, 0, 0.3)",
+              }}
+              onMouseDown={handleMouseDown}
+              onTouchStart={handleMouseDown}
+            />
           </div>
-        ) : (
-          <input
-            type="range"
-            min="0"
-            max="10"
-            step={step}
-            value={input}
-            onChange={(e) =>
-              !isAIControlled && setInput(parseFloat(e.target.value))
-            }
-            className="slider-input"
-            disabled={isAIControlled}
-          />
-        )}
+        </div>
 
         <div className="current-value">
           {showValue ? parseFloat(input).toFixed(pattern.precision) : "??"}

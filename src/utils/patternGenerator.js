@@ -146,42 +146,21 @@ export const patternGenerator = {
 
     let pattern;
     if (level <= 5) {
-      pattern = patterns.easy[level - 1];
+      // Make sure we're using the correct index
+      const index = (level - 1) % patterns.easy.length;
+      pattern = patterns.easy[index];
     } else if (level <= 10) {
-      pattern = patterns.medium[level - 6];
+      const index = (level - 6) % patterns.medium.length;
+      pattern = patterns.medium[index];
     } else {
-      pattern = patterns.hard[level - 11];
-    }
-
-    // For variety, occasionally generate random patterns using seeded random
-    if (this.getRandom() < 0.3) {
-      if (level <= 5) {
-        // Random easy pattern
-        const words = ["test", "type", "easy", "quick", "simple", "basic"];
-        const word1 = words[Math.floor(this.getRandom() * words.length)];
-        const word2 = words[Math.floor(this.getRandom() * words.length)];
-        pattern = `${word1} ${word2}`;
-      } else if (level <= 10) {
-        // Random medium pattern - randomize case
-        pattern = pattern
-          .split("")
-          .map((char) =>
-            this.getRandom() < 0.5 ? char.toUpperCase() : char.toLowerCase()
-          )
-          .join("");
-      }
+      const index = (level - 11) % patterns.hard.length;
+      pattern = patterns.hard[index];
     }
 
     return {
       pattern,
       difficulty: level <= 5 ? "easy" : level <= 10 ? "medium" : "hard",
       difficultyLabel: level <= 5 ? "Easy" : level <= 10 ? "Medium" : "Hard",
-      complexity:
-        level <= 5
-          ? "letters_only"
-          : level <= 10
-          ? "mixed_case"
-          : "symbols_numbers",
     };
   },
 
