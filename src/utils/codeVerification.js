@@ -1,123 +1,47 @@
-// src/utils/codeVerification.js - Code Verification System
+// src/utils/codeVerification.js - Simplified for Student-First Access
 import { db } from "../firebase";
-import {
-  collection,
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 
 export const codeVerification = {
-  // Generate a unique code for Qualtrics
+  // Generate a unique code
   generateCode() {
     const timestamp = Date.now().toString(36);
     const randomStr = Math.random().toString(36).substring(2, 8);
     return `${timestamp}-${randomStr}`.toUpperCase();
   },
 
-  // In createCode function, make it simpler for student IDs
-  async createCode(qualtricsData = {}) {
+  // Create a code (mainly for student logins now)
+  async createCode(data = {}) {
     const code = this.generateCode();
 
     // For student logins, we don't need to store in Firebase immediately
-    // The session manager will handle it
-    if (qualtricsData.studentIdentifier) {
-      console.log("Student code generated:", code);
-      return { success: true, code };
-    }
+    // We'll only store when they actually start playing (to track usage)
+    console.log("Generated access code:", code);
 
-    // For other codes, store in Firebase
-    const codeData = {
+    return {
+      success: true,
       code,
-      createdAt: serverTimestamp(),
-      status: "unused",
-      qualtricsResponseId: qualtricsData.responseId || null,
-      qualtricsUserId: qualtricsData.userId || null,
-      metadata: qualtricsData,
-      usedAt: null,
-      sessionId: null,
+      data,
     };
-
-    try {
-      await setDoc(doc(db, "accessCodes", code), codeData);
-      return { success: true, code };
-    } catch (error) {
-      console.error("Error creating code:", error);
-      // Even on Firebase error, return the code for student use
-      return { success: true, code };
-    }
   },
 
-  async verifyCode(code) {
-    if (!code) {
-      return { valid: false, reason: "No code provided" };
-    }
-
-    try {
-      // CHECK FOR ADMIN CODES FIRST - bypass Firebase completely
-      if (code === "ADMIN-FAST" || code === "ADMIN-REGULAR") {
-        return {
-          valid: true,
-          codeData: {
-            code,
-            status: "admin",
-            isAdminCode: true,
-            createdAt: { toDate: () => new Date() },
-            metadata: {
-              isMasterCode: true,
-              role: "admin",
-              semesterDuration: code === "ADMIN-FAST" ? 120000 : 1200000,
-            },
-          },
-        };
-      }
-
-      // Regular code verification for students
-      const codeDoc = await getDoc(doc(db, "accessCodes", code));
-
-      if (!codeDoc.exists()) {
-        return { valid: false, reason: "Invalid code" };
-      }
-
-      const codeData = codeDoc.data();
-
-      // Check if code has been used (only for non-admin codes)
-      if (codeData.status === "used") {
-        return {
-          valid: false,
-          reason: "Code already used",
-          usedAt: codeData.usedAt,
-        };
-      }
-
-      // Check if code is expired (24 hours)
-      const createdAt = codeData.createdAt?.toDate();
-      const expiryTime = 24 * 60 * 60 * 1000; // 24 hours
-      if (createdAt && Date.now() - createdAt.getTime() > expiryTime) {
-        return { valid: false, reason: "Code expired" };
-      }
-
-      return { valid: true, codeData };
-    } catch (error) {
-      console.error("Error verifying code:", error);
-      return {
-        valid: false,
-        reason: "Verification error",
-        error: error.message,
-      };
-    }
-  },
-
-  // Mark code as used
+  // Mark code as used (for replay prevention)
   async markCodeAsUsed(code, sessionId) {
+    if (!code) return { success: false, error: "No code provided" };
+
     try {
-      await updateDoc(doc(db, "accessCodes", code), {
+      // Store this code as used in Firebase
+      const codeData = {
+        code,
         status: "used",
         usedAt: serverTimestamp(),
         sessionId,
-      });
+        createdAt: serverTimestamp(),
+      };
+
+      await setDoc(doc(db, "accessCodes", code), codeData);
+      console.log("✅ Code marked as used:", code);
+
       return { success: true };
     } catch (error) {
       console.error("Error marking code as used:", error);
@@ -125,9 +49,42 @@ export const codeVerification = {
     }
   },
 
-  // Get code from URL parameters
+  // Check if a code has been used (for replay prevention)
+  async checkCodeUsage(code) {
+    if (!code) return { used: false };
+
+    try {
+      const codeDoc = await getDoc(doc(db, "accessCodes", code));
+
+      if (codeDoc.exists()) {
+        const data = codeDoc.data();
+        return {
+          used: data.status === "used",
+          sessionId: data.sessionId,
+          usedAt: data.usedAt,
+        };
+      }
+
+      return { used: false };
+    } catch (error) {
+      console.error("Error checking code usage:", error);
+      return { used: false, error: error.message };
+    }
+  },
+
+  // Get code from URL
   getCodeFromURL() {
     const params = new URLSearchParams(window.location.search);
     return params.get("code") || params.get("c") || null;
+  },
+
+  // Future: Verify Qualtrics codes
+  async verifyQualtricsCode(code) {
+    // This is for future implementation when you add Qualtrics support
+    // For now, just return invalid
+    return {
+      valid: false,
+      reason: "Qualtrics codes not yet supported",
+    };
   },
 };

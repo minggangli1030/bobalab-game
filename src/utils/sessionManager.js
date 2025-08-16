@@ -1,13 +1,11 @@
-// src/utils/sessionManager.js - Fixed Version
+// src/utils/sessionManager.js - Simplified for Student-First Access
 import { db } from "../firebase";
 import {
   collection,
-  query,
-  where,
-  getDocs,
   addDoc,
   updateDoc,
   doc,
+  getDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import { codeVerification } from "./codeVerification";
@@ -15,53 +13,77 @@ import { codeVerification } from "./codeVerification";
 export const sessionManager = {
   async checkAccess() {
     try {
-      // First check if there's a code in the URL
+      // Get the code from URL
       const urlCode = codeVerification.getCodeFromURL();
 
-      // If no code, redirect to login
+      // No code = need to login
       if (!urlCode) {
         return {
           allowed: false,
-          reason:
-            "Access code required. Please access this game through your student login.",
+          reason: "Please login with your student ID",
           requiresCode: true,
         };
       }
 
-      // CHECK FOR ADMIN CODES FIRST - bypass Firebase
-      if (urlCode === "ADMIN-FAST" || urlCode === "ADMIN-REGULAR") {
-        console.log("Admin code detected - bypassing all restrictions");
-        return {
-          allowed: true,
-          newSession: true,
-          code: urlCode,
-          codeData: {
-            isAdminCode: true,
-            status: "admin",
-            metadata: {
-              isMasterCode: true,
-              role: "admin",
-              semesterDuration: urlCode === "ADMIN-FAST" ? 120000 : 1200000,
-            },
-          },
-        };
-      }
-
-      // For regular codes, verify in Firebase
-      const { valid, reason, codeData } = await codeVerification.verifyCode(
-        urlCode
+      // Check if we have game config from StudentLogin
+      const gameConfig = JSON.parse(
+        sessionStorage.getItem("gameConfig") || "{}"
       );
 
-      console.log("Code verification result:", { valid, reason, codeData });
-
-      if (!valid) {
-        // If code doesn't exist in Firebase, it might be a newly generated one
-        // Check if we just came from StudentLogin (config exists in sessionStorage)
-        const gameConfig = JSON.parse(
-          sessionStorage.getItem("gameConfig") || "{}"
+      // CASE 1: Fresh login with valid student ID or admin code
+      if (gameConfig.studentId) {
+        console.log(
+          "✅ Valid student/admin login detected:",
+          gameConfig.studentId
         );
-        if (gameConfig.studentId) {
-          console.log("New student session detected, allowing access");
+
+        // Check if this code has been used before (in Firebase)
+        try {
+          const codeDoc = await getDoc(doc(db, "accessCodes", urlCode));
+
+          if (codeDoc.exists()) {
+            const codeData = codeDoc.data();
+
+            // Code was used before - check if same session
+            if (codeData.status === "used" && codeData.sessionId) {
+              const existingSessionId = localStorage.getItem("sessionId");
+
+              if (existingSessionId === codeData.sessionId) {
+                // Same browser session - allow refresh
+                console.log("✅ Same session refresh - allowing");
+                return {
+                  allowed: true,
+                  resumeSession: codeData.sessionId,
+                  code: urlCode,
+                  codeData,
+                };
+              } else {
+                // Different session - block replay
+                console.log("❌ Code already used in different session");
+                return {
+                  allowed: false,
+                  reason:
+                    "This access code has already been used. Each code can only be used once.",
+                  code: urlCode,
+                };
+              }
+            }
+          }
+
+          // Code not in Firebase yet - first time use, allow!
+          console.log("✅ First time using this code - allowing");
+          return {
+            allowed: true,
+            newSession: true,
+            code: urlCode,
+            codeData: {
+              status: "new",
+              metadata: gameConfig,
+            },
+          };
+        } catch (error) {
+          // Firebase error - allow anyway for valid students
+          console.log("⚠️ Firebase check failed, but valid student - allowing");
           return {
             allowed: true,
             newSession: true,
@@ -72,70 +94,24 @@ export const sessionManager = {
             },
           };
         }
-
-        return {
-          allowed: false,
-          reason: reason || "Invalid access code",
-          code: urlCode,
-        };
       }
 
-      // Code exists and is valid
-      if (codeData.status === "used" && codeData.sessionId) {
-        // Check if same browser session
-        const existingSessionId = localStorage.getItem("sessionId");
-        if (existingSessionId === codeData.sessionId) {
-          // Same browser/session, allow continuation
-          return {
-            allowed: true,
-            resumeSession: codeData.sessionId,
-            code: urlCode,
-            codeData,
-          };
-        }
-
-        // For student codes that have been used, check if it's the same student
-        const gameConfig = JSON.parse(
-          sessionStorage.getItem("gameConfig") || "{}"
-        );
-        if (
-          gameConfig.studentId &&
-          codeData.metadata?.studentIdentifier === gameConfig.studentId
-        ) {
-          // Same student, allow new session
-          console.log("Same student accessing again, allowing new session");
-          return {
-            allowed: true,
-            newSession: true,
-            code: urlCode,
-            codeData,
-          };
-        }
-
-        // Different browser/session and different student
-        return {
-          allowed: false,
-          reason: "This code has already been used.",
-          code: urlCode,
-        };
-      }
-
-      // Code is unused, allow access
+      // CASE 2: No game config - might be a direct URL access or Qualtrics code
+      // For now, block these since we're only doing student login
+      console.log("❌ No valid student login found");
       return {
-        allowed: true,
-        newSession: true,
-        code: urlCode,
-        codeData,
+        allowed: false,
+        reason: "Please login with your Berkeley student ID",
+        requiresCode: true,
       };
     } catch (error) {
-      console.error("Error checking access:", error);
+      console.error("Error in checkAccess:", error);
 
-      // On error, check if we have a valid session config
+      // If we have a valid config, allow anyway
       const gameConfig = JSON.parse(
         sessionStorage.getItem("gameConfig") || "{}"
       );
       if (gameConfig.studentId) {
-        console.log("Error but valid config found, allowing access");
         return {
           allowed: true,
           newSession: true,
@@ -149,7 +125,7 @@ export const sessionManager = {
 
       return {
         allowed: false,
-        reason: "System error. Please try again or contact support.",
+        reason: "System error. Please try again.",
         requiresCode: true,
       };
     }
@@ -157,62 +133,70 @@ export const sessionManager = {
 
   async createSession(accessCode = null, codeData = null, isPractice = false) {
     try {
-      const ip = await this.getUserIP();
+      const gameConfig = JSON.parse(
+        sessionStorage.getItem("gameConfig") || "{}"
+      );
+
+      // Create session in Firebase
       const sessionData = {
         id: crypto.randomUUID(),
-        ip,
         accessCode,
-        qualtricsData: codeData?.metadata || null,
+        studentId: gameConfig.studentId || null,
+        role: gameConfig.role || "student",
+        semesterDuration: gameConfig.semesterDuration || 1200000,
+        displayName: gameConfig.displayName || "Student",
         startTime: serverTimestamp(),
         status: "active",
         completedTasks: {},
-        events: [],
-        chatHistory: [],
-        numPrompts: 0,
-        bonusPrompts: 0,
-        practiceCompleted: false,
+        isPractice: isPractice,
+        isAdminSession: gameConfig.role === "admin",
         userAgent: navigator.userAgent,
         screenResolution: `${window.screen.width}x${window.screen.height}`,
-        source: accessCode ? "qualtrics" : "direct",
-        isPractice: isPractice,
-        isAdminSession: codeData?.isAdminCode || false,
       };
 
       const docRef = await addDoc(collection(db, "sessions"), sessionData);
-      localStorage.setItem("sessionId", docRef.id);
+      const sessionId = docRef.id;
+      localStorage.setItem("sessionId", sessionId);
 
-      // Only mark code as used for real student sessions
-      if (
-        accessCode &&
-        !isPractice &&
-        !codeData?.isAdminCode &&
-        codeData?.status !== "error_bypass"
-      ) {
-        // Only try to mark as used if the code exists in Firebase
-        if (codeData?.status !== "new") {
-          await codeVerification.markCodeAsUsed(accessCode, docRef.id);
+      // Now record this code as used (for blocking replays)
+      if (accessCode && !isPractice) {
+        try {
+          // Store the code usage in Firebase
+          await codeVerification.markCodeAsUsed(accessCode, sessionId);
+        } catch (error) {
+          console.log("Could not mark code as used, but continuing:", error);
         }
       }
 
-      // Set up beforeunload handler
-      window.addEventListener("beforeunload", async (e) => {
+      // Set up cleanup handler
+      window.addEventListener("beforeunload", async () => {
         await this.handleSessionAbandonment();
       });
 
-      return docRef.id;
+      console.log("✅ Session created:", sessionId);
+      return sessionId;
     } catch (error) {
       console.error("Error creating session:", error);
-      // Fallback for offline mode
+
+      // Offline fallback
       const offlineId = "offline-" + Date.now();
       localStorage.setItem("sessionId", offlineId);
+
+      const gameConfig = JSON.parse(
+        sessionStorage.getItem("gameConfig") || "{}"
+      );
       const sessionData = {
         id: offlineId,
         accessCode,
         startTime: Date.now(),
         status: "active",
         isOffline: true,
+        studentId: gameConfig.studentId || null,
+        role: gameConfig.role || "student",
       };
       localStorage.setItem("offlineSession", JSON.stringify(sessionData));
+
+      console.log("✅ Offline session created:", offlineId);
       return offlineId;
     }
   },
