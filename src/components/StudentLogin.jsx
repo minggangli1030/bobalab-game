@@ -303,7 +303,6 @@ export default function StudentLogin({ onLoginSuccess }) {
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="e.g., 3040729812"
               disabled={loading}
               style={{
                 width: "100%",
@@ -336,7 +335,7 @@ export default function StudentLogin({ onLoginSuccess }) {
                 lineHeight: "1.4",
               }}
             >
-              Valid formats: 8 digits (15177695) or 10 digits (30xxxxxxxx)
+              Valid formats: 8 digits or 10 digits (303xxxxxxx)
             </div>
           </div>
 
