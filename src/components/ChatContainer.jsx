@@ -91,7 +91,6 @@ class AITaskHelper {
       action: "autoType",
       text: pattern || "", // Ensure pattern is not undefined
       typeSpeed: 50,
-      message: this.getVagueResponse(),
       perfect: true,
     };
   }

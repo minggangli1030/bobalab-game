@@ -459,7 +459,7 @@ function App() {
 
     // Show learning score update
     showNotification(
-      `Task Complete! +${points} ${category} points | Student Learning: ${Math.round(
+      `Complete! +${points} ${category} points | Student Learning: ${Math.round(
         newStudentLearning
       )} pts`
     );
