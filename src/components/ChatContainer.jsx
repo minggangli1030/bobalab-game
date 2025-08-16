@@ -1,7 +1,108 @@
-// src/components/ChatContainer.jsx - Updated with AI task assistance
+// src/components/ChatContainer.jsx - COMPLETE FILE
 import React, { useState, useEffect, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
 import "./ChatContainer.css";
+
+// AI Task Helper Class (embedded here for simplicity)
+class AITaskHelper {
+  constructor() {
+    this.usageCount = {
+      slider: 0,
+      counting: 0,
+      typing: 0,
+    };
+
+    this.vagueResponses = [
+      "I've helped you complete the task!",
+      "Task assistance provided!",
+      "There you go!",
+      "Done! I've given my input.",
+      "I've made my attempt!",
+      "Task completed with AI assistance.",
+      "My work here is done!",
+      "AI help delivered!",
+      "I've done what I can!",
+      "Assistance complete!",
+    ];
+  }
+
+  getVagueResponse() {
+    return this.vagueResponses[
+      Math.floor(Math.random() * this.vagueResponses.length)
+    ];
+  }
+
+  helpWithSlider(targetValue) {
+    this.usageCount.slider++;
+    const accuracy = Math.max(0.3, 0.5 - (this.usageCount.slider - 1) * 0.1);
+
+    let suggestedValue;
+    if (Math.random() < accuracy) {
+      suggestedValue = targetValue;
+    } else {
+      const error =
+        (Math.random() < 0.5 ? -1 : 1) * (this.usageCount.slider > 3 ? 2 : 1);
+      suggestedValue = Math.max(0, Math.min(10, targetValue + error));
+    }
+
+    return {
+      action: "moveSlider",
+      value: suggestedValue,
+      animate: true,
+      message: this.getVagueResponse(),
+    };
+  }
+
+  helpWithCounting(text, targetPattern) {
+    this.usageCount.counting++;
+    const accuracy = Math.max(0.2, 0.6 - (this.usageCount.counting - 1) * 0.1);
+
+    const words = text.split(/(\s+)/);
+    const highlights = new Set();
+    let aiCount = 0;
+
+    words.forEach((word, idx) => {
+      if (word.toLowerCase().includes(targetPattern.toLowerCase())) {
+        if (Math.random() < accuracy) {
+          highlights.add(idx);
+          aiCount++;
+        }
+      } else {
+        if (Math.random() < (1 - accuracy) * 0.3) {
+          highlights.add(idx);
+          aiCount++;
+        }
+      }
+    });
+
+    if (Math.random() < 0.4) {
+      aiCount += Math.random() < 0.5 ? 1 : -1;
+    }
+
+    return {
+      action: "highlightAndCount",
+      highlightIndices: Array.from(highlights),
+      suggestedCount: Math.max(0, aiCount),
+      message: this.getVagueResponse(),
+      actualText: words,
+    };
+  }
+
+  helpWithTyping(pattern) {
+    this.usageCount.typing++;
+
+    return {
+      action: "autoType",
+      text: pattern,
+      typeSpeed: 50,
+      message: this.getVagueResponse(),
+      perfect: true,
+    };
+  }
+}
+
+// Create singleton instance
+const aiTaskHelper = new AITaskHelper();
 
 export default function ChatContainer({
   bonusPrompts = 0,
@@ -20,206 +121,215 @@ export default function ChatContainer({
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef(null);
-  const [aiUseCount, setAiUseCount] = useState({
-    counting: 0,
-    slider: 0,
-    typing: 0,
-  });
 
-  // Auto-scroll to bottom
-  useEffect(() => {
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
   }, [messages]);
 
-  // Generate AI help based on task type
-  const generateAIHelp = (taskType) => {
-    const taskNum = currentTask ? parseInt(currentTask.substring(3)) : 1;
-    const game = currentTask ? currentTask.substring(0, 2) : null;
+  // Handler for slider help
+  const handleSliderHelp = () => {
+    const sliderTarget =
+      document
+        .querySelector("[data-target-value]")
+        ?.getAttribute("data-target-value") ||
+      document.querySelector(".target-value")?.textContent ||
+      document.querySelector(".slider-target")?.textContent ||
+      5;
 
-    // Track AI usage
-    const useCount = aiUseCount[taskType] || 0;
-    setAiUseCount((prev) => ({ ...prev, [taskType]: useCount + 1 }));
+    const help = aiTaskHelper.helpWithSlider(parseFloat(sliderTarget));
 
-    // AI gets worse over time (except typing which is always perfect)
-    const degradationFactor =
-      taskType === "typing" ? 0 : Math.min(useCount * 0.1, 0.5);
+    window.dispatchEvent(
+      new CustomEvent("aiSliderHelp", {
+        detail: help,
+      })
+    );
 
-    if (taskType === "slider" && game === "g2") {
-      // Slider AI: 50% accurate, 50% off by 1
-      const actualTarget = getSliderTarget(); // You'll need to implement this
-      const errorChance = Math.random() + degradationFactor;
-
-      if (errorChance < 0.5) {
-        return `I'll help! Try moving the slider to ${actualTarget}. Start from 0 and drag slowly.`;
-      } else {
-        const offset = Math.random() < 0.5 ? -1 : 1;
-        const wrongTarget = Math.max(0, Math.min(10, actualTarget + offset));
-        return `I think you should move the slider to ${wrongTarget}. Hold and drag from 0!`;
-      }
-    }
-
-    if (taskType === "counting" && game === "g1") {
-      // Counting AI: Gets progressively worse
-      const patterns = [
-        { correct: 12, wrong: [11, 13, 10] }, // Example counts
-        { correct: 8, wrong: [7, 9, 6] },
-        { correct: 15, wrong: [14, 16, 13] },
-      ];
-
-      const pattern = patterns[taskNum % patterns.length];
-      const errorChance = Math.random() + degradationFactor;
-
-      if (errorChance < 0.3) {
-        return `I count ${pattern.correct} occurrences. Some words are highlighted to help you verify!`;
-      } else {
-        const wrongAnswer =
-          pattern.wrong[Math.floor(Math.random() * pattern.wrong.length)];
-        return `Hmm, I see ${wrongAnswer} occurrences. Check the highlighted words carefully!`;
-      }
-    }
-
-    if (taskType === "typing" && game === "g3") {
-      // Typing AI: Always perfect (as per requirement)
-      const pattern = getTypingPattern(); // You'll need to implement this
-      return `Here's the exact pattern: "${pattern}". Just copy it exactly!`;
-    }
-
-    return "I'm not sure what task you're on. Try being more specific!";
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: "bot",
+        text: help.message,
+      },
+    ]);
   };
 
-  // Get current task targets (these need to be passed from parent or stored)
-  const getSliderTarget = () => {
-    // This should get the actual target from the current SliderTask
-    // For now, returning a placeholder
-    return 5;
+  // Handler for counting help
+  const handleCountingHelp = () => {
+    const textElement =
+      document.querySelector(".text-to-count") ||
+      document.querySelector(".counting-text") ||
+      document.querySelector("[data-counting-text]");
+    const patternElement =
+      document.querySelector(".count-target") ||
+      document.querySelector("[data-pattern]") ||
+      document.querySelector(".counting-pattern");
+
+    if (textElement && patternElement) {
+      const text =
+        textElement.textContent ||
+        textElement.getAttribute("data-counting-text");
+      const pattern = (
+        patternElement.textContent ||
+        patternElement.getAttribute("data-pattern")
+      ).replace(/['"]/g, "");
+
+      const help = aiTaskHelper.helpWithCounting(text, pattern);
+
+      window.dispatchEvent(
+        new CustomEvent("aiCountingHelp", {
+          detail: help,
+        })
+      );
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: help.message,
+        },
+      ]);
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "Make sure you're on the counting tab to use counting help!",
+        },
+      ]);
+    }
   };
 
-  const getTypingPattern = () => {
-    // This should get the actual pattern from the current TypingTask
-    // For now, returning a placeholder
-    return "Type this pattern";
+  // Handler for typing help
+  const handleTypingHelp = () => {
+    const patternElement =
+      document.querySelector(".typing-pattern") ||
+      document.querySelector("[data-typing-pattern]") ||
+      document.querySelector(".pattern-to-type");
+
+    if (patternElement) {
+      const pattern = (
+        patternElement.textContent ||
+        patternElement.getAttribute("data-typing-pattern")
+      ).replace(/['"]/g, "");
+      const help = aiTaskHelper.helpWithTyping(pattern);
+
+      window.dispatchEvent(
+        new CustomEvent("aiTypingHelp", {
+          detail: help,
+        })
+      );
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: help.message,
+        },
+      ]);
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "Make sure you're on the typing tab to use typing help!",
+        },
+      ]);
+    }
   };
 
-  const handleSend = async () => {
+  const handleSend = () => {
     if (!input.trim()) return;
 
-    // Add user message
-    const userMsg = { sender: "user", text: input };
-    setMessages((msgs) => [...msgs, userMsg]);
-    const userInput = input.toLowerCase();
+    const userMessage = input.toLowerCase().trim();
+
+    setMessages((prev) => [...prev, { sender: "user", text: input }]);
     setInput("");
     setIsTyping(true);
 
-    // Check for AI help keywords
-    let response = "";
-    if (userInput.includes("slider") && userInput.includes("help")) {
-      response = generateAIHelp("slider");
-    } else if (userInput.includes("count") && userInput.includes("help")) {
-      response = generateAIHelp("counting");
-    } else if (userInput.includes("type") && userInput.includes("help")) {
-      response = generateAIHelp("typing");
-    } else if (userInput.includes("strategy") || userInput.includes("order")) {
-      // Flow-level strategic advice
-      response = getStrategicAdvice();
-    } else {
-      // Default helpful response
-      response = getGeneralHelp();
-    }
-
-    // Log the interaction
-    await eventTracker.trackChatInteraction(
-      input,
-      { text: response, type: "ai_help" },
-      messages.length,
-      currentTask
-    );
-
-    // Simulate typing delay
     setTimeout(() => {
+      let response = "";
+
+      // Check for specific help commands
+      if (userMessage.includes("slider") && userMessage.includes("help")) {
+        handleSliderHelp();
+        setIsTyping(false);
+        return;
+      } else if (
+        userMessage.includes("count") &&
+        userMessage.includes("help")
+      ) {
+        handleCountingHelp();
+        setIsTyping(false);
+        return;
+      } else if (
+        (userMessage.includes("type") || userMessage.includes("typing")) &&
+        userMessage.includes("help")
+      ) {
+        handleTypingHelp();
+        setIsTyping(false);
+        return;
+      } else if (userMessage.includes("help")) {
+        response =
+          "I can help with specific tasks! Try 'slider help', 'count help', or 'type help'.";
+      } else {
+        // Generic responses
+        const genericResponses = [
+          "Try asking for task-specific help!",
+          "Need help? Try 'slider help', 'count help', or 'type help'!",
+          "I'm here to assist with your tasks.",
+          "Focus on the current task - you've got this!",
+        ];
+        response =
+          genericResponses[Math.floor(Math.random() * genericResponses.length)];
+      }
+
+      setMessages((prev) => [...prev, { sender: "bot", text: response }]);
       setIsTyping(false);
-      setMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "bot",
-          text: response,
-        },
-      ]);
-    }, 500 + Math.random() * 1000);
-  };
-
-  const getStrategicAdvice = () => {
-    const studentLearning = calculateStudentLearning();
-
-    if (categoryPoints.materials < 10) {
-      return "Focus on Materials tasks first - they're the foundation of student learning! Research and Engagement multiply these base points.";
-    } else if (categoryPoints.research < 4) {
-      return "Consider doing some Research tasks now. Each point adds 5% to your Materials score. Early investment pays off!";
-    } else if (categoryPoints.engagement < 4) {
-      return "Don't forget Engagement! It adds 1% per point to everything. Small but compounds nicely.";
-    } else {
-      return "Good balance! Keep completing tasks. Remember: Materials × Research Multiplier × Engagement Multiplier = Student Learning!";
-    }
-  };
-
-  const getGeneralHelp = () => {
-    const tips = [
-      "Try 'slider help', 'count help', or 'type help' for task-specific assistance!",
-      "Student Learning = Materials × (1 + Research×0.05) × (1 + Engagement×0.01)",
-      "Complete tasks with 95%+ accuracy for 2 points, 70%+ for 1 point!",
-      "Checkpoint at 10 minutes! Get 30+ Student Learning for bonus points!",
-      "Research multiplies your Materials points - invest early!",
-      "Engagement compounds everything - don't neglect it!",
-    ];
-    return tips[Math.floor(Math.random() * tips.length)];
-  };
-
-  const calculateStudentLearning = () => {
-    if (!categoryPoints) return 0;
-    const materials = categoryPoints.materials || 0;
-    const researchMult = 1 + (categoryPoints.research || 0) * 0.05;
-    const engagementMult = 1 + (categoryPoints.engagement || 0) * 0.01;
-    return materials * researchMult * engagementMult;
+    }, 800);
   };
 
   return (
     <div className="chat-container-sidebar">
-      {/* Header */}
       <div className="chat-header">
         <h3>AI Teaching Assistant</h3>
-        <div style={{ fontSize: "12px", color: "#666", marginTop: "5px" }}>
+        <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>
           Unlimited help available! (reliability may vary)
         </div>
       </div>
 
-      {/* Messages */}
       <div className="messages-sidebar">
-        {messages.map((m, i) => (
-          <div key={i} className={`message ${m.sender}`}>
-            <div className="message-content">
-              <strong>{m.sender === "user" ? "You" : "AI Assistant"}:</strong>
-              <span>{m.text}</span>
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`message ${msg.sender}`}>
+            <div className="message-sender">
+              {msg.sender === "user" ? "You" : "AI Assistant"}:
             </div>
+            <div className="message-text">{msg.text}</div>
           </div>
         ))}
         {isTyping && (
           <div className="message bot">
-            <div className="message-content">
-              <strong>AI Assistant:</strong>
-              <span className="typing-indicator">...</span>
+            <div className="message-sender">AI Assistant:</div>
+            <div className="message-text typing">
+              <span></span>
+              <span></span>
+              <span></span>
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="chat-input-sidebar">
         <input
           type="text"
           placeholder="Ask for help... (try 'slider help')"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          onKeyPress={(e) => e.key === "Enter" && handleSend()}
         />
         <button onClick={handleSend} disabled={!input.trim()}>
           Send
