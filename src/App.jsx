@@ -366,8 +366,6 @@ function App() {
 
   // Start main game
   const startMainGame = () => {
-    taskDependencies.clearAllDependencies();
-
     if (!randomSeed) {
       const seed = Math.floor(Math.random() * 1000000);
       setRandomSeed(seed);
@@ -1019,7 +1017,6 @@ function App() {
       setPausedTime(0);
       setCurrentTab("g2t1");
       setMode("challenge");
-      taskDependencies.clearAllDependencies();
 
       const newSeed = Math.floor(Math.random() * 1000000);
       setRandomSeed(newSeed);
