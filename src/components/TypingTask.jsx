@@ -176,7 +176,7 @@ export default function TypingTask({
   const difficultyColor = patternInfo.difficulty;
 
   return (
-    <div className="task typing">
+    <div className="task typing" style={{ maxWidth: "100%" }}>
       <h3>Student Engagement - Level {taskNum}</h3>
       <div className={`difficulty-badge ${difficultyColor}`}>
         {difficultyLabel}

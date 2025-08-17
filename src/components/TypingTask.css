@@ -49,8 +49,11 @@
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   padding: 20px;
-  margin: 20px 0;
+  margin: 20px auto; /* Center it */
   text-align: center;
+  width: 90%; /* Match input width */
+  max-width: 900px; /* Match input max-width */
+  box-sizing: border-box;
 }
 
 .pattern-text {
@@ -66,9 +69,10 @@
 }
 
 .typing-input {
-  width: 700px; /* Increased from 600px */
-  padding: 20px 24px; /* Increased from 16px 20px */
-  font-size: 28px; /* Increased from 24px */
+  width: 90%; /* Changed to percentage for responsiveness */
+  max-width: 900px; /* Much wider max width */
+  padding: 16px 20px; /* Keep original padding */
+  font-size: 24px; /* Keep original font size */
   font-family: "Courier New", monospace;
   border: 3px solid #f44336;
   border-radius: 8px;
@@ -77,8 +81,8 @@
   background: #fff5f5;
   color: #333;
   font-weight: 500;
-  letter-spacing: 1.5px; /* Increased from 1px */
-  min-height: 70px; /* Added minimum height */
+  letter-spacing: 1px;
+  box-sizing: border-box; /* Ensure padding is included in width */
 }
 
 .typing-input:focus {

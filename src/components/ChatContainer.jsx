@@ -142,58 +142,112 @@ class AITaskHelper {
 
     let resultText = pattern;
 
+    // Common character substitutions that look similar
+    const similarChars = {
+      0: ["o", "O"], // zero looks like o
+      o: ["0"], // o looks like zero
+      O: ["0"], // O looks like zero
+      1: ["l", "I", "i"], // one looks like l, I, i
+      l: ["1", "I", "i"], // l looks like one, I, i
+      I: ["1", "l", "i"], // I looks like one, l, i
+      i: ["1", "l", "I"], // i looks like one, l, I
+      e: ["3"], // e looks like 3
+      3: ["e"], // 3 looks like e
+      a: ["@"], // a looks like @
+      "@": ["a"], // @ looks like a
+      s: ["5", "$"], // s looks like 5, $
+      S: ["5", "$"], // S looks like 5, $
+      5: ["s", "S"], // 5 looks like s
+      $: ["s", "S"], // $ looks like s
+      g: ["9"], // g looks like 9
+      9: ["g"], // 9 looks like g
+      b: ["6"], // b looks like 6
+      6: ["b"], // 6 looks like b
+      z: ["2"], // z looks like 2
+      2: ["z"], // 2 looks like z
+      B: ["8"], // B looks like 8
+      8: ["B"], // 8 looks like B
+    };
+
+    // Helper function to make a realistic typo
+    const makeRealisticTypo = (text) => {
+      const charArray = text.split("");
+      const typableIndices = charArray
+        .map((char, idx) => (similarChars[char] ? idx : -1))
+        .filter((idx) => idx !== -1);
+
+      if (typableIndices.length > 0) {
+        // Pick a random position that has similar characters
+        const indexToChange =
+          typableIndices[Math.floor(Math.random() * typableIndices.length)];
+        const originalChar = charArray[indexToChange];
+        const similarOptions = similarChars[originalChar];
+
+        if (similarOptions && similarOptions.length > 0) {
+          // Replace with a similar-looking character
+          charArray[indexToChange] =
+            similarOptions[Math.floor(Math.random() * similarOptions.length)];
+        }
+      } else {
+        // If no similar chars available, make a different kind of typo
+        const errorTypes = ["transpose", "duplicate", "missing"];
+        const errorType =
+          errorTypes[Math.floor(Math.random() * errorTypes.length)];
+        const index = Math.floor(Math.random() * charArray.length);
+
+        switch (errorType) {
+          case "transpose":
+            // Swap adjacent characters
+            if (index < charArray.length - 1) {
+              [charArray[index], charArray[index + 1]] = [
+                charArray[index + 1],
+                charArray[index],
+              ];
+            }
+            break;
+          case "duplicate":
+            // Duplicate a character
+            charArray.splice(index, 0, charArray[index]);
+            break;
+          case "missing":
+            // Remove a character
+            charArray.splice(index, 1);
+            break;
+        }
+      }
+
+      return charArray.join("");
+    };
+
     if (taskUsage === 1) {
       // First attempt is always correct
       resultText = pattern;
     } else if (taskUsage <= 5) {
-      // 2-5 uses: small mistakes
-      if (Math.random() < 0.3) {
-        // 30% chance of mistake
-        const charArray = pattern.split("");
-        const errorIndex = Math.floor(Math.random() * charArray.length);
-
-        // Type of error
-        const errorType = Math.random();
-        if (errorType < 0.33) {
-          // Wrong character
-          charArray[errorIndex] = String.fromCharCode(
-            charArray[errorIndex].charCodeAt(0) + 1
-          );
-        } else if (errorType < 0.66) {
-          // Missing character
-          charArray.splice(errorIndex, 1);
-        } else {
-          // Extra character
-          charArray.splice(errorIndex, 0, "x");
-        }
-        resultText = charArray.join("");
+      // 2-5 uses: 20% chance of exactly 1 typo (still gets 1 point)
+      if (Math.random() < 0.2) {
+        resultText = makeRealisticTypo(pattern);
       }
+      // 80% chance still correct
     } else {
       // After 5th use: bad 75% of the time
       if (Math.random() < 0.75) {
-        const charArray = pattern.split("");
-
         if (Math.random() < 0.5) {
-          // Minor errors (1-2 characters wrong)
-          for (
-            let i = 0;
-            i < Math.min(2, Math.floor(Math.random() * 3) + 1);
-            i++
-          ) {
-            const errorIndex = Math.floor(Math.random() * charArray.length);
-            charArray[errorIndex] = String.fromCharCode(
-              charArray[errorIndex].charCodeAt(0) + 1
-            );
-          }
+          // 50% of bad attempts: exactly 1 typo (still gets 1 point)
+          resultText = makeRealisticTypo(pattern);
         } else {
-          // Major errors (multiple mistakes)
-          for (let i = 0; i < Math.floor(charArray.length / 3); i++) {
-            const errorIndex = Math.floor(Math.random() * charArray.length);
-            charArray[errorIndex] = "?";
+          // 50% of bad attempts: multiple errors (0 points)
+          let modifiedText = pattern;
+
+          // Make 2-4 typos
+          const numErrors = Math.floor(Math.random() * 3) + 2;
+          for (let i = 0; i < numErrors; i++) {
+            modifiedText = makeRealisticTypo(modifiedText);
           }
+
+          resultText = modifiedText;
         }
-        resultText = charArray.join("");
       }
+      // 25% chance still correct
     }
 
     return {
