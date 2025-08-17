@@ -139,24 +139,31 @@ export default function SliderTask({
     }
   }, [isDragging, step, isAIControlled]);
 
-  const calculateAccuracy = (userValue, targetValue) => {
-    // Ensure both values are valid numbers
+  const calculateDifference = (userValue, targetValue) => {
+    // Return absolute difference instead of accuracy percentage
     const user = parseFloat(userValue) || 0;
     const target = parseFloat(targetValue) || 0;
     const difference = Math.abs(user - target);
-    const maxRange = 10;
-    const accuracy = Math.max(0, 100 - (difference / maxRange) * 100);
-    return Math.round(accuracy);
+
+    // Return the actual difference value (not percentage)
+    return difference;
   };
 
   const handleSubmit = async () => {
     const timeTaken = Date.now() - startTime;
     const userValue = parseFloat(input);
-    const accuracy = calculateAccuracy(userValue, target);
+    const difference = calculateDifference(userValue, target);
 
-    const passThreshold = gameAccuracyMode === "strict" ? 100 : 0;
+    // Determine points based on difference
+    let points = 0;
+    if (difference === 0) points = 2;
+    else if (difference <= 1) points = 1;
+    else points = 0;
+
+    // For lenient mode, always pass; for strict mode, only pass if exact
+    const passThreshold = gameAccuracyMode === "strict" ? 0 : Infinity;
     const passed =
-      gameAccuracyMode === "lenient" ? true : accuracy >= passThreshold;
+      gameAccuracyMode === "lenient" ? true : difference <= passThreshold;
 
     attemptsRef.current += 1;
 
@@ -173,37 +180,48 @@ export default function SliderTask({
     if (sessionId && !sessionId.startsWith("offline-")) {
       try {
         await updateDoc(doc(db, "sessions", sessionId), {
-          [`taskAccuracies.g2t${taskNum}`]: accuracy,
+          [`taskDifferences.g2t${taskNum}`]: difference, // Store difference instead of accuracy
           [`taskTimes.g2t${taskNum}`]: timeTaken,
           [`gameMode`]: gameAccuracyMode,
           lastActivity: serverTimestamp(),
         });
       } catch (error) {
-        console.error("Error storing accuracy:", error);
+        console.error("Error storing difference:", error);
       }
     }
 
     if (passed) {
-      if (userValue === target) {
-        setFeedback("✓ Flawless!");
-      } else if (gameAccuracyMode === "lenient") {
-        setFeedback(`✓ Passed! (${accuracy}% accuracy)`);
+      if (difference === 0) {
+        setFeedback("✓ Perfect! Exactly on target! (2 points)");
+      } else if (difference <= 0.5) {
+        setFeedback(`✓ Very close! Off by ${difference.toFixed(2)} (1 point)`);
+      } else if (difference <= 1) {
+        setFeedback(`✓ Good! Off by ${difference.toFixed(2)} (1 point)`);
       } else {
-        setFeedback("✓ Good job!");
+        setFeedback(`✓ Passed! Off by ${difference.toFixed(2)} (0 points)`);
       }
 
       setTimeout(() => {
         onComplete(`g2t${taskNum}`, {
           attempts: attemptsRef.current,
           totalTime: timeTaken,
-          accuracy: accuracy,
+          difference: difference, // Pass difference instead of accuracy
+          userValue: userValue,
+          targetValue: target,
+          points: points, // Include points earned
         });
       }, 1500);
     } else {
       if (isPractice) {
-        setFeedback(`✗ Target was ${target}. Try again!`);
+        setFeedback(
+          `✗ Target was ${target}. You were off by ${difference.toFixed(
+            2
+          )}. Try again!`
+        );
       } else {
-        setFeedback(`✗ Try again! (${accuracy}% accuracy - need 100%)`);
+        setFeedback(
+          `✗ Try again! Off by ${difference.toFixed(2)} - need exact match`
+        );
       }
     }
   };

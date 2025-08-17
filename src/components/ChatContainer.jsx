@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
 import "./ChatContainer.css";
 
-// AI Task Helper Class with FIXED logic
 class AITaskHelper {
   constructor() {
     this.usageCount = {
@@ -11,20 +10,57 @@ class AITaskHelper {
       research: 0,
       engagement: 0,
     };
+    this.taskUsageCount = {}; // Track usage per specific task
   }
 
-  helpWithSlider(targetValue) {
-    this.usageCount.materials++;
-    const accuracy = Math.max(0.3, 0.5 - (this.usageCount.materials - 1) * 0.1);
+  getTaskUsageCount(taskId) {
+    if (!this.taskUsageCount[taskId]) {
+      this.taskUsageCount[taskId] = 0;
+    }
+    return this.taskUsageCount[taskId];
+  }
+
+  incrementTaskUsage(taskId, category) {
+    this.usageCount[category]++;
+    if (!this.taskUsageCount[taskId]) {
+      this.taskUsageCount[taskId] = 0;
+    }
+    this.taskUsageCount[taskId]++;
+  }
+
+  helpWithSlider(targetValue, currentTaskId) {
+    this.incrementTaskUsage(currentTaskId, "materials");
+    const taskUsage = this.getTaskUsageCount(currentTaskId);
 
     let suggestedValue;
-    if (Math.random() < accuracy) {
+
+    if (taskUsage === 1) {
+      // First attempt is always correct
       suggestedValue = targetValue;
-    } else {
+    } else if (taskUsage <= 5) {
+      // 2-5 uses: mistakes within 1 point range
       const error =
-        (Math.random() < 0.5 ? -1 : 1) *
-        (this.usageCount.materials > 3 ? 2 : 1);
+        Math.random() < 0.7
+          ? 0
+          : (Math.random() < 0.5 ? -1 : 1) * Math.min(1, Math.random());
       suggestedValue = Math.max(0, Math.min(10, targetValue + error));
+    } else {
+      // After 5th use: bad 75% of the time
+      if (Math.random() < 0.75) {
+        // Bad answer
+        if (Math.random() < 0.5) {
+          // Within 1 point (still gets some accuracy)
+          const error = Math.random() < 0.5 ? -1 : 1;
+          suggestedValue = Math.max(0, Math.min(10, targetValue + error));
+        } else {
+          // Way off (0 points)
+          const error = Math.random() < 0.5 ? -3 : 3;
+          suggestedValue = Math.max(0, Math.min(10, targetValue + error));
+        }
+      } else {
+        // 25% chance still correct
+        suggestedValue = targetValue;
+      }
     }
 
     return {
@@ -34,64 +70,137 @@ class AITaskHelper {
     };
   }
 
-  helpWithCounting(text, targetPattern) {
-    this.usageCount.research++;
+  helpWithCounting(text, targetPattern, currentTaskId) {
+    this.incrementTaskUsage(currentTaskId, "research");
+    const taskUsage = this.getTaskUsageCount(currentTaskId);
 
-    // Reliability decreases with use AND task difficulty
-    let baseAccuracy;
-    const usageCount = this.usageCount.research;
-
-    if (usageCount <= 2) {
-      baseAccuracy = 1.0; // Perfect for first 2 uses
-    } else if (usageCount <= 5) {
-      baseAccuracy = 0.85; // Pretty good for next 3
-    } else if (usageCount <= 8) {
-      baseAccuracy = 0.7; // Getting worse
-    } else {
-      baseAccuracy = Math.max(0.3, 0.7 - (usageCount - 8) * 0.05);
-    }
-
-    // Parse the text properly
     const words = text.split(/\s+/);
     const highlightWords = [];
     let aiCount = 0;
 
-    // Find matches with accuracy-based errors
+    // Calculate correct count first
+    let correctCount = 0;
     words.forEach((word) => {
       const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
-      const shouldBeHighlighted = cleanWord === targetPattern.toLowerCase();
-
-      if (shouldBeHighlighted) {
-        if (Math.random() < baseAccuracy) {
-          highlightWords.push(word);
-          aiCount++;
-        }
-      } else {
-        // False positives increase with poor accuracy
-        if (Math.random() < (1 - baseAccuracy) * 0.15) {
-          highlightWords.push(word);
-          aiCount++;
-        }
+      if (cleanWord === targetPattern.toLowerCase()) {
+        correctCount++;
       }
     });
+
+    if (taskUsage === 1) {
+      // First attempt is always correct
+      words.forEach((word) => {
+        const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
+        if (cleanWord === targetPattern.toLowerCase()) {
+          highlightWords.push(word);
+          aiCount++;
+        }
+      });
+    } else if (taskUsage <= 5) {
+      // 2-5 uses: small mistakes (within 1)
+      aiCount =
+        correctCount + (Math.random() < 0.7 ? 0 : Math.random() < 0.5 ? -1 : 1);
+      aiCount = Math.max(0, aiCount);
+
+      // Highlight approximately the right number
+      words.forEach((word) => {
+        const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
+        if (
+          cleanWord === targetPattern.toLowerCase() &&
+          highlightWords.length < aiCount
+        ) {
+          highlightWords.push(word);
+        }
+      });
+    } else {
+      // After 5th use: bad 75% of the time
+      if (Math.random() < 0.75) {
+        if (Math.random() < 0.5) {
+          // Within 1 point
+          aiCount = correctCount + (Math.random() < 0.5 ? -1 : 1);
+        } else {
+          // Way off
+          aiCount = Math.floor((Math.random() * words.length) / 2);
+        }
+      } else {
+        aiCount = correctCount;
+      }
+      aiCount = Math.max(0, aiCount);
+    }
 
     return {
       action: "highlightAndCount",
       highlightWords: highlightWords,
       suggestedCount: aiCount,
-      animate: true, // New flag for animation
+      animate: true,
     };
   }
 
-  helpWithTyping(pattern) {
-    this.usageCount.engagement++;
+  helpWithTyping(pattern, currentTaskId) {
+    this.incrementTaskUsage(currentTaskId, "engagement");
+    const taskUsage = this.getTaskUsageCount(currentTaskId);
 
-    // ALWAYS return the exact pattern (perfect for typing)
+    let resultText = pattern;
+
+    if (taskUsage === 1) {
+      // First attempt is always correct
+      resultText = pattern;
+    } else if (taskUsage <= 5) {
+      // 2-5 uses: small mistakes
+      if (Math.random() < 0.3) {
+        // 30% chance of mistake
+        const charArray = pattern.split("");
+        const errorIndex = Math.floor(Math.random() * charArray.length);
+
+        // Type of error
+        const errorType = Math.random();
+        if (errorType < 0.33) {
+          // Wrong character
+          charArray[errorIndex] = String.fromCharCode(
+            charArray[errorIndex].charCodeAt(0) + 1
+          );
+        } else if (errorType < 0.66) {
+          // Missing character
+          charArray.splice(errorIndex, 1);
+        } else {
+          // Extra character
+          charArray.splice(errorIndex, 0, "x");
+        }
+        resultText = charArray.join("");
+      }
+    } else {
+      // After 5th use: bad 75% of the time
+      if (Math.random() < 0.75) {
+        const charArray = pattern.split("");
+
+        if (Math.random() < 0.5) {
+          // Minor errors (1-2 characters wrong)
+          for (
+            let i = 0;
+            i < Math.min(2, Math.floor(Math.random() * 3) + 1);
+            i++
+          ) {
+            const errorIndex = Math.floor(Math.random() * charArray.length);
+            charArray[errorIndex] = String.fromCharCode(
+              charArray[errorIndex].charCodeAt(0) + 1
+            );
+          }
+        } else {
+          // Major errors (multiple mistakes)
+          for (let i = 0; i < Math.floor(charArray.length / 3); i++) {
+            const errorIndex = Math.floor(Math.random() * charArray.length);
+            charArray[errorIndex] = "?";
+          }
+        }
+        resultText = charArray.join("");
+      }
+    }
+
     return {
       action: "autoType",
-      text: pattern || "", // Ensure pattern is not undefined
+      text: resultText,
       typeSpeed: 50,
-      perfect: true,
+      perfect: taskUsage === 1,
     };
   }
 }
@@ -196,7 +305,10 @@ export default function ChatContainer({
       document.querySelector(".target-value")?.textContent ||
       5;
 
-    const help = aiTaskHelper.helpWithSlider(parseFloat(sliderTarget));
+    const help = aiTaskHelper.helpWithSlider(
+      parseFloat(sliderTarget),
+      currentTask
+    );
 
     window.dispatchEvent(
       new CustomEvent("aiSliderHelp", {
@@ -226,7 +338,7 @@ export default function ChatContainer({
           ?.replace(/['"]/g, "")
           .trim() || "";
 
-      const help = aiTaskHelper.helpWithCounting(text, pattern);
+      const help = aiTaskHelper.helpWithCounting(text, pattern, currentTask);
 
       // Dispatch the event for the counting component to handle
       window.dispatchEvent(
@@ -261,7 +373,7 @@ export default function ChatContainer({
       const pattern = patternElement.getAttribute("data-typing-pattern");
 
       if (pattern) {
-        const help = aiTaskHelper.helpWithTyping(pattern);
+        const help = aiTaskHelper.helpWithTyping(pattern, currentTask);
 
         window.dispatchEvent(
           new CustomEvent("aiTypingHelp", {

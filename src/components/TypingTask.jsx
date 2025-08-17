@@ -158,6 +158,8 @@ export default function TypingTask({
           attempts: attemptsRef.current,
           totalTime: timeTaken,
           accuracy: accuracy,
+          userAnswer: input, // Add this
+          correctAnswer: pattern, // Add this
         });
       }, 1500);
     } else {

@@ -325,6 +325,8 @@ export default function CountingTask({
           attempts: attemptsRef.current,
           totalTime: timeTaken,
           accuracy,
+          userAnswer: userAnswer, // Add this
+          correctAnswer: answer, // Add this
         });
       }, 1500);
     } else {

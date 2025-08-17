@@ -17,6 +17,34 @@ import AdminPage from "./AdminPage";
 import GameModeSelector from "./components/GameModeSelector";
 import CompletionCodeDisplay from "./components/CompletionCodeDisplay";
 
+// Helper function to calculate Levenshtein distance
+function calculateLevenshteinDistance(str1, str2) {
+  const m = str1.length;
+  const n = str2.length;
+  const dp = Array(m + 1)
+    .fill(null)
+    .map(() => Array(n + 1).fill(0));
+
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (str1[i - 1] === str2[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1];
+      } else {
+        dp[i][j] = Math.min(
+          dp[i - 1][j] + 1, // deletion
+          dp[i][j - 1] + 1, // insertion
+          dp[i - 1][j - 1] + 1 // substitution
+        );
+      }
+    }
+  }
+
+  return dp[m][n];
+}
+
 function App() {
   // Admin page (hidden route)
   if (window.location.search.includes("admin=true")) {
@@ -201,22 +229,26 @@ function App() {
     console.log("================================");
   }, []);
 
-  // Calculate student learning score with new formula
   const calculateStudentLearning = (points = categoryPoints) => {
-    // Base: Materials (direct contribution)
-    const materialsPoints = points.materials || 0;
+    // New formula based on the rules:
+    // Base: Slider points (direct contribution)
+    const sliderPoints = points.slider || 0;
 
-    // Research multiplier: 5% per point
-    const researchMultiplier = 1 + (points.research || 0) * 0.05;
+    // Counting multiplier: each point adds 0.15 to multiplier
+    const countingMultiplier = 1 + (points.counting || 0) * 0.15;
 
-    // Engagement multiplier: 1% per point
-    const engagementMultiplier = 1 + (points.engagement || 0) * 0.01;
+    // Typing interest: adds 0.0015 per point after every task completion
+    // This is handled separately in task completion
 
-    // Formula: Materials × Research Multiplier × Engagement Multiplier
-    const studentLearning =
-      materialsPoints * researchMultiplier * engagementMultiplier;
+    // Formula: Slider × (1 + 0.15 × Counting)
+    const baseScore = sliderPoints * countingMultiplier;
 
-    return studentLearning;
+    // Add accumulated typing interest
+    const typingInterest = parseFloat(
+      localStorage.getItem("typingInterest") || "0"
+    );
+
+    return baseScore + typingInterest;
   };
 
   // Session management
@@ -342,18 +374,12 @@ function App() {
     // Calculate current student learning score
     const studentLearning = calculateStudentLearning();
 
-    // Checkpoint thresholds
-    const threshold1 = 30; // First checkpoint threshold
-    const threshold2 = 60; // Higher threshold
-
-    let bonus = 0;
-    if (studentLearning >= threshold2) {
-      bonus = 200; // Higher bonus
-    } else if (studentLearning >= threshold1) {
-      bonus = 100; // Base bonus
+    // New threshold: 50 points = 300 bonus
+    if (studentLearning >= 50) {
+      return 300;
     }
 
-    return bonus;
+    return 0;
   };
 
   // Handle practice choice
@@ -413,24 +439,112 @@ function App() {
     });
   };
 
+  // Helper function to calculate Levenshtein distance
+  function calculateLevenshteinDistance(str1, str2) {
+    const m = str1.length;
+    const n = str2.length;
+    const dp = Array(m + 1)
+      .fill(null)
+      .map(() => Array(n + 1).fill(0));
+
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (str1[i - 1] === str2[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1];
+        } else {
+          dp[i][j] = Math.min(
+            dp[i - 1][j] + 1, // deletion
+            dp[i][j - 1] + 1, // insertion
+            dp[i - 1][j - 1] + 1 // substitution
+          );
+        }
+      }
+    }
+
+    return dp[m][n];
+  }
+
   // Handle task completion
   const handleComplete = async (tabId, data) => {
     lastActivityRef.current = Date.now();
 
-    const points = data.accuracy >= 95 ? 2 : data.accuracy >= 70 ? 1 : 0;
-
-    // Map to teaching categories
+    // New point system based on task type and accuracy
+    let points = 0;
+    // Map to teaching categories with NEW names
     const category = tabId.startsWith("g1")
-      ? "research"
+      ? "counting" // Changed from "research"
       : tabId.startsWith("g2")
-      ? "materials"
-      : "engagement";
+      ? "slider" // Changed from "materials"
+      : "typing"; // Changed from "engagement"
+
+    if (category === "slider") {
+      // Slider: exact = 2 points, within 1 = 1 point
+      const userValue = parseFloat(data.userValue || 0);
+      const targetValue = parseFloat(data.targetValue || 0);
+      const diff = Math.abs(userValue - targetValue);
+
+      if (diff === 0) points = 2;
+      else if (diff <= 1) points = 1;
+      else points = 0;
+    } else if (category === "counting") {
+      // Counting: exact = 2 points, within 1 = 1 point
+      const userCount = parseInt(data.userAnswer || 0);
+      const correctCount = parseInt(data.correctAnswer || 0);
+      const diff = Math.abs(userCount - correctCount);
+
+      if (diff === 0) points = 2;
+      else if (diff <= 1) points = 1;
+      else points = 0;
+    } else if (category === "typing") {
+      // Typing: exact = 2 points, one typo = 1 point
+      const userText = data.userAnswer || "";
+      const correctText = data.correctAnswer || "";
+
+      if (userText === correctText) {
+        points = 2;
+      } else {
+        // Check if only one character difference (Levenshtein distance = 1)
+        const distance = calculateLevenshteinDistance(userText, correctText);
+        if (distance === 1) points = 1;
+        else points = 0;
+      }
+    }
 
     // Store raw points for the category
     setCategoryPoints((prev) => ({
       ...prev,
       [category]: prev[category] + points,
     }));
+
+    // Calculate and apply typing interest after EVERY task completion
+    const currentTypingPoints =
+      category === "typing"
+        ? categoryPoints.typing + points
+        : categoryPoints.typing;
+    const typingInterestRate = 0.0015 * currentTypingPoints;
+
+    // Get current goal points (slider × counting multiplier)
+    const currentSliderPoints =
+      category === "slider"
+        ? categoryPoints.slider + points
+        : categoryPoints.slider;
+    const currentCountingMultiplier =
+      1 +
+      (category === "counting"
+        ? categoryPoints.counting + points
+        : categoryPoints.counting) *
+        0.15;
+    const goalPoints = currentSliderPoints * currentCountingMultiplier;
+
+    // Add typing interest to accumulated interest
+    const previousInterest = parseFloat(
+      localStorage.getItem("typingInterest") || "0"
+    );
+    const newInterest = previousInterest + typingInterestRate * goalPoints;
+    localStorage.setItem("typingInterest", newInterest.toString());
 
     setTaskPoints((prev) => ({
       ...prev,
@@ -451,9 +565,38 @@ function App() {
     const newStudentLearning = calculateStudentLearning(newCategoryPoints);
     setStudentLearningScore(newStudentLearning);
 
-    // Show learning score update
+    // Show detailed feedback with task-specific information
+    let feedbackMsg = "";
+    if (category === "slider") {
+      const diff = Math.abs((data.userValue || 0) - (data.targetValue || 0));
+      if (diff === 0) {
+        feedbackMsg = "Perfect slider!";
+      } else if (diff <= 1) {
+        feedbackMsg = `Off by ${diff.toFixed(2)}`;
+      } else {
+        feedbackMsg = `Off by ${diff.toFixed(2)}`;
+      }
+    } else if (category === "counting") {
+      const diff = Math.abs((data.userAnswer || 0) - (data.correctAnswer || 0));
+      if (diff === 0) {
+        feedbackMsg = "Perfect count!";
+      } else if (diff <= 1) {
+        feedbackMsg = `Off by ${diff}`;
+      } else {
+        feedbackMsg = `Off by ${diff}`;
+      }
+    } else if (category === "typing") {
+      if (points === 2) {
+        feedbackMsg = "Perfect typing!";
+      } else if (points === 1) {
+        feedbackMsg = "One typo";
+      } else {
+        feedbackMsg = "Multiple errors";
+      }
+    }
+
     showNotification(
-      `+${points} ${category} pts | Student Learning: ${Math.round(
+      `${feedbackMsg} | +${points} ${category} pts | Goal: ${Math.round(
         newStudentLearning
       )} pts`
     );
@@ -466,7 +609,7 @@ function App() {
       tabId,
       data.attempts,
       data.totalTime,
-      data.accuracy
+      data.accuracy || data.difference || 0
     );
 
     await eventTracker.logEvent("task_complete", {
@@ -475,6 +618,7 @@ function App() {
       pointsEarned: points,
       categoryPoints: newCategoryPoints,
       studentLearningScore: newStudentLearning,
+      typingInterest: newInterest,
       completionContext: {
         totalTasksCompleted: Object.keys(completed).length + 1,
         currentGameTime: globalTimer,
@@ -490,11 +634,13 @@ function App() {
         [`taskPoints.${tabId}`]: points,
         [`categoryPoints`]: newCategoryPoints,
         studentLearningScore: newStudentLearning,
+        typingInterest: newInterest,
         bonusPrompts: bonusPrompts + 1,
         lastActivity: serverTimestamp(),
       });
     }
-    // Auto-advance to next task after 1 seconds
+
+    // Auto-advance to next task after 1 second
     setTimeout(() => {
       const currentGame = tabId[1];
       const currentTaskNum = parseInt(tabId[3]);
@@ -763,22 +909,22 @@ function App() {
               </h2>
 
               <div style={{ marginBottom: "20px" }}>
-                <h3 style={{ color: "#4CAF50" }}>🎯 Material Creation</h3>
+                <h3 style={{ color: "#4CAF50" }}>🎯 Slider Tasks</h3>
                 <p>
-                  Create teaching materials - the foundation of student
-                  learning. Each point directly contributes!
+                  Create teaching materials - each point directly contributes to
+                  your goal points!
                 </p>
 
-                <h3 style={{ color: "#9C27B0" }}>📚 Research Content</h3>
+                <h3 style={{ color: "#9C27B0" }}>📚 Counting Tasks</h3>
                 <p>
-                  Research amplifies your materials! Each point adds +5% to all
-                  material points.
+                  Research amplifies your materials! Each point adds +15%
+                  multiplier to all slider points.
                 </p>
 
-                <h3 style={{ color: "#f44336" }}>✉️ Student Engagement</h3>
+                <h3 style={{ color: "#f44336" }}>✉️ Typing Tasks</h3>
                 <p>
-                  Engagement compounds everything! Each point adds +1% to your
-                  total score.
+                  Build interest that compounds! Each point adds 0.15% interest
+                  after every task completion.
                 </p>
               </div>
 
@@ -812,7 +958,7 @@ function App() {
                     border: "1px solid #e0e0e0",
                   }}
                 >
-                  Materials × (1 + Research×0.05) × (1 + Engagement×0.01)
+                  Goal = Slider × (1 + 0.15×Counting) + Typing Interest
                 </div>
                 <ul
                   style={{
@@ -1555,7 +1701,7 @@ function App() {
               {checkpointBonus > 0 ? (
                 <>Midterm Bonus: +{checkpointBonus} points!</>
               ) : (
-                <>Need 30+ Student Learning for bonus!</>
+                <>Need 50+ Goal Points for 300 bonus!</>
               )}
             </div>
             <p style={{ marginTop: "20px", color: "#666" }}>

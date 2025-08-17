@@ -372,7 +372,7 @@ export default function NavTabsEnhanced({
             <div>
               <div
                 style={{
-                  fontSize: "20px",
+                  fontSize: "24px", // Increased from 20px
                   fontWeight: "bold",
                   color: timeRemaining < 60 ? "#f44336" : "#333",
                 }}
@@ -410,8 +410,8 @@ export default function NavTabsEnhanced({
             {Math.round(calculateStudentLearning())}
           </div>
           <div style={{ fontSize: "10px", color: "#999" }}>
-            M×{(1 + (categoryPoints.research || 0) * 0.05).toFixed(2)}×
-            {(1 + (categoryPoints.engagement || 0) * 0.01).toFixed(2)}
+            S×{(1 + (categoryPoints.counting || 0) * 0.15).toFixed(2)}
+            +Interest
           </div>
         </div>
 
