@@ -283,8 +283,6 @@ function App() {
       const remaining = Math.max(0, limitInSeconds - elapsedSeconds);
       setTimeRemaining(remaining);
 
-      console.log(`Timer: elapsed=${elapsedSeconds}s, remaining=${remaining}s`);
-
       // Check for checkpoint
       const checkpointTime =
         config.role === "admin" && config.semesterDuration === 120000
@@ -303,10 +301,6 @@ function App() {
       }
     }, 1000);
   };
-
-  useEffect(() => {
-    console.log("⏰ timeRemaining changed to:", timeRemaining);
-  }, [timeRemaining]);
 
   // Handle checkpoint (exam season)
   const handleCheckpoint = () => {
