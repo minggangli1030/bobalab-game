@@ -174,10 +174,6 @@ function App() {
       window.removeEventListener("keypress", handleActivity);
       window.removeEventListener("click", handleActivity);
       clearInterval(idleCheckInterval);
-
-      if (timerIntervalRef.current) {
-        clearInterval(timerIntervalRef.current);
-      }
       if (outOfFocusTimerRef.current) {
         clearInterval(outOfFocusTimerRef.current);
       }
