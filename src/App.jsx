@@ -107,9 +107,6 @@ function App() {
   const lastActivityRef = useRef(Date.now());
   const timeRemainingRef = useRef(1200);
   const timeLimitRef = useRef(1200);
-  
-
-  
 
   // Initialize session on mount
   // Initialize session on mount
@@ -1282,10 +1279,13 @@ function App() {
               </h3>
               <div style={{ fontSize: "16px", color: "#666" }}>
                 = {categoryPoints.slider || 0} (Slider) ×{" "}
-                {(1 + (categoryPoints.counting || 0) * 0.15).toFixed(2)} (Counting) 
-                {parseFloat(localStorage.getItem('typingInterest') || '0') > 0 && 
-                  ` + ${parseFloat(localStorage.getItem('typingInterest') || '0').toFixed(2)} (Interest)`
-                }
+                {(1 + (categoryPoints.counting || 0) * 0.15).toFixed(2)}{" "}
+                (Counting)
+                {parseFloat(localStorage.getItem("typingInterest") || "0") >
+                  0 &&
+                  ` + ${parseFloat(
+                    localStorage.getItem("typingInterest") || "0"
+                  ).toFixed(2)} (Interest)`}
               </div>
               {totalBonus > 0 && (
                 <div
@@ -1423,90 +1423,64 @@ function App() {
             </div>
 
             {/* Teaching Performance Breakdown */}
-              <h3 style={{ color: "#666", marginBottom: "15px" }}>
-                Teaching Performance by Category
-              </h3>
+            <h3 style={{ color: "#666", marginBottom: "15px" }}>
+              Teaching Performance by Category
+            </h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr 1fr",
+                gap: "15px",
+                marginBottom: "30px",
+              }}
+            >
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr 1fr",
-                  gap: "15px",
-                  marginBottom: "30px",
+                  background: "#f0f8f0",
+                  padding: "15px",
+                  borderRadius: "6px",
+                  border: "2px solid #4CAF5020",
                 }}
               >
                 <div
                   style={{
-                    background: "#f0f8f0",
-                    padding: "15px",
-                    borderRadius: "6px",
-                    border: "2px solid #4CAF5020",
+                    color: "#4CAF50",
+                    fontWeight: "bold",
+                    marginBottom: "5px",
                   }}
                 >
-                  <div
-                    style={{
-                      color: "#4CAF50",
-                      fontWeight: "bold",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    🎯 Slider
-                  </div>
-                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                    {categoryPoints.slider || 0}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    Base points
-                  </div>
+                  🎯 Slider
                 </div>
+                <div style={{ fontSize: "20px", fontWeight: "bold" }}>
+                  {categoryPoints.slider || 0}
+                </div>
+                <div style={{ fontSize: "12px", color: "#666" }}>
+                  Base points
+                </div>
+              </div>
 
+              <div
+                style={{
+                  background: "#f8f0ff",
+                  padding: "15px",
+                  borderRadius: "6px",
+                  border: "2px solid #9C27B020",
+                }}
+              >
                 <div
                   style={{
-                    background: "#f8f0ff",
-                    padding: "15px",
-                    borderRadius: "6px",
-                    border: "2px solid #9C27B020",
+                    color: "#9C27B0",
+                    fontWeight: "bold",
+                    marginBottom: "5px",
                   }}
                 >
-                  <div
-                    style={{
-                      color: "#9C27B0",
-                      fontWeight: "bold",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    📚 Counting
-                  </div>
-                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                    {categoryPoints.counting || 0}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    +{(categoryPoints.counting || 0) * 15}% multiplier
-                  </div>
+                  📚 Counting
                 </div>
-
-                <div
-                  style={{
-                    background: "#fff0f0",
-                    padding: "15px",
-                    borderRadius: "6px",
-                    border: "2px solid #f4433620",
-                  }}
-                >
-                  <div
-                    style={{
-                      color: "#f44336",
-                      fontWeight: "bold",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    ✉️ Typing
-                  </div>
-                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                    {categoryPoints.typing || 0}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "#666" }}>
-                    +{((categoryPoints.typing || 0) * 0.15).toFixed(1)}% interest/task
-                  </div>
+                <div style={{ fontSize: "20px", fontWeight: "bold" }}>
+                  {categoryPoints.counting || 0}
+                </div>
+                <div style={{ fontSize: "12px", color: "#666" }}>
+                  +{(categoryPoints.counting || 0) * 15}% multiplier
                 </div>
               </div>
 
@@ -1525,133 +1499,159 @@ function App() {
                     marginBottom: "5px",
                   }}
                 >
-                  ✉️ Engagement
+                  ✉️ Typing
                 </div>
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {categoryPoints.engagement}
+                  {categoryPoints.typing || 0}
                 </div>
                 <div style={{ fontSize: "12px", color: "#666" }}>
-                  +{categoryPoints.engagement * 1}% multiplier
+                  +{((categoryPoints.typing || 0) * 0.15).toFixed(1)}%
+                  interest/task
                 </div>
               </div>
             </div>
 
-            {/* Checkpoint Bonus Display */}
-            {categoryPoints.bonus > 0 && (
+            <div
+              style={{
+                background: "#fff0f0",
+                padding: "15px",
+                borderRadius: "6px",
+                border: "2px solid #f4433620",
+              }}
+            >
               <div
                 style={{
-                  marginBottom: "20px",
-                  padding: "15px",
-                  background: "#fff3cd",
-                  borderRadius: "6px",
-                  border: "1px solid #ffc107",
+                  color: "#f44336",
+                  fontWeight: "bold",
+                  marginBottom: "5px",
                 }}
               >
-                <strong style={{ color: "#856404" }}>
-                  📚 Exam Season Bonus:{" "}
-                </strong>
-                <span
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "bold",
-                    color: "#856404",
-                  }}
-                >
-                  +{categoryPoints.bonus} points
-                </span>
+                ✉️ Engagement
               </div>
-            )}
-
-            {/* Semester history */}
-            {semesterHistory.length > 0 && (
-              <div
-                style={{
-                  marginTop: "30px",
-                  padding: "20px",
-                  background: "#f8f9fa",
-                  borderRadius: "8px",
-                }}
-              >
-                <h4 style={{ color: "#666", marginBottom: "15px" }}>
-                  Progress Over Semesters
-                </h4>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
-                    gap: "10px",
-                  }}
-                >
-                  {[...semesterHistory, semesterData].map((sem, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        padding: "10px",
-                        background:
-                          idx === semesterHistory.length ? "#e3f2fd" : "white",
-                        borderRadius: "6px",
-                        border: "1px solid #e0e0e0",
-                        textAlign: "center",
-                      }}
-                    >
-                      <div style={{ fontSize: "12px", color: "#666" }}>
-                        Semester {idx + 1}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "18px",
-                          fontWeight: "bold",
-                          color: "#333",
-                        }}
-                      >
-                        {sem.finalScore}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div style={{ fontSize: "20px", fontWeight: "bold" }}>
+                {categoryPoints.engagement}
               </div>
-            )}
+              <div style={{ fontSize: "12px", color: "#666" }}>
+                +{categoryPoints.engagement * 1}% multiplier
+              </div>
+            </div>
           </div>
 
-          {/* Next semester or finish button */}
-          <div style={{ marginTop: "30px", textAlign: "center" }}>
-            {!isLastSemester ? (
-              <button
-                onClick={handleNextSemester}
+          {/* Checkpoint Bonus Display */}
+          {categoryPoints.bonus > 0 && (
+            <div
+              style={{
+                marginBottom: "20px",
+                padding: "15px",
+                background: "#fff3cd",
+                borderRadius: "6px",
+                border: "1px solid #ffc107",
+              }}
+            >
+              <strong style={{ color: "#856404" }}>
+                📚 Exam Season Bonus:{" "}
+              </strong>
+              <span
                 style={{
-                  padding: "15px 40px",
-                  background: "#4CAF50",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
                   fontSize: "18px",
                   fontWeight: "bold",
-                  cursor: "pointer",
-                  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                  color: "#856404",
                 }}
               >
-                Start Semester {currentSemester + 1} →
-              </button>
-            ) : (
+                +{categoryPoints.bonus} points
+              </span>
+            </div>
+          )}
+
+          {/* Semester history */}
+          {semesterHistory.length > 0 && (
+            <div
+              style={{
+                marginTop: "30px",
+                padding: "20px",
+                background: "#f8f9fa",
+                borderRadius: "8px",
+              }}
+            >
+              <h4 style={{ color: "#666", marginBottom: "15px" }}>
+                Progress Over Semesters
+              </h4>
               <div
                 style={{
-                  padding: "20px",
-                  background: "#fff3cd",
-                  border: "2px solid #ffc107",
-                  borderRadius: "8px",
-                  textAlign: "center",
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))",
+                  gap: "10px",
                 }}
               >
-                <h3 style={{ color: "#856404", marginBottom: "10px" }}>
-                  ⚠️ All semesters complete!
-                </h3>
-                <p style={{ color: "#856404", marginBottom: "0" }}>
-                  Return to the Qualtrics survey and enter your completion code
-                  to finish the study.
-                </p>
+                {[...semesterHistory, semesterData].map((sem, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      padding: "10px",
+                      background:
+                        idx === semesterHistory.length ? "#e3f2fd" : "white",
+                      borderRadius: "6px",
+                      border: "1px solid #e0e0e0",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div style={{ fontSize: "12px", color: "#666" }}>
+                      Semester {idx + 1}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: "bold",
+                        color: "#333",
+                      }}
+                    >
+                      {sem.finalScore}
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+        </div>
+
+        {/* Next semester or finish button */}
+        <div style={{ marginTop: "30px", textAlign: "center" }}>
+          {!isLastSemester ? (
+            <button
+              onClick={handleNextSemester}
+              style={{
+                padding: "15px 40px",
+                background: "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "18px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+              }}
+            >
+              Start Semester {currentSemester + 1} →
+            </button>
+          ) : (
+            <div
+              style={{
+                padding: "20px",
+                background: "#fff3cd",
+                border: "2px solid #ffc107",
+                borderRadius: "8px",
+                textAlign: "center",
+              }}
+            >
+              <h3 style={{ color: "#856404", marginBottom: "10px" }}>
+                ⚠️ All semesters complete!
+              </h3>
+              <p style={{ color: "#856404", marginBottom: "0" }}>
+                Return to the Qualtrics survey and enter your completion code to
+                finish the study.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
