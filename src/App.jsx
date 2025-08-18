@@ -107,6 +107,9 @@ function App() {
   const lastActivityRef = useRef(Date.now());
   const timeRemainingRef = useRef(1200);
   const timeLimitRef = useRef(1200);
+  
+
+  
 
   // Initialize session on mount
   // Initialize session on mount
@@ -237,18 +240,17 @@ function App() {
     // Counting multiplier: each point adds 0.15 to multiplier
     const countingMultiplier = 1 + (points.counting || 0) * 0.15;
 
-    // Typing interest: adds 0.0015 per point after every task completion
-    // This is handled separately in task completion
-
     // Formula: Slider × (1 + 0.15 × Counting)
     const baseScore = sliderPoints * countingMultiplier;
 
     // Add accumulated typing interest
-    const typingInterest = parseFloat(
-      localStorage.getItem("typingInterest") || "0"
-    );
+    const typingInterest =
+      parseFloat(localStorage.getItem("typingInterest") || "0") || 0;
 
-    return baseScore + typingInterest;
+    const total = baseScore + typingInterest;
+
+    // Ensure we never return NaN
+    return isNaN(total) ? 0 : total;
   };
 
   // Session management
@@ -410,6 +412,14 @@ function App() {
         });
       }
     }
+
+    localStorage.setItem("typingInterest", "0");
+    setCategoryPoints({
+      slider: 0, // Changed from materials
+      counting: 0, // Changed from research
+      typing: 0, // Changed from engagement
+      bonus: 0,
+    });
 
     setMode("challenge");
     setCompleted({});
@@ -1271,9 +1281,11 @@ function App() {
                 Student Learning Score: {finalStudentLearning}
               </h3>
               <div style={{ fontSize: "16px", color: "#666" }}>
-                = {categoryPoints.materials} (Materials) ×{" "}
-                {(1 + categoryPoints.research * 0.05).toFixed(2)} (Research) ×{" "}
-                {(1 + categoryPoints.engagement * 0.01).toFixed(2)} (Engagement)
+                = {categoryPoints.slider || 0} (Slider) ×{" "}
+                {(1 + (categoryPoints.counting || 0) * 0.15).toFixed(2)} (Counting) 
+                {parseFloat(localStorage.getItem('typingInterest') || '0') > 0 && 
+                  ` + ${parseFloat(localStorage.getItem('typingInterest') || '0').toFixed(2)} (Interest)`
+                }
               </div>
               {totalBonus > 0 && (
                 <div
@@ -1411,64 +1423,90 @@ function App() {
             </div>
 
             {/* Teaching Performance Breakdown */}
-            <h3 style={{ color: "#666", marginBottom: "15px" }}>
-              Teaching Performance by Category
-            </h3>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
-                gap: "15px",
-                marginBottom: "30px",
-              }}
-            >
+              <h3 style={{ color: "#666", marginBottom: "15px" }}>
+                Teaching Performance by Category
+              </h3>
               <div
                 style={{
-                  background: "#f0f8f0",
-                  padding: "15px",
-                  borderRadius: "6px",
-                  border: "2px solid #4CAF5020",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: "15px",
+                  marginBottom: "30px",
                 }}
               >
                 <div
                   style={{
-                    color: "#4CAF50",
-                    fontWeight: "bold",
-                    marginBottom: "5px",
+                    background: "#f0f8f0",
+                    padding: "15px",
+                    borderRadius: "6px",
+                    border: "2px solid #4CAF5020",
                   }}
                 >
-                  🎯 Materials
+                  <div
+                    style={{
+                      color: "#4CAF50",
+                      fontWeight: "bold",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    🎯 Slider
+                  </div>
+                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>
+                    {categoryPoints.slider || 0}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>
+                    Base points
+                  </div>
                 </div>
-                <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {categoryPoints.materials}
-                </div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  Base points
-                </div>
-              </div>
 
-              <div
-                style={{
-                  background: "#f8f0ff",
-                  padding: "15px",
-                  borderRadius: "6px",
-                  border: "2px solid #9C27B020",
-                }}
-              >
                 <div
                   style={{
-                    color: "#9C27B0",
-                    fontWeight: "bold",
-                    marginBottom: "5px",
+                    background: "#f8f0ff",
+                    padding: "15px",
+                    borderRadius: "6px",
+                    border: "2px solid #9C27B020",
                   }}
                 >
-                  📚 Research
+                  <div
+                    style={{
+                      color: "#9C27B0",
+                      fontWeight: "bold",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    📚 Counting
+                  </div>
+                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>
+                    {categoryPoints.counting || 0}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>
+                    +{(categoryPoints.counting || 0) * 15}% multiplier
+                  </div>
                 </div>
-                <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {categoryPoints.research}
-                </div>
-                <div style={{ fontSize: "12px", color: "#666" }}>
-                  +{categoryPoints.research * 5}% multiplier
+
+                <div
+                  style={{
+                    background: "#fff0f0",
+                    padding: "15px",
+                    borderRadius: "6px",
+                    border: "2px solid #f4433620",
+                  }}
+                >
+                  <div
+                    style={{
+                      color: "#f44336",
+                      fontWeight: "bold",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    ✉️ Typing
+                  </div>
+                  <div style={{ fontSize: "20px", fontWeight: "bold" }}>
+                    {categoryPoints.typing || 0}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>
+                    +{((categoryPoints.typing || 0) * 0.15).toFixed(1)}% interest/task
+                  </div>
                 </div>
               </div>
 

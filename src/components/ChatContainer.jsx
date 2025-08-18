@@ -229,8 +229,8 @@ class AITaskHelper {
       }
       // 80% chance still correct
     } else {
-      // After 5th use: bad 75% of the time
-      if (Math.random() < 0.75) {
+      // After 5th use: bad 60% of the time
+      if (Math.random() < 0.6) {
         if (Math.random() < 0.5) {
           // 50% of bad attempts: exactly 1 typo (still gets 1 point)
           resultText = makeRealisticTypo(pattern);
