@@ -1,4 +1,4 @@
-// src/utils/patternGenerator.js - Generate patterns for 15 levels per game
+// src/utils/patternGenerator.js - Generate patterns for 50 levels per game
 
 export const patternGenerator = {
   // Seeded random number generator
@@ -21,10 +21,21 @@ export const patternGenerator = {
 
   // Counting Game Patterns
   generateCountingPattern(level) {
-    // Difficulty progression
-    const effectiveLevel = ((level - 1) % 15) + 1;
+    // Difficulty based on actual level (1-50)
+    // 1-10: easy, 11-25: medium, 26-50: hard
+    const difficulty = level <= 10 ? "easy" : level <= 25 ? "medium" : "hard";
 
-    // Word/letter targets based on level
+    // For pattern selection, cycle through available patterns
+    let patternIndex;
+    if (difficulty === "easy") {
+      patternIndex = ((level - 1) % 5) + 1; // Cycles 1-5
+    } else if (difficulty === "medium") {
+      patternIndex = ((level - 11) % 5) + 6; // Cycles 6-10
+    } else {
+      patternIndex = ((level - 26) % 5) + 11; // Cycles 11-15
+    }
+
+    // Word/letter targets based on pattern
     const patterns = {
       easy: {
         1: { target: "the", type: "word" },
@@ -49,7 +60,7 @@ export const patternGenerator = {
       },
     };
 
-    const levelData = patterns[difficulty][effectiveLevel];
+    const levelData = patterns[difficulty][patternIndex];
 
     // Generate instruction based on type
     let instruction = "";
@@ -71,14 +82,18 @@ export const patternGenerator = {
 
   // Slider Game Patterns
   generateSliderPattern(level) {
+    // Difficulty based on actual level (1-50)
+    // 1-10: easy, 11-25: medium, 26-50: hard
+    const difficulty = level <= 10 ? "easy" : level <= 25 ? "medium" : "hard";
+
     let target, step, showValue;
 
-    if (level <= 5) {
+    if (difficulty === "easy") {
       // Easy: integers 0-10
       target = Math.floor(this.getRandom() * 11);
       step = 1;
       showValue = true;
-    } else if (level <= 10) {
+    } else if (difficulty === "medium") {
       // Medium: one decimal place
       target = Math.round(this.getRandom() * 10 * 10) / 10;
       step = 0.1;
@@ -87,23 +102,28 @@ export const patternGenerator = {
       // Hard: two decimal places, some with hidden values
       target = Math.round(this.getRandom() * 10 * 100) / 100;
       step = 0.01;
-      showValue = level !== 13 && level !== 15; // Hide value on levels 13 and 15
+      // Hide value occasionally in hard mode (every 5th hard level)
+      showValue = (level - 26) % 5 !== 0;
     }
 
     return {
       target,
       step,
       showValue,
-      difficulty: level <= 5 ? "easy" : level <= 10 ? "medium" : "hard",
-      difficultyLabel: level <= 5 ? "Easy" : level <= 10 ? "Medium" : "Hard",
-      precision: level <= 5 ? 0 : level <= 10 ? 1 : 2,
+      difficulty: difficulty,
+      difficultyLabel: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
+      precision: difficulty === "easy" ? 0 : difficulty === "medium" ? 1 : 2,
     };
   },
 
   // Typing Game Patterns
   generateTypingPattern(level) {
+    // Difficulty based on actual level (1-50)
+    // 1-10: easy, 11-25: medium, 26-50: hard
+    const difficulty = level <= 10 ? "easy" : level <= 25 ? "medium" : "hard";
+
     const patterns = {
-      // Easy patterns (1-5)
+      // Easy patterns
       easy: [
         "hello world",
         "quick test",
@@ -116,7 +136,7 @@ export const patternGenerator = {
         "almost done",
         "level up",
       ],
-      // Medium patterns (6-10) - mixed case
+      // Medium patterns - mixed case
       medium: [
         "HeLLo WoRLd",
         "QuIcK tEsT",
@@ -128,8 +148,13 @@ export const patternGenerator = {
         "AlMoSt DoNe",
         "LeVeL uP",
         "ChAlLeNgE",
+        "TeSt RuN",
+        "NeXt LeVeL",
+        "TrY aGaIn",
+        "GoOd LuCk",
+        "FiNaL tEsT",
       ],
-      // Hard patterns (11-15) - symbols and numbers
+      // Hard patterns - symbols and numbers
       hard: [
         "Test@123",
         "Go4It!Now",
@@ -141,30 +166,47 @@ export const patternGenerator = {
         "D1!E2@F3#",
         "A7$B8%C9^",
         "V3*W4+X5=",
+        "Q2#R3$S4%",
+        "H5^I6&J7*",
+        "K8(L9)M0!",
+        "N1@O2#P3$",
+        "T4%U5^V6&",
+        "W7*X8(Y9)",
+        "C0!D1@E2#",
+        "F3$G4%H5^",
+        "I6&J7*K8(",
+        "L9)M0!N1@",
+        "O2#P3$Q4%",
+        "R5^S6&T7*",
+        "U8(V9)W0!",
+        "X1@Y2#Z3$",
+        "A4%B5^C6&",
       ],
     };
 
     let pattern;
-    if (level <= 5) {
-      // Make sure we're using the correct index
+    if (difficulty === "easy") {
+      // Cycle through easy patterns (10 patterns for 10 levels)
       const index = (level - 1) % patterns.easy.length;
       pattern = patterns.easy[index];
-    } else if (level <= 10) {
-      const index = (level - 6) % patterns.medium.length;
+    } else if (difficulty === "medium") {
+      // Cycle through medium patterns (15 patterns for 15 levels)
+      const index = (level - 11) % patterns.medium.length;
       pattern = patterns.medium[index];
     } else {
-      const index = (level - 11) % patterns.hard.length;
+      // Cycle through hard patterns (25 patterns for 25 levels)
+      const index = (level - 26) % patterns.hard.length;
       pattern = patterns.hard[index];
     }
 
     return {
       pattern,
-      difficulty: level <= 5 ? "easy" : level <= 10 ? "medium" : "hard",
-      difficultyLabel: level <= 5 ? "Easy" : level <= 10 ? "Medium" : "Hard",
+      difficulty: difficulty,
+      difficultyLabel: difficulty.charAt(0).toUpperCase() + difficulty.slice(1),
     };
   },
 
-  // Text passages for counting game (expanded to support 15 levels)
+  // Text passages for counting game (expanded to support 50 levels)
   textPassages: [
     // Passage 1
     "The University of California, Berkeley (UC Berkeley, Berkeley, Cal, or California) is a public land-grant research university in Berkeley, California, United States. Founded in 1868 and named after the Anglo-Irish philosopher George Berkeley, it is the state's first land-grant university and is the founding campus of the University of California system.",
@@ -196,7 +238,7 @@ export const patternGenerator = {
     // Passage 10
     "The campus is home to several museums including the Berkeley Art Museum and Pacific Film Archive, the Lawrence Hall of Science, and the UC Botanical Garden. These facilities serve both educational and public outreach purposes.",
 
-    // Additional passages for levels 11-15
+    // Additional passages for levels 11-50
     "Notable Berkeley inventions and discoveries include the cyclotron, the atomic bomb, the flu vaccine, and vitamin E. Berkeley researchers discovered 16 chemical elements of the periodic table, more than any other university.",
 
     "The Free Speech Movement, which took place during the 1964-65 academic year, was a pivotal moment in the history of civil liberties in the United States. It began when students protested a ban on political activities on campus.",
