@@ -90,9 +90,9 @@ function App() {
   const [timeRemaining, setTimeRemaining] = useState(1200);
   const [studentLearningScore, setStudentLearningScore] = useState(0);
   const [categoryPoints, setCategoryPoints] = useState({
-    materials: 0, // Slider (was counting)
-    research: 0, // Counting (was slider)
-    engagement: 0, // Typing
+    slider: 0, // Materials (Slider tasks)
+    counting: 0, // Research (Counting tasks)
+    typing: 0, // Engagement (Typing tasks)
     bonus: 0, // Checkpoint bonuses
   });
   const [taskAttempts, setTaskAttempts] = useState({});
@@ -414,12 +414,8 @@ function App() {
     }
 
     localStorage.setItem("typingInterest", "0");
-    setCategoryPoints({
-      slider: 0, // Changed from materials
-      counting: 0, // Changed from research
-      typing: 0, // Changed from engagement
-      bonus: 0,
-    });
+    // Reset teaching points
+    setCategoryPoints({ slider: 0, counting: 0, typing: 0, bonus: 0 });
 
     setMode("challenge");
     setCompleted({});
@@ -1504,31 +1500,6 @@ function App() {
                 </div>
               </div>
             </div>
-
-            <div
-              style={{
-                background: "#fff0f0",
-                padding: "15px",
-                borderRadius: "6px",
-                border: "2px solid #f4433620",
-              }}
-            >
-              <div
-                style={{
-                  color: "#f44336",
-                  fontWeight: "bold",
-                  marginBottom: "5px",
-                }}
-              >
-                ✉️ Engagement
-              </div>
-              <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                {categoryPoints.engagement}
-              </div>
-              <div style={{ fontSize: "12px", color: "#666" }}>
-                +{categoryPoints.engagement * 1}% multiplier
-              </div>
-            </div>
           </div>
 
           {/* Checkpoint Bonus Display */}
@@ -1687,14 +1658,14 @@ function App() {
             </p>
             <div style={{ marginBottom: "20px" }}>
               <h3>Teaching Performance:</h3>
-              <div>Materials Created: {categoryPoints.materials} pts</div>
+              <div>Materials (Slider): {categoryPoints.slider} pts</div>
               <div>
-                Research: {categoryPoints.research} pts (×
-                {(1 + categoryPoints.research * 0.05).toFixed(2)})
+                Research (Counting): {categoryPoints.counting} pts (×
+                {(1 + categoryPoints.counting * 0.15).toFixed(2)})
               </div>
               <div>
-                Engagement: {categoryPoints.engagement} pts (×
-                {(1 + categoryPoints.engagement * 0.01).toFixed(2)})
+                Engagement (Typing): {categoryPoints.typing} pts (+
+                {(categoryPoints.typing * 0.15).toFixed(1)}% interest/task)
               </div>
             </div>
             <div
@@ -1718,9 +1689,8 @@ function App() {
               <div
                 style={{ fontSize: "14px", color: "#666", marginTop: "5px" }}
               >
-                = {categoryPoints.materials} ×{" "}
-                {(1 + categoryPoints.research * 0.05).toFixed(2)} ×{" "}
-                {(1 + categoryPoints.engagement * 0.01).toFixed(2)}
+                = {categoryPoints.slider} ×{" "}
+                {(1 + categoryPoints.counting * 0.15).toFixed(2)} + Interest
               </div>
             </div>
             <div
