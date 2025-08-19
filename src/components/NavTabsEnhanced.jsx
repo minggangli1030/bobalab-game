@@ -11,13 +11,16 @@ export default function NavTabsEnhanced({
   categoryPoints = {},
   timeRemaining = null,
 }) {
-  // Calculate student learning score
   const calculateStudentLearning = () => {
-    const materialsPoints = categoryPoints.materials || 0;
-    const researchMultiplier = 1 + (categoryPoints.research || 0) * 0.05;
-    const engagementMultiplier = 1 + (categoryPoints.engagement || 0) * 0.01;
+    const sliderPoints = categoryPoints.slider || 0;
+    const countingMultiplier = 1 + (categoryPoints.counting || 0) * 0.15;
 
-    return materialsPoints * researchMultiplier * engagementMultiplier;
+    // Get accumulated typing interest
+    const typingInterest =
+      parseFloat(localStorage.getItem("typingInterest") || "0") || 0;
+
+    const baseScore = sliderPoints * countingMultiplier;
+    return baseScore + typingInterest;
   };
 
   // Generate all 150 tabs (50 per game)
