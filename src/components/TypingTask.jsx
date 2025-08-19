@@ -10,7 +10,6 @@ export default function TypingTask({
   taskNum,
   onComplete,
   isPractice = false,
-  gameAccuracyMode = "strict",
   currentTaskId,
 }) {
   const [pattern, setPattern] = useState("");
@@ -113,18 +112,52 @@ export default function TypingTask({
 
   const handleSubmit = async () => {
     const timeTaken = Date.now() - startTime;
-    const accuracy = calculateAccuracy(input, pattern);
 
-    const passThreshold = gameAccuracyMode === "strict" ? 100 : 0;
-    const passed =
-      gameAccuracyMode === "lenient" ? true : accuracy >= passThreshold;
+    // Calculate Levenshtein distance for typo detection
+    const calculateLevenshteinDistance = (str1, str2) => {
+      const m = str1.length;
+      const n = str2.length;
+      const dp = Array(m + 1)
+        .fill(null)
+        .map(() => Array(n + 1).fill(0));
+
+      for (let i = 0; i <= m; i++) dp[i][0] = i;
+      for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          if (str1[i - 1] === str2[j - 1]) {
+            dp[i][j] = dp[i - 1][j - 1];
+          } else {
+            dp[i][j] = Math.min(
+              dp[i - 1][j] + 1,
+              dp[i][j - 1] + 1,
+              dp[i - 1][j - 1] + 1
+            );
+          }
+        }
+      }
+      return dp[m][n];
+    };
+
+    const distance = calculateLevenshteinDistance(input, pattern);
+
+    // Calculate points based on typos
+    let points = 0;
+    if (distance === 0) {
+      points = 2; // Perfect match
+    } else if (distance === 1) {
+      points = 1; // One typo
+    } else {
+      points = 0; // Otherwise
+    }
 
     attemptsRef.current += 1;
 
     await eventTracker.trackTaskAttempt(
       `g3t${taskNum}`,
       attemptsRef.current,
-      passed,
+      true, // Always passes
       timeTaken,
       input,
       pattern
@@ -134,9 +167,10 @@ export default function TypingTask({
     if (sessionId && !sessionId.startsWith("offline-")) {
       try {
         await updateDoc(doc(db, "sessions", sessionId), {
-          [`taskAccuracies.g3t${taskNum}`]: accuracy,
+          [`taskAccuracies.g3t${taskNum}`]:
+            points === 2 ? 100 : points === 1 ? 70 : 0,
           [`taskTimes.g3t${taskNum}`]: timeTaken,
-          [`gameMode`]: gameAccuracyMode,
+          [`taskPoints.g3t${taskNum}`]: points,
           lastActivity: serverTimestamp(),
         });
       } catch (error) {
@@ -144,31 +178,25 @@ export default function TypingTask({
       }
     }
 
-    if (passed) {
-      if (input === pattern) {
-        setFeedback("✓ Flawless!");
-      } else if (gameAccuracyMode === "lenient") {
-        setFeedback(`✓ Passed! (${accuracy}% accuracy)`);
-      } else {
-        setFeedback("✓ Good job!");
-      }
-
-      setTimeout(() => {
-        onComplete(`g3t${taskNum}`, {
-          attempts: attemptsRef.current,
-          totalTime: timeTaken,
-          accuracy: accuracy,
-          userAnswer: input, // Add this
-          correctAnswer: pattern, // Add this
-        });
-      }, 1500);
+    // Always complete, show points earned
+    if (points === 2) {
+      setFeedback("✓ Perfect! 2 points earned!");
+    } else if (points === 1) {
+      setFeedback("✓ Good! One typo - 1 point earned!");
     } else {
-      if (isPractice) {
-        setFeedback(`✗ Correct pattern: "${pattern}". Try again!`);
-      } else {
-        setFeedback(`✗ Try again! (${accuracy}% accuracy - need 100%)`);
-      }
+      setFeedback(`✓ Task complete. ${distance} errors - 0 points earned.`);
     }
+
+    setTimeout(() => {
+      onComplete(`g3t${taskNum}`, {
+        attempts: attemptsRef.current,
+        totalTime: timeTaken,
+        accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
+        userAnswer: input,
+        correctAnswer: pattern,
+        points: points,
+      });
+    }, 1500);
   };
 
   const patternInfo = patternGenerator.generateTypingPattern(taskNum);

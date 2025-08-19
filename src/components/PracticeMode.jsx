@@ -162,7 +162,6 @@ export default function PracticeMode({
             taskNum={taskNum}
             onComplete={handlePracticeComplete}
             isPractice={true}
-            gameAccuracyMode={gameAccuracyMode}
           />
         )}
 
@@ -171,7 +170,6 @@ export default function PracticeMode({
             taskNum={taskNum}
             onComplete={handlePracticeComplete}
             isPractice={true}
-            gameAccuracyMode={gameAccuracyMode}
           />
         )}
 
@@ -180,7 +178,6 @@ export default function PracticeMode({
             taskNum={taskNum}
             onComplete={handlePracticeComplete}
             isPractice={true}
-            gameAccuracyMode={gameAccuracyMode}
           />
         )}
       </div>

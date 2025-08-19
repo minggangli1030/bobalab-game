@@ -230,23 +230,26 @@ function App() {
   }, []);
 
   const calculateStudentLearning = (points = categoryPoints) => {
-    // New formula based on the rules:
-    // Base: Slider points (direct contribution)
+    // FIXED: Using correct category names (not 'materials', 'research', 'engagement')
     const sliderPoints = points.slider || 0;
+    const countingPoints = points.counting || 0;
+    const typingPoints = points.typing || 0;
 
     // Counting multiplier: each point adds 0.15 to multiplier
-    const countingMultiplier = 1 + (points.counting || 0) * 0.15;
+    const countingMultiplier = 1 + countingPoints * 0.15;
 
-    // Formula: Slider × (1 + 0.15 × Counting)
+    // Base score: Slider × Counting multiplier
     const baseScore = sliderPoints * countingMultiplier;
 
-    // Add accumulated typing interest
-    const typingInterest =
+    // Calculate typing interest rate (0.15% per typing point)
+    const typingInterestRate = typingPoints * 0.0015;
+
+    // Get accumulated interest from localStorage
+    const accumulatedInterest =
       parseFloat(localStorage.getItem("typingInterest") || "0") || 0;
 
-    const total = baseScore + typingInterest;
+    const total = baseScore + accumulatedInterest;
 
-    // Ensure we never return NaN
     return isNaN(total) ? 0 : total;
   };
 
@@ -647,29 +650,22 @@ function App() {
       });
     }
 
-    // Auto-advance to next task after 1 second
+    // Auto-advance to next task after 1.5 seconds (more stable)
     setTimeout(() => {
-      const currentGame = tabId[1];
-      const currentTaskNum = parseInt(tabId[3]);
+    // Prevent advance if user already switched
+    if (currentTab !== tabId) return;
+    
+    const currentGame = tabId[1];
+    const currentTaskNum = parseInt(tabId.substring(3)); // Fix parsing for 2-digit numbers
 
-      // Try next task in same game
-      if (currentTaskNum < 15) {
-        const nextTask = `g${currentGame}t${currentTaskNum + 1}`;
-        if (!completed[nextTask]) {
-          handleTabSwitch(nextTask, true);
-        }
-      } else {
-        // Try to switch to next game
-        const nextGame = parseInt(currentGame) + 1;
-        if (nextGame <= 3) {
-          const nextTask = `g${nextGame}t1`;
-          if (!completed[nextTask]) {
-            handleTabSwitch(nextTask, true);
-          }
-        }
+    // Try next task in same game
+    if (currentTaskNum < 50) { // Updated to 50 tasks
+      const nextTask = `g${currentGame}t${currentTaskNum + 1}`;
+      if (!completed[nextTask]) {
+        handleTabSwitch(nextTask, true);
       }
-    }, 1000);
-  };
+    }
+  }, 1500); // Increased delay to prevent conflicts
 
   // Handle tab switching
   const handleTabSwitch = async (newTab, isAutoAdvance = false) => {
@@ -798,7 +794,6 @@ function App() {
         <CountingTask
           taskNum={taskNum}
           onComplete={handleComplete}
-          gameAccuracyMode="lenient"
           currentTaskId={currentTab}
         />
       );
@@ -808,7 +803,6 @@ function App() {
         <SliderTask
           taskNum={taskNum}
           onComplete={handleComplete}
-          gameAccuracyMode="lenient"
           currentTaskId={currentTab}
         />
       );
@@ -817,7 +811,6 @@ function App() {
       <TypingTask
         taskNum={taskNum}
         onComplete={handleComplete}
-        gameAccuracyMode="lenient"
         currentTaskId={currentTab}
       />
     );
@@ -1149,7 +1142,6 @@ function App() {
           onStartMainGame={() => {
             startMainGame();
           }}
-          gameAccuracyMode="lenient"
         />
       </div>
     );

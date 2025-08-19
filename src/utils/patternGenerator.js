@@ -22,7 +22,7 @@ export const patternGenerator = {
   // Counting Game Patterns
   generateCountingPattern(level) {
     // Difficulty progression
-    const difficulty = level <= 5 ? "easy" : level <= 10 ? "medium" : "hard";
+    const effectiveLevel = ((level - 1) % 15) + 1;
 
     // Word/letter targets based on level
     const patterns = {
@@ -49,7 +49,7 @@ export const patternGenerator = {
       },
     };
 
-    const levelData = patterns[difficulty][level];
+    const levelData = patterns[difficulty][effectiveLevel];
 
     // Generate instruction based on type
     let instruction = "";

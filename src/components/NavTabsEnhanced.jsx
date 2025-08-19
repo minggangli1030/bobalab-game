@@ -20,10 +20,10 @@ export default function NavTabsEnhanced({
     return materialsPoints * researchMultiplier * engagementMultiplier;
   };
 
-  // Generate all 45 tabs (15 per game)
+  // Generate all 150 tabs (50 per game)
   const tabs = [];
   for (let game = 1; game <= 3; game++) {
-    for (let level = 1; level <= 15; level++) {
+    for (let level = 1; level <= 50; level++) {
       const gameLabel = ["Research", "Materials", "Engage"][game - 1];
       tabs.push({
         id: `g${game}t${level}`,

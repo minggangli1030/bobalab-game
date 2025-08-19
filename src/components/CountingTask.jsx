@@ -10,7 +10,6 @@ export default function CountingTask({
   taskNum,
   onComplete,
   isPractice = false,
-  gameAccuracyMode = "strict",
   currentTaskId, // currently unused but kept for compatibility
 }) {
   const [target, setTarget] = useState("");
@@ -219,7 +218,7 @@ export default function CountingTask({
             setTextImageUrl(canvas.toDataURL());
 
             // Wait 500ms before next highlight
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            await new Promise((resolve) => setTimeout(resolve, 200));
           }
 
           // Fill in the count after animation completes
@@ -280,30 +279,38 @@ export default function CountingTask({
   const handleSubmit = async () => {
     const timeTaken = Date.now() - startTime;
     const userAnswer = parseInt(input, 10) || 0;
-    const accuracy = calculateAccuracy(userAnswer, answer ?? 0);
+    const correctAnswer = answer ?? 0;
+    const difference = Math.abs(userAnswer - correctAnswer);
 
-    const passThreshold = gameAccuracyMode === "strict" ? 100 : 0;
-    const passed =
-      gameAccuracyMode === "lenient" ? true : accuracy >= passThreshold;
+    // Calculate points based on accuracy
+    let points = 0;
+    if (difference === 0) {
+      points = 2; // Exact match
+    } else if (difference <= 1) {
+      points = 1; // Within 1
+    } else {
+      points = 0; // Otherwise
+    }
 
     attemptsRef.current += 1;
 
     await eventTracker.trackTaskAttempt(
       `g1t${taskNum}`,
       attemptsRef.current,
-      passed,
+      true, // Always passes in lenient mode
       timeTaken,
       userAnswer,
-      answer
+      correctAnswer
     );
 
     const sessionId = localStorage.getItem("sessionId");
     if (sessionId && !sessionId.startsWith("offline-")) {
       try {
         await updateDoc(doc(db, "sessions", sessionId), {
-          [`taskAccuracies.g1t${taskNum}`]: accuracy,
+          [`taskAccuracies.g1t${taskNum}`]:
+            points === 2 ? 100 : points === 1 ? 70 : 0,
           [`taskTimes.g1t${taskNum}`]: timeTaken,
-          gameMode: gameAccuracyMode,
+          [`taskPoints.g1t${taskNum}`]: points,
           lastActivity: serverTimestamp(),
         });
       } catch (error) {
@@ -311,31 +318,25 @@ export default function CountingTask({
       }
     }
 
-    if (passed) {
-      if (accuracy === 100) {
-        setFeedback("✓ Flawless!");
-      } else if (gameAccuracyMode === "lenient") {
-        setFeedback(`✓ Passed! (${accuracy}% accuracy)`);
-      } else {
-        setFeedback("✓ Good job!");
-      }
-
-      setTimeout(() => {
-        onComplete?.(`g1t${taskNum}`, {
-          attempts: attemptsRef.current,
-          totalTime: timeTaken,
-          accuracy,
-          userAnswer: userAnswer, // Add this
-          correctAnswer: answer, // Add this
-        });
-      }, 1500);
+    // Always complete the task, but show points earned
+    if (points === 2) {
+      setFeedback("✓ Perfect! 2 points earned!");
+    } else if (points === 1) {
+      setFeedback(`✓ Close! Off by ${difference} - 1 point earned!`);
     } else {
-      if (isPractice) {
-        setFeedback(`✗ Incorrect. The correct answer is ${answer}. Try again!`);
-      } else {
-        setFeedback(`✗ Try again! (${accuracy}% accuracy - need 100%)`);
-      }
+      setFeedback(`✓ Task complete. Off by ${difference} - 0 points earned.`);
     }
+
+    setTimeout(() => {
+      onComplete?.(`g1t${taskNum}`, {
+        attempts: attemptsRef.current,
+        totalTime: timeTaken,
+        accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
+        userAnswer: userAnswer,
+        correctAnswer: correctAnswer,
+        points: points,
+      });
+    }, 1500);
   };
 
   // Derive difficulty UI from pattern

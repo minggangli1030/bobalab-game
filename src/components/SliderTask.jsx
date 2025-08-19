@@ -10,7 +10,6 @@ export default function SliderTask({
   taskNum,
   onComplete,
   isPractice = false,
-  gameAccuracyMode = "strict",
   currentTaskId,
 }) {
   const [target, setTarget] = useState(5);
@@ -152,25 +151,24 @@ export default function SliderTask({
   const handleSubmit = async () => {
     const timeTaken = Date.now() - startTime;
     const userValue = parseFloat(input);
-    const difference = calculateDifference(userValue, target);
+    const difference = Math.abs(userValue - target);
 
-    // Determine points based on difference
+    // Calculate points based on difference
     let points = 0;
-    if (difference === 0) points = 2;
-    else if (difference <= 1) points = 1;
-    else points = 0;
-
-    // For lenient mode, always pass; for strict mode, only pass if exact
-    const passThreshold = gameAccuracyMode === "strict" ? 0 : Infinity;
-    const passed =
-      gameAccuracyMode === "lenient" ? true : difference <= passThreshold;
+    if (difference === 0) {
+      points = 2; // Exact match
+    } else if (difference <= 1) {
+      points = 1; // Within 1
+    } else {
+      points = 0; // Otherwise
+    }
 
     attemptsRef.current += 1;
 
     await eventTracker.trackTaskAttempt(
       `g2t${taskNum}`,
       attemptsRef.current,
-      passed,
+      true, // Always passes
       timeTaken,
       userValue,
       target
@@ -180,9 +178,9 @@ export default function SliderTask({
     if (sessionId && !sessionId.startsWith("offline-")) {
       try {
         await updateDoc(doc(db, "sessions", sessionId), {
-          [`taskDifferences.g2t${taskNum}`]: difference, // Store difference instead of accuracy
+          [`taskDifferences.g2t${taskNum}`]: difference,
           [`taskTimes.g2t${taskNum}`]: timeTaken,
-          [`gameMode`]: gameAccuracyMode,
+          [`taskPoints.g2t${taskNum}`]: points,
           lastActivity: serverTimestamp(),
         });
       } catch (error) {
@@ -190,40 +188,27 @@ export default function SliderTask({
       }
     }
 
-    if (passed) {
-      if (difference === 0) {
-        setFeedback("✓ Perfect! Exactly on target! (2 points)");
-      } else if (difference <= 0.5) {
-        setFeedback(`✓ Very close! Off by ${difference.toFixed(2)} (1 point)`);
-      } else if (difference <= 1) {
-        setFeedback(`✓ Good! Off by ${difference.toFixed(2)} (1 point)`);
-      } else {
-        setFeedback(`✓ Passed! Off by ${difference.toFixed(2)} (0 points)`);
-      }
-
-      setTimeout(() => {
-        onComplete(`g2t${taskNum}`, {
-          attempts: attemptsRef.current,
-          totalTime: timeTaken,
-          difference: difference, // Pass difference instead of accuracy
-          userValue: userValue,
-          targetValue: target,
-          points: points, // Include points earned
-        });
-      }, 1500);
+    // Always complete, show points earned
+    if (points === 2) {
+      setFeedback("✓ Perfect! Exactly on target! 2 points earned!");
+    } else if (points === 1) {
+      setFeedback(`✓ Close! Off by ${difference.toFixed(2)} - 1 point earned!`);
     } else {
-      if (isPractice) {
-        setFeedback(
-          `✗ Target was ${target}. You were off by ${difference.toFixed(
-            2
-          )}. Try again!`
-        );
-      } else {
-        setFeedback(
-          `✗ Try again! Off by ${difference.toFixed(2)} - need exact match`
-        );
-      }
+      setFeedback(
+        `✓ Task complete. Off by ${difference.toFixed(2)} - 0 points earned.`
+      );
     }
+
+    setTimeout(() => {
+      onComplete(`g2t${taskNum}`, {
+        attempts: attemptsRef.current,
+        totalTime: timeTaken,
+        difference: difference,
+        userValue: userValue,
+        targetValue: target,
+        points: points,
+      });
+    }, 1500);
   };
 
   const pattern = patternGenerator.generateSliderPattern(taskNum);
