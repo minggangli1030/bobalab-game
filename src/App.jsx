@@ -230,25 +230,36 @@ function App() {
   }, []);
 
   const calculateStudentLearning = (points = categoryPoints) => {
-    // FIXED: Using correct category names (not 'materials', 'research', 'engagement')
+    // DEBUGGING: Log all inputs
+    console.log("=== calculateStudentLearning DEBUG ===");
+    console.log("Input points object:", points);
+    console.log("categoryPoints state:", categoryPoints);
+
     const sliderPoints = points.slider || 0;
     const countingPoints = points.counting || 0;
     const typingPoints = points.typing || 0;
 
+    console.log("Extracted values:");
+    console.log("- sliderPoints:", sliderPoints);
+    console.log("- countingPoints:", countingPoints);
+    console.log("- typingPoints:", typingPoints);
+
     // Counting multiplier: each point adds 0.15 to multiplier
     const countingMultiplier = 1 + countingPoints * 0.15;
+    console.log("- countingMultiplier:", countingMultiplier);
 
     // Base score: Slider × Counting multiplier
     const baseScore = sliderPoints * countingMultiplier;
-
-    // Calculate typing interest rate (0.15% per typing point)
-    const typingInterestRate = typingPoints * 0.0015;
+    console.log("- baseScore:", baseScore);
 
     // Get accumulated interest from localStorage
     const accumulatedInterest =
       parseFloat(localStorage.getItem("typingInterest") || "0") || 0;
+    console.log("- accumulatedInterest:", accumulatedInterest);
 
     const total = baseScore + accumulatedInterest;
+    console.log("FINAL TOTAL:", total);
+    console.log("=====================================");
 
     return isNaN(total) ? 0 : total;
   };
@@ -485,6 +496,12 @@ function App() {
       : tabId.startsWith("g2")
       ? "slider" // Changed from "materials"
       : "typing"; // Changed from "engagement"
+
+    // DEBUGGING
+    console.log("=== handleComplete DEBUG ===");
+    console.log("Task ID:", tabId);
+    console.log("Category determined:", category);
+    console.log("Current categoryPoints BEFORE update:", categoryPoints);
 
     if (category === "slider") {
       // Slider: exact = 2 points, within 1 = 1 point

@@ -268,6 +268,13 @@ export default function ChatContainer({
   timeRemaining = null,
   calculateStudentLearning = () => 0,
 }) {
+  // DEBUGGING
+  useEffect(() => {
+    console.log("=== ChatContainer Props ===");
+    console.log("categoryPoints received:", categoryPoints);
+    console.log("calculateStudentLearning result:", calculateStudentLearning());
+    console.log("=========================");
+  }, [categoryPoints]);
   const [messages, setMessages] = useState([
     {
       sender: "bot",
