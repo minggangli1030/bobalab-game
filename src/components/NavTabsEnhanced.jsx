@@ -75,9 +75,9 @@ export default function NavTabsEnhanced({
   };
 
   const gameCategoryMap = {
-    1: "research",
-    2: "materials",
-    3: "engagement",
+    1: "counting", // g1 → Counting (multiplier)
+    2: "slider", // g2 → Slider (base points)
+    3: "typing", // g3 → Typing (interest)
   };
 
   return (
@@ -108,9 +108,9 @@ export default function NavTabsEnhanced({
 
           // Show multiplier based on new formula
           const researchMult =
-            gameNum === "1" ? (categoryPoints.research || 0) * 0.05 : 0;
+            gameNum === "1" ? (categoryPoints.counting || 0) * 0.15 : 0;
           const engagementMult =
-            gameNum === "3" ? (categoryPoints.engagement || 0) * 0.01 : 0;
+            gameNum === "3" ? (categoryPoints.typing || 0) * 0.0015 : 0; // 0.15% per typing point
           const hasMultiplier = researchMult > 0 || engagementMult > 0;
 
           return (
@@ -179,7 +179,7 @@ export default function NavTabsEnhanced({
               </div>
 
               {/* Multiplier indicator */}
-              {gameNum === "1" && categoryPoints.research > 0 && (
+              {gameNum === "1" && (categoryPoints.counting || 0) > 0 && (
                 <div
                   style={{
                     position: "absolute",
@@ -194,10 +194,10 @@ export default function NavTabsEnhanced({
                     border: "1px solid #ffc107",
                   }}
                 >
-                  +{categoryPoints.research * 5}%
+                  +{(categoryPoints.counting * 15).toFixed(0)}%
                 </div>
               )}
-              {gameNum === "3" && categoryPoints.engagement > 0 && (
+              {gameNum === "3" && (categoryPoints.typing || 0) > 0 && (
                 <div
                   style={{
                     position: "absolute",
@@ -212,7 +212,8 @@ export default function NavTabsEnhanced({
                     border: "1px solid #ffc107",
                   }}
                 >
-                  +{categoryPoints.engagement * 1}%
+                  +{((categoryPoints.typing || 0) * 0.15).toFixed(1)}%
+                  interest/task
                 </div>
               )}
 
@@ -235,6 +236,14 @@ export default function NavTabsEnhanced({
                     const isCurrent = current === tab.id;
                     const taskNum = parseInt(tab.id.substring(3));
                     const points = taskPoints[tab.id] || 0;
+
+                    // Expose exact numbers for Multiplier and Interest
+                    const typingInterest =
+                      parseFloat(
+                        localStorage.getItem("typingInterest") || "0"
+                      ) || 0;
+                    const countingMultiplier =
+                      1 + (categoryPoints.counting || 0) * 0.15;
 
                     return (
                       <button
@@ -413,8 +422,8 @@ export default function NavTabsEnhanced({
             {Math.round(calculateStudentLearning())}
           </div>
           <div style={{ fontSize: "10px", color: "#999" }}>
-            S×{(1 + (categoryPoints.counting || 0) * 0.15).toFixed(2)}
-            +Interest
+            Multiplier = {countingMultiplier.toFixed(2)}, Interest ={" "}
+            {typingInterest.toFixed(2)}
           </div>
         </div>
 

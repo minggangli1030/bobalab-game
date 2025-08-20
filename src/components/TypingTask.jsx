@@ -240,9 +240,17 @@ export default function TypingTask({
         )}
       </div>
 
-      <div className="input-section">
+      <div
+        className="input-section"
+        style={{ width: "100%", maxWidth: "600px", margin: "12px auto 0" }}
+      >
         <input
           type="text"
+          inputMode="text"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
           value={input}
           onChange={(e) => !isAITyping && setInput(e.target.value)}
           placeholder="Type here..."
@@ -251,6 +259,14 @@ export default function TypingTask({
           style={{
             backgroundColor: isAITyping ? "#e3f2fd" : "white",
             transition: "background-color 0.3s",
+            width: "100%",
+            maxWidth: "600px",
+            fontFamily: '"Courier New" , monospace',
+            fontSize: "28px",
+            padding: "12px 14px",
+            border: "2px solid #e0e0e0",
+            borderRadius: "8px",
+            boxSizing: "border-box",
           }}
         />
       </div>
