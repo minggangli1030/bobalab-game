@@ -435,6 +435,9 @@ function App() {
     setBonusPrompts(0);
     setCurrentTab("g2t1");
     setCheckpointReached(false);
+
+    // Reset teaching points
+    setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
     setTaskAttempts({});
     setTaskPoints({});
 
