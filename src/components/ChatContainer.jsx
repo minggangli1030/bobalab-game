@@ -545,7 +545,10 @@ export default function ChatContainer({
   const currentGameType = getCurrentGameType();
 
   return (
-    <div className="chat-container-sidebar">
+    <div
+      className="chat-container-sidebar"
+      style={{ height: "100%", display: "flex", flexDirection: "column" }}
+    >
       <div className="chat-header">
         <h3>AI Teaching Assistant</h3>
         <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>

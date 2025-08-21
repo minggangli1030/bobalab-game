@@ -242,7 +242,7 @@ export default function TypingTask({
 
       <div
         className="input-section"
-        style={{ width: "100%", maxWidth: "600px", margin: "12px auto 0" }}
+        style={{ width: "90%", maxWidth: "900px", margin: "20px auto 0" }}
       >
         <input
           type="text"
@@ -259,9 +259,9 @@ export default function TypingTask({
           style={{
             backgroundColor: isAITyping ? "#e3f2fd" : "white",
             transition: "background-color 0.3s",
-            width: "100%",
-            maxWidth: "600px",
-            fontFamily: '"Courier New" , monospace',
+            width: "100%", // Full width of container
+            maxWidth: "100%", // Remove the 600px limit
+            fontFamily: '"Courier New", monospace',
             fontSize: "28px",
             padding: "12px 14px",
             border: "2px solid #e0e0e0",
