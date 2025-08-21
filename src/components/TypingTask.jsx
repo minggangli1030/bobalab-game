@@ -275,6 +275,9 @@ export default function TypingTask({
         onClick={handleSubmit}
         className="submit-btn"
         disabled={isAITyping}
+        style={{
+          marginTop: "20px", // Add this line
+        }}
       >
         Submit
       </button>
