@@ -276,7 +276,8 @@ export default function TypingTask({
         className="submit-btn"
         disabled={isAITyping}
         style={{
-          marginTop: "20px", // Add this line
+          display: "block", // align buttom
+          margin: "20px auto 0", // Changed from just marginTop
         }}
       >
         Submit
