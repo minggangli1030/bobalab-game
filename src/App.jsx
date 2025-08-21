@@ -230,7 +230,6 @@ function App() {
   }, []);
 
   const calculateStudentLearning = (points = categoryPoints) => {
-    // DEBUGGING: Log all inputs
     console.log("=== calculateStudentLearning DEBUG ===");
     console.log("Input points object:", points);
     console.log("categoryPoints state:", categoryPoints);
@@ -687,7 +686,7 @@ function App() {
           handleTabSwitch(nextTask, true);
         }
       }
-    }, 1500);
+    }, 800);
   }; // Increased delay to prevent conflicts
 
   // Handle tab switching
