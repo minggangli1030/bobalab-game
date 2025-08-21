@@ -404,11 +404,7 @@ export default function CountingTask({
           margin: "20px auto 0", // Changed from just marginTop
         }}
       >
-        Submit style=
-        {{
-          display: "block", // align buttom
-          margin: "20px auto 0", // Changed from just marginTop
-        }}
+        Submit
       </button>
       {feedback && (
         <div
