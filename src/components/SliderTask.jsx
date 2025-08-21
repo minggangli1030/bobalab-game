@@ -190,13 +190,11 @@ export default function SliderTask({
 
     // Always complete, show points earned
     if (points === 2) {
-      setFeedback("✓ Perfect! Exactly on target! 2 points earned!");
+      setFeedback("✓ Perfect! 2 points earned!");
     } else if (points === 1) {
-      setFeedback(`✓ Close! Off by ${difference.toFixed(2)} - 1 point earned!`);
+      setFeedback(`✓ Off by ${difference.toFixed(2)} - 1 point earned!`);
     } else {
-      setFeedback(
-        `✓ Task complete. Off by ${difference.toFixed(2)} - 0 points earned.`
-      );
+      setFeedback(`✓ Off by ${difference.toFixed(2)} - 0 points earned.`);
     }
 
     setTimeout(() => {
@@ -257,7 +255,6 @@ export default function SliderTask({
       <div className={`difficulty-badge ${difficultyColor}`}>
         {difficultyLabel}
       </div>
-
       <p className="instruction">
         Move the slider to:{" "}
         <strong className="target-value" data-target-value={target}>
@@ -268,7 +265,6 @@ export default function SliderTask({
           {!hasInteracted && "Hold and drag the slider handle to move it"}
         </span>
       </p>
-
       <div className="slider-container">
         <div className="range-labels">
           <span>0</span>
@@ -319,7 +315,6 @@ export default function SliderTask({
           {showValue ? parseFloat(input).toFixed(pattern.precision) : "??"}
         </div>
       </div>
-
       <button
         onClick={handleSubmit}
         className="submit-btn"
@@ -327,11 +322,14 @@ export default function SliderTask({
       >
         Submit
       </button>
-
       {feedback && (
         <div
           className={`feedback ${
-            feedback.includes("✓") ? "correct" : "incorrect"
+            feedback.includes("2 points")
+              ? "correct"
+              : feedback.includes("0 points")
+              ? "incorrect"
+              : "partial"
           }`}
         >
           {feedback}

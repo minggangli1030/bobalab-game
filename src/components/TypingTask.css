@@ -140,6 +140,12 @@
   border: 1px solid #f44336;
 }
 
+.feedback.partial {
+  color: #ff9800;
+  background: #fff3e0;
+  border: 1px solid #ff9800;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

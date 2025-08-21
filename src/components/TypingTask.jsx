@@ -182,9 +182,9 @@ export default function TypingTask({
     if (points === 2) {
       setFeedback("✓ Perfect! 2 points earned!");
     } else if (points === 1) {
-      setFeedback("✓ Good! One typo - 1 point earned!");
+      setFeedback("✓ 1 typo - 1 point earned!");
     } else {
-      setFeedback(`✓ Task complete. ${distance} errors - 0 points earned.`);
+      setFeedback(`✓ ${distance} errors - 0 points earned.`);
     }
 
     setTimeout(() => {
@@ -282,7 +282,11 @@ export default function TypingTask({
       {feedback && (
         <div
           className={`feedback ${
-            feedback.includes("✓") ? "correct" : "incorrect"
+            feedback.includes("2 points")
+              ? "correct"
+              : feedback.includes("0 points")
+              ? "incorrect"
+              : "partial"
           }`}
         >
           {feedback}

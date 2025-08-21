@@ -317,14 +317,13 @@ export default function CountingTask({
         console.error("Error storing accuracy:", error);
       }
     }
-
     // Always complete the task, but show points earned
     if (points === 2) {
       setFeedback("✓ Perfect! 2 points earned!");
     } else if (points === 1) {
-      setFeedback(`✓ Close! Off by ${difference} - 1 point earned!`);
+      setFeedback(`✓ Off by ${difference} - 1 point earned!`);
     } else {
-      setFeedback(`✓ Task complete. Off by ${difference} - 0 points earned.`);
+      setFeedback(`✓ Off by ${difference} - 0 points earned.`);
     }
 
     setTimeout(() => {
@@ -348,17 +347,14 @@ export default function CountingTask({
   return (
     <div className="task counting">
       <h3>Research Content - Level {taskNum}</h3>
-
       <div className={`difficulty-badge ${difficultyColor}`}>
         {difficultyLabel}
       </div>
-
       <p className="instruction">
         <strong>{instruction}</strong>
         <br />
         <span className="hint">(Case-insensitive)</span>
       </p>
-
       <div className="text-display text-to-count" data-counting-text={text}>
         <div
           className="count-target"
@@ -389,7 +385,6 @@ export default function CountingTask({
           <div dangerouslySetInnerHTML={{ __html: displayText }} />
         )}
       </div>
-
       <div className="input-section">
         <label>Your answer:</label>
         <input
@@ -401,15 +396,18 @@ export default function CountingTask({
           placeholder="Enter count"
         />
       </div>
-
       <button onClick={handleSubmit} className="submit-btn">
         Submit
       </button>
-
+      // In the JSX where feedback is displayed (all 3 components):
       {feedback && (
         <div
           className={`feedback ${
-            feedback.includes("✓") ? "correct" : "incorrect"
+            feedback.includes("2 points")
+              ? "correct"
+              : feedback.includes("0 points")
+              ? "incorrect"
+              : "partial"
           }`}
         >
           {feedback}

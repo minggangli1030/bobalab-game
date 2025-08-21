@@ -1,6 +1,6 @@
 /* src/components/CountingTask.css - Enhanced with highlighting styles */
 .task.counting {
-  border: 3px solid #9C27B0;
+  border: 3px solid #9c27b0;
   border-radius: 12px;
   padding: 30px;
   background: white;
@@ -27,9 +27,15 @@
   margin-bottom: 20px;
 }
 
-.difficulty-badge.easy { background: #4CAF50; }
-.difficulty-badge.medium { background: #FF9800; }
-.difficulty-badge.hard { background: #f44336; }
+.difficulty-badge.easy {
+  background: #4caf50;
+}
+.difficulty-badge.medium {
+  background: #ff9800;
+}
+.difficulty-badge.hard {
+  background: #f44336;
+}
 
 .instruction {
   font-size: 16px;
@@ -90,11 +96,10 @@
 
 .typing-input:focus {
   outline: none;
-  border-color: #9C27B0;
+  border-color: #9c27b0;
   box-shadow: 0 0 0 3px rgba(221, 119, 242, 0.2);
   background-color: white;
 }
-
 
 .input-section input::placeholder {
   color: #999;
@@ -105,7 +110,7 @@
   display: block;
   margin: 0 auto;
   padding: 12px 30px;
-  background: #9C27B0;
+  background: #9c27b0;
   color: white;
   border: none;
   border-radius: 4px;
@@ -113,18 +118,18 @@
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .submit-btn:hover {
-  background: #8E24AA;
+  background: #8e24aa;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .submit-btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .feedback {
@@ -138,15 +143,21 @@
 }
 
 .feedback.correct {
-  color: #4CAF50;
+  color: #4caf50;
   background: #e8f5e9;
-  border: 1px solid #4CAF50;
+  border: 1px solid #4caf50;
 }
 
 .feedback.incorrect {
   color: #f44336;
   background: #ffebee;
   border: 1px solid #f44336;
+}
+
+.feedback.partial {
+  color: #ff9800;
+  background: #fff3e0;
+  border: 1px solid #ff9800;
 }
 
 /* Highlighting styles for enhanced mode */
@@ -165,14 +176,26 @@
 }
 
 @keyframes highlight {
-  0% { background-color: rgba(255, 215, 0, 0.3); }
-  50% { background-color: rgba(255, 215, 0, 0.6); }
-  100% { background-color: rgba(255, 215, 0, 0.3); }
+  0% {
+    background-color: rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    background-color: rgba(255, 215, 0, 0.6);
+  }
+  100% {
+    background-color: rgba(255, 215, 0, 0.3);
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Enhanced task golden glow effect */
@@ -183,15 +206,15 @@
 }
 
 @keyframes goldenGlow {
-  0% { 
+  0% {
     box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
     border-color: rgba(255, 215, 0, 0.6);
   }
-  50% { 
+  50% {
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.6);
     border-color: rgba(255, 215, 0, 0.9);
   }
-  100% { 
+  100% {
     box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
     border-color: rgba(255, 215, 0, 0.6);
   }
