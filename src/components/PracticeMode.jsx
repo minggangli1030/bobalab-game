@@ -105,9 +105,11 @@ export default function PracticeMode({
           }}
         >
           <li>AI help is available - click the help buttons in the chat!</li>
-          <li>AI is most reliable early on, less reliable as you progress</li>
-          <li>Tasks auto-advance after completion (1.5s delay)</li>
-          <li>Accuracy matters: 95%+ = 2 pts, 70%+ = 1 pt, below = 0 pts</li>
+          <li>
+            AI is most reliable early on, might be less reliable as you progress
+          </li>
+          <li>Tasks auto-advance after completion (0.8s delay)</li>
+          <li>Scoring: Exact = 2 pts, Within 1 = 1 pt, Otherwise = 0 pts</li>
         </ul>
       </div>
 

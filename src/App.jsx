@@ -993,8 +993,8 @@ function App() {
                   }}
                 >
                   <li>
-                    Complete tasks with 70%+ accuracy for 1 point, 95%+ for 2
-                    points
+                    Exact answer = 2 points, Within 1 = 1 point, Otherwise = 0
+                    points points
                   </li>
                   <li>
                     Strategic timing matters - early multipliers compound!
@@ -1220,8 +1220,8 @@ function App() {
     const handleNextSemester = async () => {
       const newHistory = [...semesterHistory, semesterData];
       setSemesterHistory(newHistory);
-      localStorage.setItem("typingInterest", "0"); // ADD THIS - Reset interest
-      setCategoryPoints({ slider: 0, counting: 0, typing: 0, bonus: 0 }); // Already there
+      localStorage.setItem("typingInterest", "0");
+      setCategoryPoints({ slider: 0, counting: 0, typing: 0, bonus: 0 });
 
       if (sessionId && !sessionId.startsWith("offline-")) {
         await updateDoc(doc(db, "sessions", sessionId), {
