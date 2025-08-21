@@ -247,7 +247,7 @@ export default function StudentLogin({ onLoginSuccess }) {
     e.preventDefault();
 
     if (!identifier.trim()) {
-      setError("Please enter your Student ID or access code");
+      setError("Please enter your Student ID");
       return;
     }
 
