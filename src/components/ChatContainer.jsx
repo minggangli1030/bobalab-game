@@ -268,17 +268,21 @@ export default function ChatContainer({
   timeRemaining = null,
   calculateStudentLearning = () => 0,
 }) {
-  // DEBUGGING
+  // Get the game config to check if AI is enabled
+  const [hasAI, setHasAI] = useState(true);
+
   useEffect(() => {
-    console.log("=== ChatContainer Props ===");
-    console.log("categoryPoints received:", categoryPoints);
-    console.log("calculateStudentLearning result:", calculateStudentLearning());
-    console.log("=========================");
-  }, [categoryPoints]);
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    setHasAI(config.hasAI !== false); // Default to true if not specified
+    console.log("AI enabled for this session:", config.hasAI !== false);
+  }, []);
+
   const [messages, setMessages] = useState([
     {
       sender: "bot",
-      text: "Hello! I'm your AI teaching assistant. Click the help buttons below for task assistance!",
+      text: hasAI
+        ? "Hello! I'm your AI teaching assistant. Click the help buttons below for task assistance!"
+        : "Hello! This is the chat interface. AI assistance is not available for this session.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -478,6 +482,18 @@ export default function ChatContainer({
 
   const handleSend = () => {
     if (!input.trim()) return;
+    if (!hasAI) {
+      setMessages((prev) => [
+        ...prev,
+        { sender: "user", text: input },
+        {
+          sender: "bot",
+          text: "AI assistance is not available for this session.",
+        },
+      ]);
+      setInput("");
+      return;
+    }
 
     const userMessage = input.toLowerCase().trim();
     setMessages((prev) => [...prev, { sender: "user", text: input }]);
@@ -550,12 +566,14 @@ export default function ChatContainer({
       style={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
       <div className="chat-header">
-        <h3>AI Teaching Assistant</h3>
+        <h3>{hasAI ? "AI Teaching Assistant" : "Chat Interface"}</h3>
         <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>
-          Unlimited help (reliability varies by task)
+          {hasAI
+            ? "Unlimited help (reliability varies by task)"
+            : "AI assistance disabled for this session"}
         </div>
 
-        {/* Student Learning Score Display */}
+        {/* Student Learning Score Display - always shown */}
         <div
           style={{
             marginTop: "10px",
@@ -581,12 +599,12 @@ export default function ChatContainer({
         {messages.map((msg, idx) => (
           <div key={idx} className={`message ${msg.sender}`}>
             <div className="message-sender">
-              {msg.sender === "user" ? "You" : "AI"}:
+              {msg.sender === "user" ? "You" : hasAI ? "AI" : "System"}:
             </div>
             <div className="message-text">{msg.text}</div>
           </div>
         ))}
-        {isTyping && (
+        {isTyping && hasAI && (
           <div className="message bot">
             <div className="message-sender">AI:</div>
             <div className="message-text typing">...</div>
@@ -599,164 +617,171 @@ export default function ChatContainer({
       <div className="chat-input-sidebar">
         <input
           type="text"
-          placeholder="Ask about strategy and tips here..."
+          placeholder={
+            hasAI
+              ? "Ask about strategy and tips here..."
+              : "Chat disabled - no AI available"
+          }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && handleSend()}
+          disabled={!hasAI}
         />
-        <button onClick={handleSend} disabled={!input.trim()}>
+        <button onClick={handleSend} disabled={!input.trim() || !hasAI}>
           Send
         </button>
       </div>
 
-      {/* SMART HELP BUTTONS */}
-      <div
-        style={{
-          padding: "15px",
-          borderTop: "1px solid #e0e0e0",
-          background: "#f8f9fa",
-        }}
-      >
+      {/* SMART HELP BUTTONS - Only show if AI is enabled */}
+      {hasAI && (
         <div
           style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
-            gap: "8px",
-            marginBottom: "10px",
+            padding: "15px",
+            borderTop: "1px solid #e0e0e0",
+            background: "#f8f9fa",
           }}
         >
-          {/* Smart Auto-Detect Button */}
-          <button
-            onClick={() => handleSmartHelp()}
-            disabled={!currentGameType}
+          <div
             style={{
-              gridColumn: "1 / -1",
-              padding: "12px",
-              background: currentGameType ? "#2196F3" : "#ccc",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              cursor: currentGameType ? "pointer" : "not-allowed",
-              fontWeight: "bold",
-              fontSize: "14px",
-              transition: "all 0.2s",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr",
               gap: "8px",
-            }}
-            onMouseEnter={(e) => {
-              if (currentGameType) {
-                e.currentTarget.style.background = "#1976d2";
-                e.currentTarget.style.transform = "translateY(-2px)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (currentGameType) {
-                e.currentTarget.style.background = "#2196F3";
-                e.currentTarget.style.transform = "translateY(0)";
-              }
+              marginBottom: "10px",
             }}
           >
-            <span style={{ fontSize: "18px" }}>🤖</span>
-            {currentGameType
-              ? `Help with Current Task (${
-                  currentGameType === "materials"
-                    ? "Materials"
-                    : currentGameType === "research"
-                    ? "Research"
-                    : "Engagement"
-                })`
-              : "Start a task to enable help"}
-          </button>
-          {/* Individual Task Buttons */}
-          <button
-            onClick={() => handleSmartHelp("research")}
-            disabled={!currentTask.startsWith("g1")}
-            style={{
-              padding: "10px",
-              background: currentTask.startsWith("g1") ? "#9C27B0" : "#e0e0e0",
-              color: currentTask.startsWith("g1") ? "white" : "#999",
-              border: "none",
-              borderRadius: "6px",
-              cursor: currentTask.startsWith("g1") ? "pointer" : "not-allowed",
-              fontWeight: "bold",
-              fontSize: "12px",
-              transition: "all 0.2s",
-            }}
-            title="Help with Research (Counting) task"
-          >
-            📚 Research
-          </button>
+            {/* Smart Auto-Detect Button */}
+            <button
+              onClick={() => handleSmartHelp()}
+              disabled={!currentGameType}
+              style={{
+                gridColumn: "1 / -1",
+                padding: "12px",
+                background: currentGameType ? "#2196F3" : "#ccc",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: currentGameType ? "pointer" : "not-allowed",
+                fontWeight: "bold",
+                fontSize: "14px",
+                transition: "all 0.2s",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+              }}
+            >
+              <span style={{ fontSize: "18px" }}>🤖</span>
+              {currentGameType
+                ? `Help with Current Task`
+                : "Start a task to enable help"}
+            </button>
 
-          <button
-            onClick={() => handleSmartHelp("materials")}
-            disabled={!currentTask.startsWith("g2")}
-            style={{
-              padding: "10px",
-              background: currentTask.startsWith("g2") ? "#4CAF50" : "#e0e0e0",
-              color: currentTask.startsWith("g2") ? "white" : "#999",
-              border: "none",
-              borderRadius: "6px",
-              cursor: currentTask.startsWith("g2") ? "pointer" : "not-allowed",
-              fontWeight: "bold",
-              fontSize: "12px",
-              transition: "all 0.2s",
-            }}
-            title="Help with Materials (Slider) task"
-          >
-            🎯 Materials
-          </button>
+            {/* Individual Task Buttons */}
+            <button
+              onClick={() => handleSmartHelp("research")}
+              disabled={!currentTask.startsWith("g1")}
+              style={{
+                padding: "10px",
+                background: currentTask.startsWith("g1")
+                  ? "#9C27B0"
+                  : "#e0e0e0",
+                color: currentTask.startsWith("g1") ? "white" : "#999",
+                border: "none",
+                borderRadius: "6px",
+                cursor: currentTask.startsWith("g1")
+                  ? "pointer"
+                  : "not-allowed",
+                fontWeight: "bold",
+                fontSize: "12px",
+              }}
+            >
+              📚 Research
+            </button>
 
-          <button
-            onClick={() => handleSmartHelp("engagement")}
-            disabled={!currentTask.startsWith("g3")}
+            <button
+              onClick={() => handleSmartHelp("materials")}
+              disabled={!currentTask.startsWith("g2")}
+              style={{
+                padding: "10px",
+                background: currentTask.startsWith("g2")
+                  ? "#4CAF50"
+                  : "#e0e0e0",
+                color: currentTask.startsWith("g2") ? "white" : "#999",
+                border: "none",
+                borderRadius: "6px",
+                cursor: currentTask.startsWith("g2")
+                  ? "pointer"
+                  : "not-allowed",
+                fontWeight: "bold",
+                fontSize: "12px",
+              }}
+            >
+              🎯 Materials
+            </button>
+
+            <button
+              onClick={() => handleSmartHelp("engagement")}
+              disabled={!currentTask.startsWith("g3")}
+              style={{
+                padding: "10px",
+                background: currentTask.startsWith("g3")
+                  ? "#f44336"
+                  : "#e0e0e0",
+                color: currentTask.startsWith("g3") ? "white" : "#999",
+                border: "none",
+                borderRadius: "6px",
+                cursor: currentTask.startsWith("g3")
+                  ? "pointer"
+                  : "not-allowed",
+                fontWeight: "bold",
+                fontSize: "12px",
+              }}
+            >
+              ✉️ Engage
+            </button>
+          </div>
+
+          {/* Help Status Indicator */}
+          <div
             style={{
-              padding: "10px",
-              background: currentTask.startsWith("g3") ? "#f44336" : "#e0e0e0",
-              color: currentTask.startsWith("g3") ? "white" : "#999",
-              border: "none",
-              borderRadius: "6px",
-              cursor: currentTask.startsWith("g3") ? "pointer" : "not-allowed",
-              fontWeight: "bold",
-              fontSize: "12px",
-              transition: "all 0.2s",
+              fontSize: "11px",
+              color: "#666",
+              textAlign: "center",
+              marginBottom: "8px",
+              padding: "4px",
+              background: "white",
+              borderRadius: "4px",
             }}
-            title="Help with Engagement (Typing) task"
           >
-            ✉️ Engage
-          </button>
+            {currentGameType ? (
+              <span style={{ color: "#4CAF50" }}>✓ AI ready to help</span>
+            ) : (
+              <span style={{ color: "#999" }}>
+                ⏸ Navigate to a task to enable AI help
+              </span>
+            )}
+          </div>
         </div>
+      )}
 
-        {/* Help Status Indicator */}
+      {/* Show a message if AI is disabled */}
+      {!hasAI && (
         <div
           style={{
-            fontSize: "11px",
-            color: "#666",
+            padding: "15px",
+            borderTop: "1px solid #e0e0e0",
+            background: "#f5f5f5",
             textAlign: "center",
-            marginBottom: "8px",
-            padding: "4px",
-            background: "white",
-            borderRadius: "4px",
+            color: "#666",
+            fontSize: "14px",
           }}
         >
-          {currentGameType ? (
-            <span style={{ color: "#4CAF50" }}>
-              ✓ AI ready to help with{" "}
-              {currentGameType === "materials"
-                ? "Materials"
-                : currentGameType === "research"
-                ? "Research"
-                : "Engagement"}{" "}
-              task
-            </span>
-          ) : (
-            <span style={{ color: "#999" }}>
-              ⏸ Navigate to a task to enable AI help
-            </span>
-          )}
+          <div style={{ marginBottom: "5px" }}>📝 No AI Assistant</div>
+          <div style={{ fontSize: "12px" }}>
+            Complete tasks using your own judgment
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

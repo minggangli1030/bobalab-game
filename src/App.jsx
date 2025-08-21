@@ -301,83 +301,47 @@ function App() {
     }
   };
 
-  const startTimer = () => {
-    // Get config and calculate limit FIRST
-    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
-    const duration = config.semesterDuration || 1200000;
-    const limitInSeconds = Math.floor(duration / 1000);
-
-    console.log("Starting timer with limit:", limitInSeconds, "seconds");
-
-    // Set the time limit in state
-    setTimeLimit(limitInSeconds);
-    setTimeRemaining(limitInSeconds);
-
-    // Use refs to avoid closure issues
-    startTimeRef.current = Date.now();
-
-    timerIntervalRef.current = setInterval(() => {
-      const now = Date.now();
-      const elapsedMs = now - startTimeRef.current;
-      const elapsedSeconds = Math.floor(elapsedMs / 1000);
-
-      setGlobalTimer(elapsedSeconds);
-
-      // Calculate remaining based on the limit we calculated above
-      const remaining = Math.max(0, limitInSeconds - elapsedSeconds);
-      setTimeRemaining(remaining);
-
-      // Check for checkpoint
-      const checkpointTime =
-        config.role === "admin" && config.semesterDuration === 120000
-          ? 60
-          : 600;
-
-      if (elapsedSeconds === checkpointTime && !checkpointReached) {
-        handleCheckpoint();
-      }
-
-      // Check for completion
-      if (remaining <= 0) {
-        clearInterval(timerIntervalRef.current);
-        timerIntervalRef.current = null;
-        handleGameComplete("semester_complete");
-      }
-    }, 1000);
-  };
+  // Update the handleCheckpoint function in App.jsx (around line 470)
 
   const handleCheckpoint = () => {
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+
+    // Check if checkpoint is enabled for this student/admin
+    const checkpointEnabled =
+      currentSemester === 2 && config.checkpointSemester2;
+
+    if (!checkpointEnabled) {
+      // No checkpoint for this condition
+      console.log("Checkpoint skipped - not enabled for this condition");
+      return;
+    }
+
     setCheckpointReached(true);
 
     const studentLearning = calculateStudentLearning();
 
-    // Only check for bonus in semester 2
-    if (currentSemester === 2) {
-      if (studentLearning >= 50) {
-        const bonus = 300;
-        setCheckpointBonus(bonus);
+    // Only check for bonus in semester 2 with checkpoint enabled
+    if (studentLearning >= 50) {
+      const bonus = 300;
+      setCheckpointBonus(bonus);
 
-        setCategoryPoints((prev) => ({
-          ...prev,
-          bonus: (prev.bonus || 0) + bonus,
-        }));
+      setCategoryPoints((prev) => ({
+        ...prev,
+        bonus: (prev.bonus || 0) + bonus,
+      }));
 
-        showNotification(
-          `🎉 Midterm Bonus! +${bonus} points for ${Math.round(
-            studentLearning
-          )} student learning!`
-        );
-      } else {
-        setCheckpointBonus(0);
-        showNotification(
-          `📚 Midterm: Need 50+ student learning for bonus (current: ${Math.round(
-            studentLearning
-          )})`
-        );
-      }
+      showNotification(
+        `🎉 Midterm Bonus! +${bonus} points for ${Math.round(
+          studentLearning
+        )} student learning!`
+      );
     } else {
-      // Semester 1: just show progress, no bonus
       setCheckpointBonus(0);
+      showNotification(
+        `📚 Midterm: Need 50+ student learning for bonus (current: ${Math.round(
+          studentLearning
+        )})`
+      );
     }
 
     // Show checkpoint modal
@@ -389,6 +353,57 @@ function App() {
       setIsInBreak(false);
       setBreakDestination(null);
     }, 5000);
+  };
+
+  // Also update the timer interval to check for checkpoint conditionally (in startTimer function)
+  const startTimer = () => {
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const duration = config.semesterDuration || 1200000;
+    const limitInSeconds = Math.floor(duration / 1000);
+
+    console.log("Starting timer with limit:", limitInSeconds, "seconds");
+    console.log(
+      "Checkpoint enabled for semester 2:",
+      config.checkpointSemester2
+    );
+
+    setTimeLimit(limitInSeconds);
+    setTimeRemaining(limitInSeconds);
+
+    startTimeRef.current = Date.now();
+
+    timerIntervalRef.current = setInterval(() => {
+      const now = Date.now();
+      const elapsedMs = now - startTimeRef.current;
+      const elapsedSeconds = Math.floor(elapsedMs / 1000);
+
+      setGlobalTimer(elapsedSeconds);
+
+      const remaining = Math.max(0, limitInSeconds - elapsedSeconds);
+      setTimeRemaining(remaining);
+
+      // Check for checkpoint only if enabled
+      const checkpointEnabled =
+        currentSemester === 2 && config.checkpointSemester2;
+
+      if (checkpointEnabled) {
+        const checkpointTime =
+          config.role === "admin" && config.semesterDuration === 120000
+            ? 60 // 1 minute for admin fast mode
+            : 600; // 10 minutes for regular mode
+
+        if (elapsedSeconds === checkpointTime && !checkpointReached) {
+          handleCheckpoint();
+        }
+      }
+
+      // Check for completion
+      if (remaining <= 0) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+        handleGameComplete("semester_complete");
+      }
+    }, 1000);
   };
 
   const calculateCheckpointBonus = () => {

@@ -1,4 +1,4 @@
-// src/components/StudentLogin.jsx - Updated with better styling and 2-minute ADMIN-FAST
+// src/components/StudentLogin.jsx - Updated with experimental conditions
 import React, { useState } from "react";
 import { codeVerification } from "../utils/codeVerification";
 
@@ -6,139 +6,213 @@ export default function StudentLogin({ onLoginSuccess }) {
   const [identifier, setIdentifier] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showTestCodes, setShowTestCodes] = useState(false); // Keep hidden by default
+  const [showTestCodes, setShowTestCodes] = useState(false);
 
   // Student ID regex patterns
   const idPatterns = {
-    legacy8: /^\d{8}$/, // 15177695
-    legacy10: /^\d{10}$/, // 3031977170
-    standard: /^30\d{8}$/, // 30xxxxxxxx format
+    legacy8: /^\d{8}$/,
+    legacy10: /^\d{10}$/,
+    standard: /^30\d{8}$/,
   };
 
-  // Master codes for testing - NO URL params needed!
+  // Master codes for testing - with new experimental conditions
   const MASTER_CODES = {
+    // Original admin codes (kept the same)
     "ADMIN-REGULAR": {
       role: "admin",
-      semesterDuration: 1200000, // 20 min (same as normal gameplay)
+      semesterDuration: 1200000, // 20 min
       name: "Admin Regular Mode",
+      hasAI: true,
+      checkpointSemester2: true,
     },
     "ADMIN-FAST": {
       role: "admin",
-      semesterDuration: 120000, // 2 minutes for accelerated testing
+      semesterDuration: 120000, // 2 minutes
       name: "Admin Fast Mode",
+      hasAI: true,
+      checkpointSemester2: true,
+    },
+
+    // New experimental admin codes
+    "ADMIN-1-CP": {
+      role: "admin",
+      semesterDuration: 120000, // 2 minutes for testing
+      name: "Admin Section 1 WITH Checkpoint",
+      hasAI: false, // Section 01A - no AI
+      checkpointSemester2: true,
+    },
+    "ADMIN-1-NCP": {
+      role: "admin",
+      semesterDuration: 120000, // 2 minutes for testing
+      name: "Admin Section 1 NO Checkpoint",
+      hasAI: false, // Section 01A - no AI
+      checkpointSemester2: false,
+    },
+    "ADMIN-2-CP": {
+      role: "admin",
+      semesterDuration: 120000, // 2 minutes for testing
+      name: "Admin Section 2 WITH Checkpoint",
+      hasAI: true, // Section 02A - AI available
+      checkpointSemester2: true,
+    },
+    "ADMIN-2-NCP": {
+      role: "admin",
+      semesterDuration: 120000, // 2 minutes for testing
+      name: "Admin Section 2 NO Checkpoint",
+      hasAI: true, // Section 02A - AI available
+      checkpointSemester2: false,
     },
   };
 
-  // Unique student IDs (from rosters)
-  // Last update: Aug 16, 2025
-  const VALID_STUDENT_IDS = [
-    "15177695",
-    "18565110",
-    "21798975",
-    "22900589",
-    "22971551",
-    "23420611",
-    "24261697",
-    "25958106",
-    "26416809",
-    "3031968434",
-    "3031977170",
-    "3032000089",
-    "3032342054",
-    "3032397447",
-    "3032682772",
-    "3034184066",
-    "3034288430",
-    "3035320237",
-    "3036343361",
-    "3038626424",
-    "3039181346",
-    "3039196678",
-    "3039226296",
-    "3039245851",
-    "3039252561",
-    "3039253994",
-    "3039279366",
-    "3039307062",
-    "3039313126",
-    "3039330491",
-    "3039332796",
-    "3039343785",
-    "3039356905",
-    "3039372653",
-    "3039387750",
-    "3039423113",
-    "3039429600",
-    "3039440462",
-    "3039447821",
-    "3039448942",
-    "3039454402",
-    "3039454743",
-    "3039459912",
-    "3039464285",
-    "3039474962",
-    "3039477500",
-    "3039485435",
-    "3039504127",
-    "3039511148",
-    "3039514274",
-    "3039522295",
-    "3039534730",
-    "3039540427",
-    "3039553990",
-    "3039571350",
-    "3039586743",
-    "3039594081",
-    "3039604285",
-    "3039607426",
-    "3039611945",
-    "3039624813",
-    "3039630162",
-    "3039635730",
-    "3039638610",
-    "3039648042",
-    "3039651737",
-    "3039653712",
-    "3039658764",
-    "3039664812",
-    "3039674172",
-    "3039683621",
-    "3039687343",
-    "3039706821",
-    "3039720661",
-    "3039729401",
-    "3039735177",
-    "3039743112",
-    "3039749461",
-    "3039754031",
-    "3039761821",
-    "3039766830",
-    "3039771602",
-    "3039774455",
-    "3039785131",
-    "3039789460",
-    "3039795320",
-    "3039802286",
-    "3039810624",
-    "3039822461",
-    "3039832611",
-    "3039838870",
-    "3039840209",
-    "3039840222",
-    "3039840443",
-    "3039842887",
-    "3039845630",
-    "3039850570",
-    "3039850622",
-    "3039850713",
-    "3039850830",
-    "3040682661",
-    "3040701758",
-    "3040702343",
-    "3040702603",
-    "3040705047",
+  // Student IDs from actual rosters - evenly distributed
+  const CLASS_1A_ID_CHECKPOINT = [
+    "3040748714",
     "3040729812",
+    "3040859968",
+    "3040852909",
+    "3040869211",
+    "3040849958",
+    "3039838870",
+    "15177695",
+    "3040849997",
+    "3039845630",
+    "3040682661",
+    "26416809",
+    "3039850622",
+    "3040869510",
+    "3031977170",
+    "3040806629",
+    "3040848528",
+    "3039840443",
+    "3040848749",
+    "3040849893",
+    "3039850830",
+    "3039850713",
   ];
+
+  const CLASS_1A_ID_NOCHECKPOINT = [
+    "3040850023",
+    "22900589",
+    "3039850570",
+    "3040882302",
+    "3040815651",
+    "3040701758",
+    "3040852077",
+    "3036343361",
+    "3040869458",
+    "3040705047",
+    "3040702343",
+    "3039842887",
+    "3040848593",
+    "3040702603",
+    "3039840222",
+    "3039840209",
+    "3040861190",
+    "18565110",
+    "3040869302",
+    "3040814338",
+    "3039754031",
+  ];
+
+  const CLASS_2A_ID_CHECKPOINT = [
+    "3040705476",
+    "3040697715",
+    "3039753992",
+    "3040729513",
+    "3040681595",
+    "3040850010",
+    "3032682772",
+    "3039842484",
+    "3040869445",
+    "3040814455",
+    "3039840781",
+    "3040696831",
+    "3040705125",
+    "3034184066",
+    "3039843004",
+    "3039842835",
+    "3040860072",
+    "3040871018",
+    "3039839026",
+    "3040814429",
+    "3040869094",
+    "3040748064",
+    "3040875945",
+    "3040701589",
+    "3040682193",
+    "3040729422",
+    "3040836165",
+    "21798975",
+    "3038626424",
+    "3039753017",
+    "3039840287",
+    "3040806382",
+  ];
+
+  const CLASS_2A_ID_NOCHECKPOINT = [
+    "25958106",
+    "3040814351",
+    "3040848697",
+    "3040684039",
+    "3040869289",
+    "22971551",
+    "3040837218",
+    "3040864570",
+    "3040705099",
+    "3034288430",
+    "3040848541",
+    "3040864531",
+    "3040869237",
+    "3032342054",
+    "3040682479",
+    "3039840170",
+    "3032397447",
+    "3039850856",
+    "3039840118",
+    "3040729552",
+    "3040683181",
+    "3040861073",
+    "3031968434",
+    "3040882575",
+    "3035320237",
+    "3040823815",
+    "3039842575",
+    "24261697",
+    "23420611",
+    "3032000089",
+    "3040882341",
+  ];
+
+  // Combine all valid student IDs
+  const VALID_STUDENT_IDS = [
+    ...CLASS_1A_ID_CHECKPOINT,
+    ...CLASS_1A_ID_NOCHECKPOINT,
+    ...CLASS_2A_ID_CHECKPOINT,
+    ...CLASS_2A_ID_NOCHECKPOINT,
+  ];
+
+  // Determine experimental condition for a student
+  const getStudentCondition = (studentId) => {
+    const isSection1 =
+      CLASS_1A_ID_CHECKPOINT.includes(studentId) ||
+      CLASS_1A_ID_NOCHECKPOINT.includes(studentId);
+    const isSection2 =
+      CLASS_2A_ID_CHECKPOINT.includes(studentId) ||
+      CLASS_2A_ID_NOCHECKPOINT.includes(studentId);
+
+    const hasCheckpoint =
+      CLASS_1A_ID_CHECKPOINT.includes(studentId) ||
+      CLASS_2A_ID_CHECKPOINT.includes(studentId);
+
+    return {
+      section: isSection1 ? "01A" : isSection2 ? "02A" : "unknown",
+      hasAI: isSection2, // Section 02A gets AI
+      checkpointSemester2: hasCheckpoint,
+      displayName: `Student ${studentId} (${isSection1 ? "01A" : "02A"}-${
+        hasCheckpoint ? "CP" : "NCP"
+      })`,
+    };
+  };
 
   const validateStudentId = (id) => {
     // Check master codes first
@@ -151,7 +225,13 @@ export default function StudentLogin({ onLoginSuccess }) {
       if (pattern.test(id)) {
         // Check if ID exists in database
         if (VALID_STUDENT_IDS.includes(id)) {
-          return { valid: true, type: "student", format: type };
+          const condition = getStudentCondition(id);
+          return {
+            valid: true,
+            type: "student",
+            format: type,
+            condition,
+          };
         }
         return { valid: false, error: "Student ID not found in registry" };
       }
@@ -195,16 +275,22 @@ export default function StudentLogin({ onLoginSuccess }) {
           role: validation.data.role,
           semesterDuration: validation.data.semesterDuration,
           displayName: validation.data.name,
+          hasAI: validation.data.hasAI,
+          checkpointSemester2: validation.data.checkpointSemester2,
           isMasterCode: true,
         };
       } else {
-        // Regular student
+        // Regular student - apply experimental condition
+        const condition = validation.condition;
         codeData = {
           ...codeData,
           studentIdentifier: identifier,
           role: "student",
           semesterDuration: 1200000, // Normal 20 min
-          displayName: `Student ${identifier}`,
+          displayName: condition.displayName,
+          section: condition.section,
+          hasAI: condition.hasAI,
+          checkpointSemester2: condition.checkpointSemester2,
           isMasterCode: false,
         };
       }
@@ -220,6 +306,9 @@ export default function StudentLogin({ onLoginSuccess }) {
             role: codeData.role,
             studentId: identifier,
             displayName: codeData.displayName,
+            section: codeData.section,
+            hasAI: codeData.hasAI,
+            checkpointSemester2: codeData.checkpointSemester2,
           })
         );
 
@@ -243,7 +332,7 @@ export default function StudentLogin({ onLoginSuccess }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#f5f5f5", // Back to clean minimalist background
+        background: "#f5f5f5",
         padding: "20px",
       }}
     >
@@ -317,7 +406,7 @@ export default function StudentLogin({ onLoginSuccess }) {
                 outline: "none",
               }}
               onFocus={(e) => {
-                e.target.style.borderColor = "#2196F3"; // Blue instead of purple
+                e.target.style.borderColor = "#2196F3";
                 e.target.style.background = "white";
                 e.target.style.boxShadow = "0 0 0 3px rgba(33, 150, 243, 0.1)";
               }}
@@ -380,7 +469,7 @@ export default function StudentLogin({ onLoginSuccess }) {
               padding: "14px 24px",
               fontSize: "16px",
               fontWeight: "600",
-              background: loading ? "#cbd5e0" : "#2196F3", // Simple blue instead of gradient
+              background: loading ? "#cbd5e0" : "#2196F3",
               color: "white",
               border: "none",
               borderRadius: "8px",
@@ -388,7 +477,7 @@ export default function StudentLogin({ onLoginSuccess }) {
               transition: "all 0.2s ease",
               boxShadow: loading
                 ? "none"
-                : "0 4px 6px rgba(33, 150, 243, 0.25)", // Match blue color
+                : "0 4px 6px rgba(33, 150, 243, 0.25)",
               transform: loading ? "none" : "translateY(0)",
             }}
             onMouseDown={(e) => {
@@ -475,6 +564,7 @@ export default function StudentLogin({ onLoginSuccess }) {
             Having trouble? Contact your instructor.
           </p>
 
+          {/* Admin codes display for testing - you can toggle this */}
           {showTestCodes && (
             <div
               style={{
@@ -482,59 +572,19 @@ export default function StudentLogin({ onLoginSuccess }) {
                 padding: "12px",
                 background: "#f7fafc",
                 borderRadius: "8px",
-                fontSize: "13px",
+                fontSize: "11px",
                 color: "#4a5568",
-                lineHeight: "1.6",
+                lineHeight: "1.8",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-around",
-                  flexWrap: "wrap",
-                  gap: "8px",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "6px 12px",
-                    background: "white",
-                    borderRadius: "6px",
-                    border: "1px solid #e2e8f0",
-                    fontFamily: "monospace",
-                  }}
-                >
-                  <strong>ADMIN-REGULAR</strong>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "#718096",
-                      marginTop: "2px",
-                    }}
-                  >
-                    20 minutes
-                  </div>
-                </div>
-                <div
-                  style={{
-                    padding: "6px 12px",
-                    background: "white",
-                    borderRadius: "6px",
-                    border: "1px solid #e2e8f0",
-                    fontFamily: "monospace",
-                  }}
-                >
-                  <strong>ADMIN-FAST</strong>
-                  <div
-                    style={{
-                      fontSize: "11px",
-                      color: "#718096",
-                      marginTop: "2px",
-                    }}
-                  >
-                    2 minutes
-                  </div>
-                </div>
+              <strong>Test Codes:</strong>
+              <div style={{ marginTop: "8px", fontFamily: "monospace" }}>
+                <div>ADMIN-1-CP (No AI, With Checkpoint)</div>
+                <div>ADMIN-1-NCP (No AI, No Checkpoint)</div>
+                <div>ADMIN-2-CP (AI, With Checkpoint)</div>
+                <div>ADMIN-2-NCP (AI, No Checkpoint)</div>
+                <div>ADMIN-REGULAR (Original)</div>
+                <div>ADMIN-FAST (2 min test)</div>
               </div>
             </div>
           )}
