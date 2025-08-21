@@ -547,13 +547,8 @@ export default function ChatContainer({
             Student Learning: {Math.round(calculateStudentLearning())} pts
           </div>
           <div style={{ fontSize: "10px", color: "#666", marginTop: "2px" }}>
-            {categoryPoints && (
-              <>
-                M:{categoryPoints.materials} × R:
-                {(1 + (categoryPoints.research || 0) * 0.05).toFixed(2)} × E:
-                {(1 + (categoryPoints.engagement || 0) * 0.01).toFixed(2)}
-              </>
-            )}
+            {categoryPoints.slider || 0} ×{" "}
+            {(1 + (categoryPoints.counting || 0) * 0.15).toFixed(2)} + Interest
           </div>
         </div>
       </div>
