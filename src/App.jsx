@@ -211,23 +211,164 @@ function App() {
     };
   }, [mode, isOutOfFocus, isIdle]); // ← Note the dependencies added here
 
+  // Update the useEffect for focus/blur detection in App.jsx (around line 250)
+  // This properly handles out-of-focus detection for students
+
   useEffect(() => {
-    // Read config from sessionStorage (set by StudentLogin)
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
-    const duration = config.semesterDuration || 1200000; // milliseconds
-    const durationInSeconds = Math.floor(duration / 1000);
+    const isAdmin = config.role === "admin";
 
-    setTimeLimit(durationInSeconds);
-    setTimeRemaining(durationInSeconds);
+    // Skip all focus/idle detection for admin
+    if (isAdmin) {
+      console.log("Admin mode - skipping focus/idle detection");
+      return;
+    }
 
-    // Debug logging
-    console.log("=== Game Configuration Loaded ===");
-    console.log("Role:", config.role || "student");
-    console.log("Duration:", durationInSeconds + " seconds");
-    console.log("Display Name:", config.displayName || "Student");
-    console.log("Is Admin:", config.role === "admin");
-    console.log("================================");
-  }, []);
+    checkAndInitSession();
+
+    // Add focus/blur detection
+    const handleFocus = () => {
+      console.log("Window focused");
+      if (isOutOfFocus) {
+        setIsOutOfFocus(false);
+        setOutOfFocusCountdown(30);
+        if (outOfFocusTimerRef.current) {
+          clearInterval(outOfFocusTimerRef.current);
+          outOfFocusTimerRef.current = null;
+        }
+      }
+    };
+
+    const handleBlur = () => {
+      console.log("Window blurred - student will be warned");
+      // Only trigger for students in challenge mode
+      if (mode === "challenge" && !isAdmin) {
+        setIsOutOfFocus(true);
+        let countdown = 30;
+
+        outOfFocusTimerRef.current = setInterval(() => {
+          countdown--;
+          setOutOfFocusCountdown(countdown);
+          console.log(`Out of focus countdown: ${countdown}`);
+
+          if (countdown <= 0) {
+            // Block the game
+            setGameBlocked(true);
+            clearInterval(outOfFocusTimerRef.current);
+
+            // Log the blocking event
+            eventTracker.logEvent("game_blocked", {
+              reason: "out_of_focus",
+              timestamp: Date.now(),
+              studentId: config.studentId,
+              section: config.section,
+            });
+
+            // Update session status in Firebase
+            const sessionId = localStorage.getItem("sessionId");
+            if (sessionId && !sessionId.startsWith("offline-")) {
+              updateDoc(doc(db, "sessions", sessionId), {
+                status: "blocked",
+                blockedAt: serverTimestamp(),
+                blockReason: "out_of_focus",
+              });
+            }
+          }
+        }, 1000);
+      }
+    };
+
+    // Add idle detection
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+      if (isIdle) {
+        setIsIdle(false);
+        setIdleCountdown(5);
+        if (idleTimerRef.current) {
+          clearInterval(idleTimerRef.current);
+          idleTimerRef.current = null;
+        }
+      }
+    };
+
+    // Check for idle every 30 seconds (students only)
+    let idleCheckInterval;
+    if (!isAdmin) {
+      idleCheckInterval = setInterval(() => {
+        if (mode === "challenge" && !isAdmin) {
+          const timeSinceActivity = Date.now() - lastActivityRef.current;
+          if (timeSinceActivity > 60000 && !isIdle) {
+            // 60 seconds of inactivity
+            setIsIdle(true);
+            let countdown = 5;
+
+            idleTimerRef.current = setInterval(() => {
+              countdown--;
+              setIdleCountdown(countdown);
+
+              if (countdown <= 0) {
+                setGameBlocked(true);
+                clearInterval(idleTimerRef.current);
+
+                eventTracker.logEvent("game_blocked", {
+                  reason: "idle",
+                  timestamp: Date.now(),
+                  studentId: config.studentId,
+                  section: config.section,
+                });
+
+                // Update session status
+                const sessionId = localStorage.getItem("sessionId");
+                if (sessionId && !sessionId.startsWith("offline-")) {
+                  updateDoc(doc(db, "sessions", sessionId), {
+                    status: "blocked",
+                    blockedAt: serverTimestamp(),
+                    blockReason: "idle",
+                  });
+                }
+              }
+            }, 1000);
+          }
+        }
+      }, 30000);
+    }
+
+    // Prevent refresh for students
+    const handleBeforeUnload = (e) => {
+      if (!isAdmin && mode === "challenge") {
+        e.preventDefault();
+        e.returnValue = "Your progress will be lost if you leave this page.";
+
+        // Log refresh attempt
+        eventTracker.logEvent("refresh_attempt", {
+          timestamp: Date.now(),
+          studentId: config.studentId,
+          currentMode: mode,
+        });
+      }
+    };
+
+    // Add all event listeners
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("mousemove", handleActivity);
+    window.addEventListener("keypress", handleActivity);
+    window.addEventListener("click", handleActivity);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("mousemove", handleActivity);
+      window.removeEventListener("keypress", handleActivity);
+      window.removeEventListener("click", handleActivity);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+
+      if (idleCheckInterval) clearInterval(idleCheckInterval);
+      if (outOfFocusTimerRef.current) clearInterval(outOfFocusTimerRef.current);
+      if (idleTimerRef.current) clearInterval(idleTimerRef.current);
+    };
+  }, [mode]); // Remove isOutOfFocus and isIdle from dependencies to prevent re-runs
 
   const calculateStudentLearning = (points = categoryPoints) => {
     console.log("=== calculateStudentLearning DEBUG ===");
@@ -881,42 +1022,7 @@ function App() {
     );
   }
 
-  // Access denied screen
-  if (accessDenied) {
-    return (
-      <div
-        className="app"
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-        }}
-      >
-        <div
-          style={{
-            textAlign: "center",
-            padding: "40px",
-            background: "white",
-            borderRadius: "8px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
-            maxWidth: "500px",
-          }}
-        >
-          <h2 style={{ color: "#f44336", marginBottom: "20px" }}>
-            Access Denied
-          </h2>
-          <p style={{ color: "#666", marginBottom: "30px", fontSize: "18px" }}>
-            {accessDeniedReason ||
-              "You need a valid access code to play this game."}
-          </p>
-          <p style={{ color: "#888", fontSize: "16px" }}>
-            Please access this game through your student login or survey link.
-          </p>
-        </div>
-      </div>
-    );
-  }
+  accessDenied;
 
   // Landing page
   if (mode === "landing") {
