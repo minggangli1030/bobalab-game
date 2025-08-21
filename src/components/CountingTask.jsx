@@ -335,7 +335,7 @@ export default function CountingTask({
         correctAnswer: correctAnswer,
         points: points,
       });
-    }, 1500);
+    }, 800);
   };
 
   // Derive difficulty UI from pattern

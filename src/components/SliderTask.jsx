@@ -206,7 +206,7 @@ export default function SliderTask({
         targetValue: target,
         points: points,
       });
-    }, 1500);
+    }, 800);
   };
 
   const pattern = patternGenerator.generateSliderPattern(taskNum);

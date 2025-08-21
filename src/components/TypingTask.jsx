@@ -196,7 +196,7 @@ export default function TypingTask({
         correctAnswer: pattern,
         points: points,
       });
-    }, 1500);
+    }, 800);
   };
 
   const patternInfo = patternGenerator.generateTypingPattern(taskNum);
