@@ -1220,6 +1220,8 @@ function App() {
     const handleNextSemester = async () => {
       const newHistory = [...semesterHistory, semesterData];
       setSemesterHistory(newHistory);
+      localStorage.setItem("typingInterest", "0"); // ADD THIS - Reset interest
+      setCategoryPoints({ slider: 0, counting: 0, typing: 0, bonus: 0 }); // Already there
 
       if (sessionId && !sessionId.startsWith("offline-")) {
         await updateDoc(doc(db, "sessions", sessionId), {
@@ -1232,7 +1234,7 @@ function App() {
       setCurrentSemester(currentSemester + 1);
 
       // Show midterm warning when starting semester 2
-      if (currentSemester === 1) {
+      if (currentSemester === 2) {
         setTimeout(() => {
           showNotification(
             "📚 Semester 2 Alert: Midterm at 10 minutes! Get 50+ student learning for 300 bonus points!"

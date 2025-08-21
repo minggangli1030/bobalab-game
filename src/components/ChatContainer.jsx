@@ -515,10 +515,10 @@ export default function ChatContainer({
         }
       } else if (userMessage.includes("strategy")) {
         response =
-          "Pro tip: Start with Research (counting) first! Each point adds 15% multiplier to ALL your Materials (slider) points. Build multiplier early, then maximize base points!";
+          "Pro tip: Start with Research for the multiplier (×1.15 per point), then Engagement for compound interest on every task, finally Materials for maximum base points!";
       } else if (userMessage.includes("order")) {
         response =
-          "Optimal order: Research → Materials → Engagement. Get multipliers working before building base points!";
+          "Optimal order: Research → Engagement → Materials. Build multipliers and interest first, then maximize base points at the end!";
       } else if (
         userMessage.includes("tip") ||
         userMessage.includes("advice")
@@ -599,7 +599,7 @@ export default function ChatContainer({
       <div className="chat-input-sidebar">
         <input
           type="text"
-          placeholder="Ask about strategy, tips, or type 'help'..."
+          placeholder="Ask about strategy and tips here..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && handleSend()}
