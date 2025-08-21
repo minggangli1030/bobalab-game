@@ -386,41 +386,56 @@ export default function ChatContainer({
     ]);
   };
 
-  // Handler for counting help (Research) - FIXED
   const handleCountingHelp = () => {
     const textElement = document.querySelector(".text-to-count");
     const patternElement = document.querySelector(".count-target");
 
     if (textElement && patternElement) {
       const text = textElement.getAttribute("data-counting-text") || "";
-      const pattern =
+      let pattern =
         patternElement
           .getAttribute("data-pattern")
           ?.replace(/['"]/g, "")
           .trim() || "";
 
-      const help = aiTaskHelper.helpWithCounting(text, pattern, currentTask);
+      // Check if it's a multi-letter pattern (contains "and" or comma)
+      if (pattern.includes(" and ") || pattern.includes(",")) {
+        // Extract individual letters from pattern like "a and e" or "a, e"
+        const letters = pattern.match(/[a-z]/gi) || [];
 
-      // Dispatch the event for the counting component to handle
-      window.dispatchEvent(
-        new CustomEvent("aiCountingHelp", {
-          detail: help,
-        })
-      );
+        // For multi-letter, highlight all occurrences
+        const help = {
+          action: "highlightAndCount",
+          highlightWords: [], // Will handle differently for letters
+          suggestedCount: 0,
+          animate: true,
+          isMultiLetter: true,
+          targetLetters: letters,
+        };
+
+        // Count occurrences
+        letters.forEach((letter) => {
+          const regex = new RegExp(letter, "gi");
+          const matches = text.match(regex);
+          help.suggestedCount += matches ? matches.length : 0;
+        });
+
+        window.dispatchEvent(
+          new CustomEvent("aiCountingHelp", { detail: help })
+        );
+      } else {
+        // Single word/letter pattern - use existing logic
+        const help = aiTaskHelper.helpWithCounting(text, pattern, currentTask);
+        window.dispatchEvent(
+          new CustomEvent("aiCountingHelp", { detail: help })
+        );
+      }
 
       setMessages((prev) => [
         ...prev,
         {
           sender: "bot",
           text: `🔬 Helping with research...`,
-        },
-      ]);
-    } else {
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "bot",
-          text: "Please navigate to the research tab first!",
         },
       ]);
     }
@@ -500,10 +515,16 @@ export default function ChatContainer({
         }
       } else if (userMessage.includes("strategy")) {
         response =
-          "Pro tip: Research multiplies your materials by 5% per point! Build materials first, then amplify with research. Engagement adds 1% to everything!";
+          "Pro tip: Start with Research (counting) first! Each point adds 15% multiplier to ALL your Materials (slider) points. Build multiplier early, then maximize base points!";
       } else if (userMessage.includes("order")) {
         response =
-          "Strategic order: Materials → Research → Engagement. This maximizes your multipliers!";
+          "Optimal order: Research → Materials → Engagement. Get multipliers working before building base points!";
+      } else if (
+        userMessage.includes("tip") ||
+        userMessage.includes("advice")
+      ) {
+        response =
+          "Strategic tip: Do Research tasks first for the multiplier effect, then Materials for base points, finally Engagement for compound interest!";
       } else {
         const genericResponses = [
           "Keep pushing! You're doing great!",

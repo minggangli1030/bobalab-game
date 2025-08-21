@@ -347,36 +347,45 @@ function App() {
     }, 1000);
   };
 
-  // Handle checkpoint (exam season)
   const handleCheckpoint = () => {
     setCheckpointReached(true);
 
-    // Calculate checkpoint bonus
-    const bonus = calculateCheckpointBonus();
-    setCheckpointBonus(bonus);
+    const studentLearning = calculateStudentLearning();
+
+    // Only check for bonus in semester 2
+    if (currentSemester === 2) {
+      if (studentLearning >= 50) {
+        const bonus = 300;
+        setCheckpointBonus(bonus);
+
+        setCategoryPoints((prev) => ({
+          ...prev,
+          bonus: (prev.bonus || 0) + bonus,
+        }));
+
+        showNotification(
+          `🎉 Midterm Bonus! +${bonus} points for ${Math.round(
+            studentLearning
+          )} student learning!`
+        );
+      } else {
+        setCheckpointBonus(0);
+        showNotification(
+          `📚 Midterm: Need 50+ student learning for bonus (current: ${Math.round(
+            studentLearning
+          )})`
+        );
+      }
+    } else {
+      // Semester 1: just show progress, no bonus
+      setCheckpointBonus(0);
+    }
 
     // Show checkpoint modal
     setIsInBreak(true);
     setBreakDestination("checkpoint");
 
-    // Log checkpoint event
-    eventTracker.logEvent("checkpoint_reached", {
-      semester: currentSemester,
-      time: isAdminMode ? 60 : 600,
-      completedTasks: Object.keys(completed).length,
-      completedLevels: completedLevels,
-      categoryPoints,
-      bonusEarned: bonus,
-      studentLearningScore: calculateStudentLearning(),
-    });
-
-    // Add bonus to score
-    setCategoryPoints((prev) => ({
-      ...prev,
-      bonus: (prev.bonus || 0) + bonus,
-    }));
-
-    // Continue after showing checkpoint
+    // Continue after 5 seconds...
     setTimeout(() => {
       setIsInBreak(false);
       setBreakDestination(null);
@@ -1027,13 +1036,41 @@ function App() {
                   }}
                 >
                   <li>
-                    Ask for help with "slider help", "count help", or "type
-                    help"
+                    Click the help buttons below each task for AI assistance
                   </li>
                   <li>Unlimited use but reliability varies</li>
-                  <li>Strategic advice available - ask about task ordering!</li>
+                  <li>
+                    Type "strategy" or "order" in chat for strategic advice!
+                  </li>
                 </ul>
               </div>
+
+              {/* ADD THE SEMESTER 2 WARNING HERE! */}
+              {currentSemester === 2 && (
+                <div
+                  style={{
+                    background: "#fff3cd",
+                    borderRadius: "6px",
+                    padding: "15px",
+                    marginBottom: "20px",
+                    border: "2px solid #ffc107",
+                  }}
+                >
+                  <h3
+                    style={{
+                      color: "#856404",
+                      fontSize: "16px",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    📚 Semester 2: Midterm Checkpoint!
+                  </h3>
+                  <p style={{ color: "#856404", fontSize: "14px", margin: 0 }}>
+                    At the 10-minute mark, if you have 50+ student learning
+                    points, you'll earn a 300-point bonus!
+                  </p>
+                </div>
+              )}
             </div>
 
             <button
@@ -1194,6 +1231,15 @@ function App() {
       }
 
       setCurrentSemester(currentSemester + 1);
+
+      // Show midterm warning when starting semester 2
+      if (currentSemester === 1) {
+        setTimeout(() => {
+          showNotification(
+            "📚 Semester 2 Alert: Midterm at 10 minutes! Get 50+ student learning for 300 bonus points!"
+          );
+        }, 2000);
+      }
       setCompleted({});
       setCompletedLevels(0);
       setSwitches(0);
@@ -1210,6 +1256,15 @@ function App() {
       startTimer();
       setTaskStartTimes({ g2t1: Date.now() });
       eventTracker.setPageStartTime("g2t1");
+
+      if (currentSemester === 1) {
+        // Starting semester 2 - warn about midterm
+        setTimeout(() => {
+          showNotification(
+            "📚 Semester 2: Midterm at 10 minutes! Score 50+ student learning for 300 bonus points!"
+          );
+        }, 2000);
+      }
     };
 
     const isLastSemester = currentSemester >= totalSemesters;
@@ -1716,10 +1771,17 @@ function App() {
                 color: checkpointBonus > 0 ? "#4CAF50" : "#ff9800",
               }}
             >
-              {checkpointBonus > 0 ? (
-                <>Midterm Bonus: +{checkpointBonus} points!</>
+              {currentSemester === 2 ? (
+                checkpointBonus > 0 ? (
+                  <>🎉 Midterm Bonus Earned: +{checkpointBonus} points!</>
+                ) : (
+                  <>
+                    📚 Need 50+ Student Learning for 300 bonus (current:{" "}
+                    {Math.round(calculateStudentLearning())})
+                  </>
+                )
               ) : (
-                <>Need 50+ Goal Points for 300 bonus!</>
+                <>Checkpoint reached! Keep going!</>
               )}
             </div>
             <p style={{ marginTop: "20px", color: "#666" }}>
