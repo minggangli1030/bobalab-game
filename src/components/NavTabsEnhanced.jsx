@@ -23,6 +23,11 @@ export default function NavTabsEnhanced({
     return baseScore + typingInterest;
   };
 
+  // Calculate these once at component level
+  const typingInterest =
+    parseFloat(localStorage.getItem("typingInterest") || "0") || 0;
+  const countingMultiplier = 1 + (categoryPoints.counting || 0) * 0.15;
+
   // Generate all 150 tabs (50 per game)
   const tabs = [];
   for (let game = 1; game <= 3; game++) {
@@ -236,14 +241,6 @@ export default function NavTabsEnhanced({
                     const isCurrent = current === tab.id;
                     const taskNum = parseInt(tab.id.substring(3));
                     const points = taskPoints[tab.id] || 0;
-
-                    // Expose exact numbers for Multiplier and Interest
-                    const typingInterest =
-                      parseFloat(
-                        localStorage.getItem("typingInterest") || "0"
-                      ) || 0;
-                    const countingMultiplier =
-                      1 + (categoryPoints.counting || 0) * 0.15;
 
                     return (
                       <button
