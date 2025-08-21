@@ -36,7 +36,7 @@ export default function CountingTask({
     const ctx = canvas.getContext("2d");
 
     canvas.width = 900;
-    canvas.height = 350;
+    canvas.height = 400;
 
     // Background
     ctx.fillStyle = "#fafafa";
@@ -47,11 +47,11 @@ export default function CountingTask({
     ctx.lineWidth = 2;
     ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-    ctx.font = "20px monospace";
+    ctx.font = "24px monospace";
     ctx.fillStyle = "#333";
 
-    const lineHeight = 30;
-    const padding = 20;
+    const lineHeight = 36;
+    const padding = 25;
     const maxWidth = canvas.width - padding * 2;
 
     const wrapText = (t, maxW) => {
@@ -163,8 +163,8 @@ export default function CountingTask({
             ctx.lineWidth = 2;
             ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
-            ctx.font = "20px monospace";
-            const lineHeight = 30;
+            ctx.font = "24px monospace";
+            const lineHeight = 36;
             const padding = 20;
             const maxWidth = canvas.width - padding * 2;
 

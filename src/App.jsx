@@ -931,19 +931,19 @@ function App() {
               </h2>
 
               <div style={{ marginBottom: "20px" }}>
-                <h3 style={{ color: "#4CAF50" }}>🎯 Slider Tasks</h3>
+                <h3 style={{ color: "#9C27B0" }}>📚 Research</h3>
+                <p>
+                  Research amplifies your materials! Each point adds +15%
+                  multiplier to all materials points.
+                </p>
+
+                <h3 style={{ color: "#4CAF50" }}>🎯 Material</h3>
                 <p>
                   Create teaching materials - each point directly contributes to
                   your goal points!
                 </p>
 
-                <h3 style={{ color: "#9C27B0" }}>📚 Counting Tasks</h3>
-                <p>
-                  Research amplifies your materials! Each point adds +15%
-                  multiplier to all slider points.
-                </p>
-
-                <h3 style={{ color: "#f44336" }}>✉️ Typing Tasks</h3>
+                <h3 style={{ color: "#f44336" }}>✉️ Engagement</h3>
                 <p>
                   Build interest that compounds! Each point adds 0.15% interest
                   after every task completion.
@@ -980,7 +980,7 @@ function App() {
                     border: "1px solid #e0e0e0",
                   }}
                 >
-                  Goal = Slider × (1 + 0.15×Counting) + Typing Interest
+                  Goal = Materials × (1 + 0.15×Research) + Engagement Interest
                 </div>
                 <ul
                   style={{

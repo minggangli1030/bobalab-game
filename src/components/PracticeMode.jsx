@@ -34,10 +34,10 @@ export default function PracticeMode({
 
       <div className="practice-cards">
         <div className="practice-card research">
-          <h3>📚 Research (Counting)</h3>
+          <h3>📚 Research</h3>
           <p>Count words or letters in text passages</p>
-          <p style={{ fontSize: "12px", color: "#666", marginTop: "5px" }}>
-            Worth 5% multiplier per point in main game
+          <p style={{ fontSize: "13px", color: "#666", marginTop: "10px" }}>
+            Worth 15% multiplier per point in main game
           </p>
           <div className="practice-buttons">
             <button
@@ -50,9 +50,9 @@ export default function PracticeMode({
         </div>
 
         <div className="practice-card materials">
-          <h3>🎯 Materials (Slider)</h3>
+          <h3>🎯 Materials</h3>
           <p>Hold and drag slider to match target values</p>
-          <p style={{ fontSize: "12px", color: "#666", marginTop: "5px" }}>
+          <p style={{ fontSize: "13px", color: "#666", marginTop: "10px" }}>
             Base points - directly added to score
           </p>
           <div className="practice-buttons">
@@ -66,10 +66,10 @@ export default function PracticeMode({
         </div>
 
         <div className="practice-card engagement">
-          <h3>✉️ Engagement (Typing)</h3>
+          <h3>✉️ Engagement</h3>
           <p>Type patterns exactly as shown</p>
-          <p style={{ fontSize: "12px", color: "#666", marginTop: "5px" }}>
-            Worth 1% multiplier per point in main game
+          <p style={{ fontSize: "13px", color: "#666", marginTop: "10px" }}>
+            Worth 0.15% compound interest per point
           </p>
           <div className="practice-buttons">
             <button
