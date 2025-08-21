@@ -437,7 +437,6 @@ function App() {
     setCheckpointReached(false);
 
     // Reset teaching points
-    setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
     setTaskAttempts({});
     setTaskPoints({});
 
