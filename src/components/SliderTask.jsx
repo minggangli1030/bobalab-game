@@ -319,6 +319,10 @@ export default function SliderTask({
         onClick={handleSubmit}
         className="submit-btn"
         disabled={isAIControlled}
+        style={{
+          display: "block", // align buttom
+          margin: "20px auto 0", // Changed from just marginTop
+        }}
       >
         Submit
       </button>

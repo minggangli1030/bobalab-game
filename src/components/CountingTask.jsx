@@ -396,10 +396,20 @@ export default function CountingTask({
           placeholder="Enter count"
         />
       </div>
-      <button onClick={handleSubmit} className="submit-btn">
-        Submit
+      <button
+        onClick={handleSubmit}
+        className="submit-btn"
+        style={{
+          display: "block", // align buttom
+          margin: "20px auto 0", // Changed from just marginTop
+        }}
+      >
+        Submit style=
+        {{
+          display: "block", // align buttom
+          margin: "20px auto 0", // Changed from just marginTop
+        }}
       </button>
-      // In the JSX where feedback is displayed (all 3 components):
       {feedback && (
         <div
           className={`feedback ${
