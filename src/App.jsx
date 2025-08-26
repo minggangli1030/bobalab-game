@@ -1137,71 +1137,125 @@ function App() {
             {!isAdmin && (
               <div
                 style={{
-                  background: "#ffebee",
-                  borderRadius: "8px",
-                  padding: "20px",
-                  marginBottom: "25px",
-                  border: "2px solid #f44336",
+                  background:
+                    "linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)",
+                  borderRadius: "12px",
+                  padding: "24px",
+                  marginTop: "20px",
+                  marginBottom: "20px",
+                  border: "2px solid #d32f2f",
+                  boxShadow: "0 4px 6px rgba(211, 47, 47, 0.1)",
+                  textAlign: "left", // Changed from center
                 }}
               >
-                <h3
+                <div
                   style={{
-                    color: "#c62828",
-                    margin: "0 0 10px 0",
-                    fontSize: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    marginBottom: "16px",
                   }}
                 >
-                  ⚠️ CRITICAL: ONE ATTEMPT ONLY
-                </h3>
+                  <span style={{ fontSize: "28px" }}>⚠️</span>
+                  <h3
+                    style={{
+                      color: "#b71c1c",
+                      margin: 0,
+                      fontSize: "22px",
+                      fontWeight: "700",
+                    }}
+                  >
+                    CRITICAL: ONE ATTEMPT ONLY
+                  </h3>
+                </div>
+
                 <p
                   style={{
                     color: "#c62828",
-                    margin: "0 0 10px 0",
-                    fontWeight: "bold",
+                    margin: "0 0 16px 0",
+                    fontWeight: "600",
                     fontSize: "16px",
                   }}
                 >
                   You have ONLY ONE CHANCE to complete this game.
                 </p>
+
                 <ul
                   style={{
                     color: "#d32f2f",
-                    margin: "0",
-                    paddingLeft: "20px",
+                    margin: "0 0 16px 0",
+                    paddingLeft: "24px",
                     lineHeight: "1.8",
+                    listStyle: "none", // Remove default bullets
                   }}
                 >
-                  <li>
-                    <strong>DO NOT refresh the page</strong> - Your session will
-                    end permanently
+                  <li style={{ marginBottom: "8px" }}>
+                    <strong>❌ DO NOT refresh the page</strong>
+                    <span
+                      style={{
+                        display: "block",
+                        marginLeft: "28px",
+                        fontSize: "14px",
+                        color: "#e57373",
+                      }}
+                    >
+                      Your session will end permanently
+                    </span>
                   </li>
-                  <li>
-                    <strong>DO NOT close the browser</strong> - You cannot
-                    return
+                  <li style={{ marginBottom: "8px" }}>
+                    <strong>❌ DO NOT close the browser</strong>
+                    <span
+                      style={{
+                        display: "block",
+                        marginLeft: "28px",
+                        fontSize: "14px",
+                        color: "#e57373",
+                      }}
+                    >
+                      You cannot return to the game
+                    </span>
                   </li>
-                  <li>
-                    <strong>DO NOT switch tabs</strong> - You have 30 seconds
-                    before auto-termination
+                  <li style={{ marginBottom: "8px" }}>
+                    <strong>❌ DO NOT switch tabs</strong>
+                    <span
+                      style={{
+                        display: "block",
+                        marginLeft: "28px",
+                        fontSize: "14px",
+                        color: "#e57373",
+                      }}
+                    >
+                      You have 30 seconds before auto-termination
+                    </span>
                   </li>
-                  <li>
-                    <strong>DO NOT go idle</strong> - Inactivity will terminate
-                    your session
+                  <li style={{ marginBottom: "8px" }}>
+                    <strong>❌ DO NOT go idle</strong>
+                    <span
+                      style={{
+                        display: "block",
+                        marginLeft: "28px",
+                        fontSize: "14px",
+                        color: "#e57373",
+                      }}
+                    >
+                      Inactivity will terminate your session
+                    </span>
                   </li>
                 </ul>
-                <p
+
+                <div
                   style={{
-                    color: "#c62828",
-                    margin: "15px 0 0 0",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                    background: "#fff",
-                    padding: "10px",
-                    borderRadius: "4px",
+                    background: "white",
+                    padding: "12px 16px",
+                    borderRadius: "8px",
+                    borderLeft: "4px solid #ff5252",
+                    marginTop: "16px",
                   }}
                 >
-                  Make sure you have 40 minutes of uninterrupted time before
-                  starting.
-                </p>
+                  <strong style={{ color: "#b71c1c", fontSize: "14px" }}>
+                    ⏰ Required: 40 minutes of uninterrupted time
+                  </strong>
+                </div>
               </div>
             )}
 
@@ -1286,36 +1340,190 @@ function App() {
             {!isAdmin && (
               <div
                 style={{
-                  background: "#e3f2fd",
-                  borderRadius: "6px",
-                  padding: "15px",
+                  background:
+                    "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)",
+                  borderRadius: "12px",
+                  padding: "20px",
                   marginBottom: "20px",
-                  border: "1px solid #2196F3",
+                  border: "2px solid #1976d2",
+                  boxShadow: "0 4px 6px rgba(25, 118, 210, 0.1)",
                 }}
               >
-                <strong style={{ color: "#1976d2" }}>
-                  Required Practice Tasks:
-                </strong>
-                <ul
+                <h4
                   style={{
-                    margin: "10px 0 0 0",
-                    paddingLeft: "20px",
-                    color: "#1976d2",
+                    color: "#0d47a1",
+                    margin: "0 0 16px 0",
+                    fontSize: "18px",
+                    fontWeight: "600",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
                   }}
                 >
-                  <li>
-                    Materials (Slider) -{" "}
-                    {practiceCompleted.g2t1 ? "✓ Complete" : "⏳ Pending"}
-                  </li>
-                  <li>
-                    Research (Counting) -{" "}
-                    {practiceCompleted.g1t1 ? "✓ Complete" : "⏳ Pending"}
-                  </li>
-                  <li>
-                    Engagement (Typing) -{" "}
-                    {practiceCompleted.g3t1 ? "✓ Complete" : "⏳ Pending"}
-                  </li>
-                </ul>
+                  <span style={{ fontSize: "20px" }}>📋</span>
+                  Required Practice Tasks (100% accuracy needed):
+                </h4>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "12px 16px",
+                      background: practiceCompleted.g2t1 ? "#e8f5e9" : "white",
+                      borderRadius: "8px",
+                      border: `1px solid ${
+                        practiceCompleted.g2t1 ? "#4CAF50" : "#e0e0e0"
+                      }`,
+                    }}
+                  >
+                    <span style={{ fontSize: "24px", marginRight: "12px" }}>
+                      🎯
+                    </span>
+                    <span
+                      style={{ flex: 1, fontSize: "15px", color: "#424242" }}
+                    >
+                      <strong>Materials</strong> (Slider task)
+                    </span>
+                    {practiceCompleted.g2t1 ? (
+                      <span
+                        style={{
+                          color: "#4CAF50",
+                          fontSize: "20px",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ✓
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          background: "#fff3cd",
+                          color: "#f57c00",
+                          padding: "4px 12px",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                        }}
+                      >
+                        PENDING
+                      </span>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "12px 16px",
+                      background: practiceCompleted.g1t1 ? "#e8f5e9" : "white",
+                      borderRadius: "8px",
+                      border: `1px solid ${
+                        practiceCompleted.g1t1 ? "#4CAF50" : "#e0e0e0"
+                      }`,
+                    }}
+                  >
+                    <span style={{ fontSize: "24px", marginRight: "12px" }}>
+                      📚
+                    </span>
+                    <span
+                      style={{ flex: 1, fontSize: "15px", color: "#424242" }}
+                    >
+                      <strong>Research</strong> (Counting task)
+                    </span>
+                    {practiceCompleted.g1t1 ? (
+                      <span
+                        style={{
+                          color: "#4CAF50",
+                          fontSize: "20px",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ✓
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          background: "#fff3cd",
+                          color: "#f57c00",
+                          padding: "4px 12px",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                        }}
+                      >
+                        PENDING
+                      </span>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "12px 16px",
+                      background: practiceCompleted.g3t1 ? "#e8f5e9" : "white",
+                      borderRadius: "8px",
+                      border: `1px solid ${
+                        practiceCompleted.g3t1 ? "#4CAF50" : "#e0e0e0"
+                      }`,
+                    }}
+                  >
+                    <span style={{ fontSize: "24px", marginRight: "12px" }}>
+                      ✉️
+                    </span>
+                    <span
+                      style={{ flex: 1, fontSize: "15px", color: "#424242" }}
+                    >
+                      <strong>Engagement</strong> (Typing task)
+                    </span>
+                    {practiceCompleted.g3t1 ? (
+                      <span
+                        style={{
+                          color: "#4CAF50",
+                          fontSize: "20px",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        ✓
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          background: "#fff3cd",
+                          color: "#f57c00",
+                          padding: "4px 12px",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          fontWeight: "600",
+                        }}
+                      >
+                        PENDING
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    marginTop: "16px",
+                    padding: "8px 12px",
+                    background: "rgba(255, 255, 255, 0.8)",
+                    borderRadius: "6px",
+                    fontSize: "13px",
+                    color: "#0d47a1",
+                    textAlign: "center",
+                    fontStyle: "italic",
+                  }}
+                >
+                  💡 Each task must be completed perfectly to proceed
+                </div>
               </div>
             )}
 
