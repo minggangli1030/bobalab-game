@@ -1,4 +1,4 @@
-// src/App.jsx - Complete Teaching Simulation Version
+// src/App.jsx - Complete Teaching Simulation Version with Tweaks Applied
 import React, { useState, useEffect, useRef } from "react";
 import CountingTask from "./components/CountingTask";
 import SliderTask from "./components/SliderTask";
@@ -84,15 +84,20 @@ function App() {
   const [randomSeed, setRandomSeed] = useState(null);
   const [checkpointReached, setCheckpointReached] = useState(false);
   const [checkpointBonus, setCheckpointBonus] = useState(0);
+  const [practiceCompleted, setPracticeCompleted] = useState({
+    g2t1: false, // Materials (was slider)
+    g1t1: false, // Research (was counting)
+    g3t1: false, // Engagement (was typing)
+  });
 
   // NEW: Teaching simulation states
   const [timeLimit, setTimeLimit] = useState(1200); // Default 20 min
   const [timeRemaining, setTimeRemaining] = useState(1200);
   const [studentLearningScore, setStudentLearningScore] = useState(0);
   const [categoryPoints, setCategoryPoints] = useState({
-    slider: 0, // Materials (Slider tasks)
-    counting: 0, // Research (Counting tasks)
-    typing: 0, // Engagement (Typing tasks)
+    materials: 0, // Renamed from slider
+    research: 0, // Renamed from counting
+    engagement: 0, // Renamed from typing
     bonus: 0, // Checkpoint bonuses
   });
   const [taskAttempts, setTaskAttempts] = useState({});
@@ -109,111 +114,11 @@ function App() {
   const timeLimitRef = useRef(1200);
 
   // Initialize session on mount
-  // Initialize session on mount
   useEffect(() => {
     checkAndInitSession();
+  }, []);
 
-    // Add focus/blur detection
-    const handleFocus = () => {
-      if (isOutOfFocus) {
-        setIsOutOfFocus(false);
-        setOutOfFocusCountdown(30);
-        if (outOfFocusTimerRef.current) {
-          clearInterval(outOfFocusTimerRef.current);
-          outOfFocusTimerRef.current = null;
-        }
-      }
-    };
-
-    const handleBlur = () => {
-      // Only trigger in challenge mode, not for admin
-      const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
-      if (mode === "challenge" && config.role !== "admin") {
-        setIsOutOfFocus(true);
-        let countdown = 30;
-
-        outOfFocusTimerRef.current = setInterval(() => {
-          countdown--;
-          setOutOfFocusCountdown(countdown);
-
-          if (countdown <= 0) {
-            // Block the game
-            setGameBlocked(true);
-            clearInterval(outOfFocusTimerRef.current);
-            eventTracker.logEvent("game_blocked", {
-              reason: "out_of_focus",
-              timestamp: Date.now(),
-            });
-          }
-        }, 1000);
-      }
-    };
-
-    // Add idle detection
-    const handleActivity = () => {
-      lastActivityRef.current = Date.now();
-      if (isIdle) {
-        setIsIdle(false);
-        setIdleCountdown(5);
-        if (idleTimerRef.current) {
-          clearInterval(idleTimerRef.current);
-          idleTimerRef.current = null;
-        }
-      }
-    };
-
-    // Check for idle every 30 seconds
-    const idleCheckInterval = setInterval(() => {
-      const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
-      if (mode === "challenge" && config.role !== "admin") {
-        const timeSinceActivity = Date.now() - lastActivityRef.current;
-        if (timeSinceActivity > 60000 && !isIdle) {
-          // 60 seconds of inactivity
-          setIsIdle(true);
-          let countdown = 5;
-
-          idleTimerRef.current = setInterval(() => {
-            countdown--;
-            setIdleCountdown(countdown);
-
-            if (countdown <= 0) {
-              setGameBlocked(true);
-              clearInterval(idleTimerRef.current);
-              eventTracker.logEvent("game_blocked", {
-                reason: "idle",
-                timestamp: Date.now(),
-              });
-            }
-          }, 1000);
-        }
-      }
-    }, 30000);
-
-    window.addEventListener("focus", handleFocus);
-    window.addEventListener("blur", handleBlur);
-    window.addEventListener("mousemove", handleActivity);
-    window.addEventListener("keypress", handleActivity);
-    window.addEventListener("click", handleActivity);
-
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      window.removeEventListener("blur", handleBlur);
-      window.removeEventListener("mousemove", handleActivity);
-      window.removeEventListener("keypress", handleActivity);
-      window.removeEventListener("click", handleActivity);
-      clearInterval(idleCheckInterval);
-      if (outOfFocusTimerRef.current) {
-        clearInterval(outOfFocusTimerRef.current);
-      }
-      if (idleTimerRef.current) {
-        clearInterval(idleTimerRef.current);
-      }
-    };
-  }, [mode, isOutOfFocus, isIdle]); // ← Note the dependencies added here
-
-  // Update the useEffect for focus/blur detection in App.jsx (around line 250)
-  // This properly handles out-of-focus detection for students
-
+  // Focus/blur detection with game blocking
   useEffect(() => {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
     const isAdmin = config.role === "admin";
@@ -224,9 +129,6 @@ function App() {
       return;
     }
 
-    checkAndInitSession();
-
-    // Add focus/blur detection
     const handleFocus = () => {
       console.log("Window focused");
       if (isOutOfFocus) {
@@ -337,7 +239,8 @@ function App() {
     const handleBeforeUnload = (e) => {
       if (!isAdmin && mode === "challenge") {
         e.preventDefault();
-        e.returnValue = "Your progress will be lost if you leave this page.";
+        e.returnValue =
+          "⚠️ WARNING: If you leave this page, you CANNOT return to complete your session. Your progress will be permanently lost.";
 
         // Log refresh attempt
         eventTracker.logEvent("refresh_attempt", {
@@ -368,33 +271,33 @@ function App() {
       if (outOfFocusTimerRef.current) clearInterval(outOfFocusTimerRef.current);
       if (idleTimerRef.current) clearInterval(idleTimerRef.current);
     };
-  }, [mode]); // Remove isOutOfFocus and isIdle from dependencies to prevent re-runs
+  }, [mode]);
 
   const calculateStudentLearning = (points = categoryPoints) => {
     console.log("=== calculateStudentLearning DEBUG ===");
     console.log("Input points object:", points);
     console.log("categoryPoints state:", categoryPoints);
 
-    const sliderPoints = points.slider || 0;
-    const countingPoints = points.counting || 0;
-    const typingPoints = points.typing || 0;
+    const materialsPoints = points.materials || 0;
+    const researchPoints = points.research || 0;
+    const engagementPoints = points.engagement || 0;
 
     console.log("Extracted values:");
-    console.log("- sliderPoints:", sliderPoints);
-    console.log("- countingPoints:", countingPoints);
-    console.log("- typingPoints:", typingPoints);
+    console.log("- materialsPoints:", materialsPoints);
+    console.log("- researchPoints:", researchPoints);
+    console.log("- engagementPoints:", engagementPoints);
 
-    // Counting multiplier: each point adds 0.15 to multiplier
-    const countingMultiplier = 1 + countingPoints * 0.15;
-    console.log("- countingMultiplier:", countingMultiplier);
+    // Research multiplier: each point adds 0.15 to multiplier
+    const researchMultiplier = 1 + researchPoints * 0.15;
+    console.log("- researchMultiplier:", researchMultiplier);
 
-    // Base score: Slider × Counting multiplier
-    const baseScore = sliderPoints * countingMultiplier;
+    // Base score: Materials × Research multiplier
+    const baseScore = materialsPoints * researchMultiplier;
     console.log("- baseScore:", baseScore);
 
     // Get accumulated interest from localStorage
     const accumulatedInterest =
-      parseFloat(localStorage.getItem("typingInterest") || "0") || 0;
+      parseFloat(localStorage.getItem("engagementInterest") || "0") || 0;
     console.log("- accumulatedInterest:", accumulatedInterest);
 
     const total = baseScore + accumulatedInterest;
@@ -441,8 +344,6 @@ function App() {
       setIsLoading(false);
     }
   };
-
-  // Update the handleCheckpoint function in App.jsx (around line 470)
 
   const handleCheckpoint = () => {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
@@ -496,7 +397,6 @@ function App() {
     }, 5000);
   };
 
-  // Also update the timer interval to check for checkpoint conditionally (in startTimer function)
   const startTimer = () => {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
     const duration = config.semesterDuration || 1200000;
@@ -547,20 +447,17 @@ function App() {
     }, 1000);
   };
 
-  const calculateCheckpointBonus = () => {
-    // Calculate current student learning score
-    const studentLearning = calculateStudentLearning();
-
-    // New threshold: 50 points = 300 bonus
-    if (studentLearning >= 50) {
-      return 300;
-    }
-
-    return 0;
-  };
-
   // Handle practice choice
   const handlePracticeChoice = (choice) => {
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const isAdmin = config.role === "admin";
+
+    // Check if all practice tasks are complete (for students)
+    const allPracticeComplete =
+      practiceCompleted.g2t1 &&
+      practiceCompleted.g1t1 &&
+      practiceCompleted.g3t1;
+
     setPracticeChoice(choice);
     eventTracker.trackUserAction("practice_choice", {
       choice: choice,
@@ -568,7 +465,14 @@ function App() {
     });
 
     if (choice === "no") {
-      startMainGame();
+      if (!isAdmin && !allPracticeComplete) {
+        // Students MUST complete practice
+        showNotification("You must complete all three practice tasks first!");
+        setMode("practice");
+      } else {
+        // Admin or practice complete
+        startMainGame();
+      }
     } else {
       setMode("practice");
     }
@@ -588,16 +492,16 @@ function App() {
       }
     }
 
-    localStorage.setItem("typingInterest", "0");
+    localStorage.setItem("engagementInterest", "0");
     // Reset teaching points
-    setCategoryPoints({ slider: 0, counting: 0, typing: 0, bonus: 0 });
+    setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
 
     setMode("challenge");
     setCompleted({});
     setCompletedLevels(0);
     setSwitches(0);
     setBonusPrompts(0);
-    setCurrentTab("g2t1");
+    setCurrentTab("g2t1"); // Start with materials
     setCheckpointReached(false);
 
     // Reset teaching points
@@ -619,46 +523,18 @@ function App() {
     });
   };
 
-  // Helper function to calculate Levenshtein distance
-  function calculateLevenshteinDistance(str1, str2) {
-    const m = str1.length;
-    const n = str2.length;
-    const dp = Array(m + 1)
-      .fill(null)
-      .map(() => Array(n + 1).fill(0));
-
-    for (let i = 0; i <= m; i++) dp[i][0] = i;
-    for (let j = 0; j <= n; j++) dp[0][j] = j;
-
-    for (let i = 1; i <= m; i++) {
-      for (let j = 1; j <= n; j++) {
-        if (str1[i - 1] === str2[j - 1]) {
-          dp[i][j] = dp[i - 1][j - 1];
-        } else {
-          dp[i][j] = Math.min(
-            dp[i - 1][j] + 1, // deletion
-            dp[i][j - 1] + 1, // insertion
-            dp[i - 1][j - 1] + 1 // substitution
-          );
-        }
-      }
-    }
-
-    return dp[m][n];
-  }
-
   // Handle task completion
   const handleComplete = async (tabId, data) => {
     lastActivityRef.current = Date.now();
 
     // New point system based on task type and accuracy
     let points = 0;
-    // Map to teaching categories with NEW names
+    // Map to teaching categories with NEW order
     const category = tabId.startsWith("g1")
-      ? "counting" // Changed from "research"
+      ? "research"
       : tabId.startsWith("g2")
-      ? "slider" // Changed from "materials"
-      : "typing"; // Changed from "engagement"
+      ? "materials"
+      : "engagement";
 
     // DEBUGGING
     console.log("=== handleComplete DEBUG ===");
@@ -666,7 +542,7 @@ function App() {
     console.log("Category determined:", category);
     console.log("Current categoryPoints BEFORE update:", categoryPoints);
 
-    if (category === "slider") {
+    if (category === "materials") {
       // Slider: exact = 2 points, within 1 = 1 point
       const userValue = parseFloat(data.userValue || 0);
       const targetValue = parseFloat(data.targetValue || 0);
@@ -675,7 +551,7 @@ function App() {
       if (diff === 0) points = 2;
       else if (diff <= 1) points = 1;
       else points = 0;
-    } else if (category === "counting") {
+    } else if (category === "research") {
       // Counting: exact = 2 points, within 1 = 1 point
       const userCount = parseInt(data.userAnswer || 0);
       const correctCount = parseInt(data.correctAnswer || 0);
@@ -684,7 +560,7 @@ function App() {
       if (diff === 0) points = 2;
       else if (diff <= 1) points = 1;
       else points = 0;
-    } else if (category === "typing") {
+    } else if (category === "engagement") {
       // Typing: exact = 2 points, one typo = 1 point
       const userText = data.userAnswer || "";
       const correctText = data.correctAnswer || "";
@@ -705,32 +581,32 @@ function App() {
       [category]: prev[category] + points,
     }));
 
-    // Calculate and apply typing interest after EVERY task completion
-    const currentTypingPoints =
-      category === "typing"
-        ? categoryPoints.typing + points
-        : categoryPoints.typing;
-    const typingInterestRate = 0.0015 * currentTypingPoints;
+    // Calculate and apply engagement interest after EVERY task completion
+    const currentEngagementPoints =
+      category === "engagement"
+        ? categoryPoints.engagement + points
+        : categoryPoints.engagement;
+    const engagementInterestRate = 0.0015 * currentEngagementPoints;
 
-    // Get current goal points (slider × counting multiplier)
-    const currentSliderPoints =
-      category === "slider"
-        ? categoryPoints.slider + points
-        : categoryPoints.slider;
-    const currentCountingMultiplier =
+    // Get current goal points (materials × research multiplier)
+    const currentMaterialsPoints =
+      category === "materials"
+        ? categoryPoints.materials + points
+        : categoryPoints.materials;
+    const currentResearchMultiplier =
       1 +
-      (category === "counting"
-        ? categoryPoints.counting + points
-        : categoryPoints.counting) *
+      (category === "research"
+        ? categoryPoints.research + points
+        : categoryPoints.research) *
         0.15;
-    const goalPoints = currentSliderPoints * currentCountingMultiplier;
+    const goalPoints = currentMaterialsPoints * currentResearchMultiplier;
 
-    // Add typing interest to accumulated interest
+    // Add engagement interest to accumulated interest
     const previousInterest = parseFloat(
-      localStorage.getItem("typingInterest") || "0"
+      localStorage.getItem("engagementInterest") || "0"
     );
-    const newInterest = previousInterest + typingInterestRate * goalPoints;
-    localStorage.setItem("typingInterest", newInterest.toString());
+    const newInterest = previousInterest + engagementInterestRate * goalPoints;
+    localStorage.setItem("engagementInterest", newInterest.toString());
 
     setTaskPoints((prev) => ({
       ...prev,
@@ -753,27 +629,27 @@ function App() {
 
     // Show detailed feedback with task-specific information
     let feedbackMsg = "";
-    if (category === "slider") {
+    if (category === "materials") {
       const diff = Math.abs((data.userValue || 0) - (data.targetValue || 0));
       if (diff === 0) {
-        feedbackMsg = "Perfect slider!";
+        feedbackMsg = "Perfect materials!";
       } else if (diff <= 1) {
         feedbackMsg = `Off by ${diff.toFixed(2)}`;
       } else {
         feedbackMsg = `Off by ${diff.toFixed(2)}`;
       }
-    } else if (category === "counting") {
+    } else if (category === "research") {
       const diff = Math.abs((data.userAnswer || 0) - (data.correctAnswer || 0));
       if (diff === 0) {
-        feedbackMsg = "Perfect count!";
+        feedbackMsg = "Perfect research!";
       } else if (diff <= 1) {
         feedbackMsg = `Off by ${diff}`;
       } else {
         feedbackMsg = `Off by ${diff}`;
       }
-    } else if (category === "typing") {
+    } else if (category === "engagement") {
       if (points === 2) {
-        feedbackMsg = "Perfect typing!";
+        feedbackMsg = "Perfect engagement!";
       } else if (points === 1) {
         feedbackMsg = "One typo";
       } else {
@@ -804,7 +680,7 @@ function App() {
       pointsEarned: points,
       categoryPoints: newCategoryPoints,
       studentLearningScore: newStudentLearning,
-      typingInterest: newInterest,
+      engagementInterest: newInterest,
       completionContext: {
         totalTasksCompleted: Object.keys(completed).length + 1,
         currentGameTime: globalTimer,
@@ -820,7 +696,7 @@ function App() {
         [`taskPoints.${tabId}`]: points,
         [`categoryPoints`]: newCategoryPoints,
         studentLearningScore: newStudentLearning,
-        typingInterest: newInterest,
+        engagementInterest: newInterest,
         bonusPrompts: bonusPrompts + 1,
         lastActivity: serverTimestamp(),
       });
@@ -843,7 +719,7 @@ function App() {
         }
       }
     }, 800);
-  }; // Increased delay to prevent conflicts
+  };
 
   // Handle tab switching
   const handleTabSwitch = async (newTab, isAutoAdvance = false) => {
@@ -962,6 +838,25 @@ function App() {
     setMode("complete");
   };
 
+  // Handle practice completion
+  const handlePracticeComplete = (taskId) => {
+    setPracticeCompleted((prev) => ({ ...prev, [taskId]: true }));
+
+    // Check if all practice tasks are complete
+    const updatedPractice = { ...practiceCompleted, [taskId]: true };
+    const allComplete =
+      updatedPractice.g2t1 && updatedPractice.g1t1 && updatedPractice.g3t1;
+
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const isAdmin = config.role === "admin";
+
+    if (!isAdmin && allComplete) {
+      showNotification(
+        "All practice tasks complete! You can now start the main game."
+      );
+    }
+  };
+
   // Render current task
   const renderTask = () => {
     const game = currentTab[1];
@@ -1022,18 +917,128 @@ function App() {
     );
   }
 
-  accessDenied;
+  // Access denied screen
+  if (accessDenied) {
+    return (
+      <div className="app">
+        <div
+          style={{
+            maxWidth: "600px",
+            margin: "50px auto",
+            padding: "30px",
+            background: "white",
+            borderRadius: "12px",
+            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h2 style={{ color: "#f44336", marginBottom: "20px" }}>
+            Access Denied
+          </h2>
+          <p style={{ fontSize: "18px", marginBottom: "20px" }}>
+            {accessDeniedReason}
+          </p>
+          <div
+            style={{
+              padding: "15px",
+              background: "#ffebee",
+              borderRadius: "8px",
+              border: "1px solid #f44336",
+            }}
+          >
+            <p style={{ color: "#c62828", margin: 0 }}>
+              If you believe this is an error, please contact your instructor.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  // Landing page
+  // Landing page with warning
   if (mode === "landing") {
     if (!gameMode) {
       setGameMode({ accuracy: "lenient", limit: "time" });
     }
 
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const isAdmin = config.role === "admin";
+
     return (
       <div className="app">
         <div className="landing-container">
           <div className="landing-card">
+            {/* Critical Warning for Students */}
+            {!isAdmin && (
+              <div
+                style={{
+                  background: "#ffebee",
+                  borderRadius: "8px",
+                  padding: "20px",
+                  marginBottom: "25px",
+                  border: "2px solid #f44336",
+                }}
+              >
+                <h3
+                  style={{
+                    color: "#c62828",
+                    margin: "0 0 10px 0",
+                    fontSize: "20px",
+                  }}
+                >
+                  ⚠️ CRITICAL: ONE ATTEMPT ONLY
+                </h3>
+                <p
+                  style={{
+                    color: "#c62828",
+                    margin: "0 0 10px 0",
+                    fontWeight: "bold",
+                    fontSize: "16px",
+                  }}
+                >
+                  You have ONLY ONE CHANCE to complete this game.
+                </p>
+                <ul
+                  style={{
+                    color: "#d32f2f",
+                    margin: "0",
+                    paddingLeft: "20px",
+                    lineHeight: "1.8",
+                  }}
+                >
+                  <li>
+                    <strong>DO NOT refresh the page</strong> - Your session will
+                    end permanently
+                  </li>
+                  <li>
+                    <strong>DO NOT close the browser</strong> - You cannot
+                    return
+                  </li>
+                  <li>
+                    <strong>DO NOT switch tabs</strong> - You have 30 seconds
+                    before auto-termination
+                  </li>
+                  <li>
+                    <strong>DO NOT go idle</strong> - Inactivity will terminate
+                    your session
+                  </li>
+                </ul>
+                <p
+                  style={{
+                    color: "#c62828",
+                    margin: "15px 0 0 0",
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                    background: "#fff",
+                    padding: "10px",
+                    borderRadius: "4px",
+                  }}
+                >
+                  Make sure you have 40 minutes of uninterrupted time before
+                  starting.
+                </p>
+              </div>
+            )}
+
             <h1
               style={{ color: "#333", marginBottom: "20px", fontSize: "28px" }}
             >
@@ -1052,16 +1057,16 @@ function App() {
               </h2>
 
               <div style={{ marginBottom: "20px" }}>
+                <h3 style={{ color: "#4CAF50" }}>🎯 Materials</h3>
+                <p>
+                  Create teaching materials - each point directly contributes to
+                  your goal points!
+                </p>
+
                 <h3 style={{ color: "#9C27B0" }}>📚 Research</h3>
                 <p>
                   Research amplifies your materials! Each point adds +15%
                   multiplier to all materials points.
-                </p>
-
-                <h3 style={{ color: "#4CAF50" }}>🎯 Material</h3>
-                <p>
-                  Create teaching materials - each point directly contributes to
-                  your goal points!
                 </p>
 
                 <h3 style={{ color: "#f44336" }}>✉️ Engagement</h3>
@@ -1115,16 +1120,17 @@ function App() {
                 >
                   <li>
                     Exact answer = 2 points, Within 1 = 1 point, Otherwise = 0
-                    points points
+                    points
                   </li>
                   <li>
                     Strategic timing matters - early multipliers compound!
                   </li>
-                  <li>
-                    At minute {isAdminMode ? "1" : "10"}: Exam checkpoint with
-                    bonus opportunities
-                  </li>
-                  <li>30+ Student Learning = 100 bonus, 60+ = 200 bonus</li>
+                  {currentSemester === 2 && (
+                    <li>
+                      At minute {isAdmin ? "1" : "10"}: Exam checkpoint with
+                      bonus opportunity (50+ Student Learning = 300 bonus)
+                    </li>
+                  )}
                 </ul>
               </div>
 
@@ -1165,7 +1171,7 @@ function App() {
                 </ul>
               </div>
 
-              {/* ADD THE SEMESTER 2 WARNING HERE! */}
+              {/* Semester 2 warning */}
               {currentSemester === 2 && (
                 <div
                   style={{
@@ -1243,16 +1249,22 @@ function App() {
 
   // Practice choice
   if (mode === "practiceChoice") {
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const isAdmin = config.role === "admin";
+
     return (
       <div className="app">
         <div className="landing-container">
           <div className="landing-card">
             <h2 style={{ color: "#333", marginBottom: "20px" }}>
-              Would you like to practice first?
+              {isAdmin
+                ? "Practice Mode (Optional for Admin)"
+                : "Practice Mode (Required)"}
             </h2>
             <p style={{ color: "#666", marginBottom: "20px" }}>
-              Practice mode lets you try each teaching task without time
-              pressure.
+              {isAdmin
+                ? "As an admin, you can skip practice or try it first."
+                : "You must complete all three practice tasks before starting the main game."}
             </p>
             <p
               style={{
@@ -1262,9 +1274,44 @@ function App() {
                 fontStyle: "italic",
               }}
             >
-              Tip: Try different task difficulties to plan your teaching
-              strategy!
+              Practice lets you try each teaching task without time pressure.
             </p>
+
+            {!isAdmin && (
+              <div
+                style={{
+                  background: "#e3f2fd",
+                  borderRadius: "6px",
+                  padding: "15px",
+                  marginBottom: "20px",
+                  border: "1px solid #2196F3",
+                }}
+              >
+                <strong style={{ color: "#1976d2" }}>
+                  Required Practice Tasks:
+                </strong>
+                <ul
+                  style={{
+                    margin: "10px 0 0 0",
+                    paddingLeft: "20px",
+                    color: "#1976d2",
+                  }}
+                >
+                  <li>
+                    Materials (Slider) -{" "}
+                    {practiceCompleted.g2t1 ? "✓ Complete" : "⏳ Pending"}
+                  </li>
+                  <li>
+                    Research (Counting) -{" "}
+                    {practiceCompleted.g1t1 ? "✓ Complete" : "⏳ Pending"}
+                  </li>
+                  <li>
+                    Engagement (Typing) -{" "}
+                    {practiceCompleted.g3t1 ? "✓ Complete" : "⏳ Pending"}
+                  </li>
+                </ul>
+              </div>
+            )}
 
             <div
               style={{ display: "flex", gap: "20px", justifyContent: "center" }}
@@ -1281,22 +1328,24 @@ function App() {
                   cursor: "pointer",
                 }}
               >
-                Yes, Practice First
+                {isAdmin ? "Try Practice Mode" : "Start Required Practice"}
               </button>
-              <button
-                onClick={() => handlePracticeChoice("no")}
-                style={{
-                  padding: "15px 30px",
-                  background: "#2196F3",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontSize: "16px",
-                  cursor: "pointer",
-                }}
-              >
-                No, Start Semester
-              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => handlePracticeChoice("no")}
+                  style={{
+                    padding: "15px 30px",
+                    background: "#2196F3",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontSize: "16px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Skip Practice (Admin)
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -1306,13 +1355,30 @@ function App() {
 
   // Practice mode
   if (mode === "practice") {
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const isAdmin = config.role === "admin";
+
     return (
       <div className="app">
         <h1>Teaching Simulation - Practice Mode</h1>
         <PracticeMode
+          practiceCompleted={practiceCompleted}
+          onPracticeComplete={handlePracticeComplete}
           onStartMainGame={() => {
-            startMainGame();
+            const allComplete =
+              practiceCompleted.g2t1 &&
+              practiceCompleted.g1t1 &&
+              practiceCompleted.g3t1;
+
+            if (!isAdmin && !allComplete) {
+              showNotification(
+                "You must complete all three practice tasks first!"
+              );
+            } else {
+              startMainGame();
+            }
           }}
+          isAdmin={isAdmin}
         />
       </div>
     );
@@ -1341,8 +1407,8 @@ function App() {
     const handleNextSemester = async () => {
       const newHistory = [...semesterHistory, semesterData];
       setSemesterHistory(newHistory);
-      localStorage.setItem("typingInterest", "0");
-      setCategoryPoints({ slider: 0, counting: 0, typing: 0, bonus: 0 });
+      localStorage.setItem("engagementInterest", "0");
+      setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
 
       if (sessionId && !sessionId.startsWith("offline-")) {
         await updateDoc(doc(db, "sessions", sessionId), {
@@ -1355,20 +1421,21 @@ function App() {
       setCurrentSemester(currentSemester + 1);
 
       // Show midterm warning when starting semester 2
-      if (currentSemester === 2) {
+      if (currentSemester === 1) {
         setTimeout(() => {
           showNotification(
             "📚 Semester 2 Alert: Midterm at 10 minutes! Get 50+ student learning for 300 bonus points!"
           );
         }, 2000);
       }
+
       setCompleted({});
       setCompletedLevels(0);
       setSwitches(0);
       setBonusPrompts(0);
       setGlobalTimer(0);
       setPausedTime(0);
-      setCurrentTab("g2t1");
+      setCurrentTab("g2t1"); // Start with materials
       setMode("challenge");
 
       const newSeed = Math.floor(Math.random() * 1000000);
@@ -1378,15 +1445,6 @@ function App() {
       startTimer();
       setTaskStartTimes({ g2t1: Date.now() });
       eventTracker.setPageStartTime("g2t1");
-
-      if (currentSemester === 1) {
-        // Starting semester 2 - warn about midterm
-        setTimeout(() => {
-          showNotification(
-            "📚 Semester 2: Midterm at 10 minutes! Score 50+ student learning for 300 bonus points!"
-          );
-        }, 2000);
-      }
     };
 
     const isLastSemester = currentSemester >= totalSemesters;
@@ -1461,13 +1519,13 @@ function App() {
                 Student Learning Score: {finalStudentLearning}
               </h3>
               <div style={{ fontSize: "16px", color: "#666" }}>
-                = {categoryPoints.slider || 0} (Slider) ×{" "}
-                {(1 + (categoryPoints.counting || 0) * 0.15).toFixed(2)}{" "}
-                (Counting)
-                {parseFloat(localStorage.getItem("typingInterest") || "0") >
+                = {categoryPoints.materials || 0} (Materials) ×{" "}
+                {(1 + (categoryPoints.research || 0) * 0.15).toFixed(2)}{" "}
+                (Research)
+                {parseFloat(localStorage.getItem("engagementInterest") || "0") >
                   0 &&
                   ` + ${parseFloat(
-                    localStorage.getItem("typingInterest") || "0"
+                    localStorage.getItem("engagementInterest") || "0"
                   ).toFixed(2)} (Interest)`}
               </div>
               {totalBonus > 0 && (
@@ -1548,33 +1606,36 @@ function App() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  background: "#f8f9fa",
-                  padding: "20px",
-                  borderRadius: "8px",
-                  border: "2px solid #e0e0e0",
-                }}
-              >
+              {/* Only show checkpoint bonus in semester 2 or if bonus exists */}
+              {(currentSemester === 2 || totalBonus > 0) && (
                 <div
                   style={{
-                    fontSize: "14px",
-                    color: "#666",
-                    marginBottom: "5px",
+                    background: "#f8f9fa",
+                    padding: "20px",
+                    borderRadius: "8px",
+                    border: "2px solid #e0e0e0",
                   }}
                 >
-                  Checkpoint Bonus
+                  <div
+                    style={{
+                      fontSize: "14px",
+                      color: "#666",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    Checkpoint Bonus
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "24px",
+                      fontWeight: "bold",
+                      color: "#333",
+                    }}
+                  >
+                    +{totalBonus}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: "24px",
-                    fontWeight: "bold",
-                    color: "#333",
-                  }}
-                >
-                  +{totalBonus}
-                </div>
-              </div>
+              )}
 
               <div
                 style={{
@@ -1632,10 +1693,10 @@ function App() {
                     marginBottom: "5px",
                   }}
                 >
-                  🎯 Slider
+                  🎯 Materials
                 </div>
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {categoryPoints.slider || 0}
+                  {categoryPoints.materials || 0}
                 </div>
                 <div style={{ fontSize: "12px", color: "#666" }}>
                   Base points
@@ -1657,13 +1718,13 @@ function App() {
                     marginBottom: "5px",
                   }}
                 >
-                  📚 Counting
+                  📚 Research
                 </div>
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {categoryPoints.counting || 0}
+                  {categoryPoints.research || 0}
                 </div>
                 <div style={{ fontSize: "12px", color: "#666" }}>
-                  +{(categoryPoints.counting || 0) * 15}% multiplier
+                  +{(categoryPoints.research || 0) * 15}% multiplier
                 </div>
               </div>
 
@@ -1682,21 +1743,21 @@ function App() {
                     marginBottom: "5px",
                   }}
                 >
-                  ✉️ Typing
+                  ✉️ Engagement
                 </div>
                 <div style={{ fontSize: "20px", fontWeight: "bold" }}>
-                  {categoryPoints.typing || 0}
+                  {categoryPoints.engagement || 0}
                 </div>
                 <div style={{ fontSize: "12px", color: "#666" }}>
-                  +{((categoryPoints.typing || 0) * 0.15).toFixed(1)}%
+                  +{((categoryPoints.engagement || 0) * 0.15).toFixed(1)}%
                   interest/task
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Checkpoint Bonus Display */}
-          {categoryPoints.bonus > 0 && (
+          {/* Checkpoint Bonus Display - Only show in semester 2 if bonus earned */}
+          {currentSemester === 2 && categoryPoints.bonus > 0 && (
             <div
               style={{
                 marginBottom: "20px",
@@ -1851,14 +1912,14 @@ function App() {
             </p>
             <div style={{ marginBottom: "20px" }}>
               <h3>Teaching Performance:</h3>
-              <div>Materials (Slider): {categoryPoints.slider} pts</div>
+              <div>Materials: {categoryPoints.materials} pts</div>
               <div>
-                Research (Counting): {categoryPoints.counting} pts (×
-                {(1 + categoryPoints.counting * 0.15).toFixed(2)})
+                Research: {categoryPoints.research} pts (×
+                {(1 + categoryPoints.research * 0.15).toFixed(2)})
               </div>
               <div>
-                Engagement (Typing): {categoryPoints.typing} pts (+
-                {(categoryPoints.typing * 0.15).toFixed(1)}% interest/task)
+                Engagement: {categoryPoints.engagement} pts (+
+                {(categoryPoints.engagement * 0.15).toFixed(1)}% interest/task)
               </div>
             </div>
             <div
@@ -1882,8 +1943,8 @@ function App() {
               <div
                 style={{ fontSize: "14px", color: "#666", marginTop: "5px" }}
               >
-                = {categoryPoints.slider} ×{" "}
-                {(1 + categoryPoints.counting * 0.15).toFixed(2)} + Interest
+                = {categoryPoints.materials} ×{" "}
+                {(1 + categoryPoints.research * 0.15).toFixed(2)} + Interest
               </div>
             </div>
             <div
@@ -1945,19 +2006,9 @@ function App() {
               Your session has been terminated due to inactivity or switching
               away from the game.
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              style={{
-                padding: "12px 30px",
-                background: "#2196F3",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                cursor: "pointer",
-              }}
-            >
-              Restart Game
-            </button>
+            <p style={{ color: "#c62828", fontWeight: "bold" }}>
+              You cannot restart. This was your only attempt.
+            </p>
           </div>
         </div>
       )}
@@ -2040,17 +2091,7 @@ function App() {
           Can you beat Park? - Semester {currentSemester}/{totalSemesters}
         </h1>
 
-        {/* ADD THIS DEBUG LINE HERE */}
-        {console.log(
-          "Current timeRemaining:",
-          timeRemaining,
-          "timeLimit:",
-          timeLimit,
-          "globalTimer:",
-          globalTimer
-        )}
-
-        {/* Use NavTabsEnhanced with star progress */}
+        {/* Use NavTabsEnhanced with updated category names */}
         <NavTabsEnhanced
           current={currentTab}
           completed={completed}
@@ -2112,9 +2153,9 @@ function App() {
               borderRadius: "8px",
               border: "1px solid #e0e0e0",
               overflow: "hidden",
-              height: "650px", // Change this to match game container
-              display: "flex", // Add this
-              flexDirection: "column", // Add this
+              height: "650px",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
             <ChatContainer

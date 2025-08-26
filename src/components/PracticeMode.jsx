@@ -1,4 +1,4 @@
-// src/components/PracticeMode.jsx - Updated without dependencies
+// src/components/PracticeMode.jsx - Updated with enforced practice and new order
 import React, { useState } from "react";
 import CountingTask from "./CountingTask";
 import SliderTask from "./SliderTask";
@@ -6,49 +6,51 @@ import TypingTask from "./TypingTask";
 import "./PracticeMode.css";
 
 export default function PracticeMode({
-  rulesData,
+  practiceCompleted = {},
+  onPracticeComplete,
   onStartMainGame,
-  gameAccuracyMode = "strict",
+  isAdmin = false,
 }) {
   const [currentPractice, setCurrentPractice] = useState(null);
-  const [completedPractice, setCompletedPractice] = useState({});
 
-  const handlePracticeComplete = (taskId) => {
-    setCompletedPractice((prev) => ({ ...prev, [taskId]: true }));
+  const handlePracticeTaskComplete = (taskId) => {
+    onPracticeComplete(taskId);
     // Auto-return to menu after completion
     setTimeout(() => {
       setCurrentPractice(null);
     }, 1500);
   };
 
-  const startMainGame = () => {
-    onStartMainGame();
-  };
+  const allComplete =
+    practiceCompleted.g2t1 && practiceCompleted.g1t1 && practiceCompleted.g3t1;
 
   const renderPracticeMenu = () => (
     <div className="practice-menu">
-      <h2>Practice Mode</h2>
+      <h2>Practice Mode {!isAdmin && "(Required)"}</h2>
+      {!isAdmin && (
+        <div
+          style={{
+            background: "#ffebee",
+            borderRadius: "6px",
+            padding: "15px",
+            marginBottom: "20px",
+            border: "1px solid #f44336",
+          }}
+        >
+          <strong style={{ color: "#c62828" }}>⚠️ Important:</strong>
+          <p style={{ color: "#d32f2f", margin: "10px 0 0 0" }}>
+            You must complete all three practice tasks before starting the main
+            game. This ensures you understand each task type.
+          </p>
+        </div>
+      )}
+
       <p className="practice-hint">
         Try each task type before starting the main challenge. No time pressure!
       </p>
 
       <div className="practice-cards">
-        <div className="practice-card research">
-          <h3>📚 Research</h3>
-          <p>Count words or letters in text passages</p>
-          <p style={{ fontSize: "13px", color: "#666", marginTop: "10px" }}>
-            Worth 15% multiplier per point in main game
-          </p>
-          <div className="practice-buttons">
-            <button
-              onClick={() => setCurrentPractice("g1t1")}
-              className={completedPractice["g1t1"] ? "completed" : ""}
-            >
-              {completedPractice["g1t1"] ? "✓ Completed" : "Try Research"}
-            </button>
-          </div>
-        </div>
-
+        {/* Materials first (was Slider) */}
         <div className="practice-card materials">
           <h3>🎯 Materials</h3>
           <p>Hold and drag slider to match target values</p>
@@ -58,13 +60,31 @@ export default function PracticeMode({
           <div className="practice-buttons">
             <button
               onClick={() => setCurrentPractice("g2t1")}
-              className={completedPractice["g2t1"] ? "completed" : ""}
+              className={practiceCompleted.g2t1 ? "completed" : ""}
             >
-              {completedPractice["g2t1"] ? "✓ Completed" : "Try Materials"}
+              {practiceCompleted.g2t1 ? "✓ Completed" : "Try Materials"}
             </button>
           </div>
         </div>
 
+        {/* Research second (was Counting) */}
+        <div className="practice-card research">
+          <h3>📚 Research</h3>
+          <p>Count words or letters in text passages</p>
+          <p style={{ fontSize: "13px", color: "#666", marginTop: "10px" }}>
+            Worth 15% multiplier per point in main game
+          </p>
+          <div className="practice-buttons">
+            <button
+              onClick={() => setCurrentPractice("g1t1")}
+              className={practiceCompleted.g1t1 ? "completed" : ""}
+            >
+              {practiceCompleted.g1t1 ? "✓ Completed" : "Try Research"}
+            </button>
+          </div>
+        </div>
+
+        {/* Engagement third (was Typing) */}
         <div className="practice-card engagement">
           <h3>✉️ Engagement</h3>
           <p>Type patterns exactly as shown</p>
@@ -74,10 +94,59 @@ export default function PracticeMode({
           <div className="practice-buttons">
             <button
               onClick={() => setCurrentPractice("g3t1")}
-              className={completedPractice["g3t1"] ? "completed" : ""}
+              className={practiceCompleted.g3t1 ? "completed" : ""}
             >
-              {completedPractice["g3t1"] ? "✓ Completed" : "Try Engagement"}
+              {practiceCompleted.g3t1 ? "✓ Completed" : "Try Engagement"}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress indicator */}
+      <div
+        style={{
+          marginTop: "20px",
+          padding: "15px",
+          background: "#f5f5f5",
+          borderRadius: "8px",
+        }}
+      >
+        <h4 style={{ margin: "0 0 10px 0", color: "#333" }}>
+          Practice Progress:
+        </h4>
+        <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+          <div
+            style={{
+              padding: "8px 15px",
+              background: practiceCompleted.g2t1 ? "#4CAF50" : "#e0e0e0",
+              color: practiceCompleted.g2t1 ? "white" : "#666",
+              borderRadius: "20px",
+              fontSize: "14px",
+            }}
+          >
+            Materials {practiceCompleted.g2t1 && "✓"}
+          </div>
+          <div
+            style={{
+              padding: "8px 15px",
+              background: practiceCompleted.g1t1 ? "#9C27B0" : "#e0e0e0",
+              color: practiceCompleted.g1t1 ? "white" : "#666",
+              borderRadius: "20px",
+              fontSize: "14px",
+            }}
+          >
+            Research {practiceCompleted.g1t1 && "✓"}
+          </div>
+          <div
+            style={{
+              padding: "8px 15px",
+              background: practiceCompleted.g3t1 ? "#f44336" : "#e0e0e0",
+              color: practiceCompleted.g3t1 ? "white" : "#666",
+              borderRadius: "20px",
+              fontSize: "14px",
+            }}
+          >
+            Engagement {practiceCompleted.g3t1 && "✓"}
           </div>
         </div>
       </div>
@@ -115,16 +184,45 @@ export default function PracticeMode({
 
       {/* Start button */}
       <div style={{ textAlign: "center", marginTop: "30px" }}>
+        {!isAdmin && !allComplete ? (
+          <div
+            style={{
+              padding: "15px",
+              background: "#fff3cd",
+              borderRadius: "6px",
+              border: "1px solid #ffc107",
+              marginBottom: "15px",
+            }}
+          >
+            <strong style={{ color: "#856404" }}>
+              Complete all three practice tasks to unlock the main game
+            </strong>
+            <div
+              style={{ marginTop: "10px", fontSize: "14px", color: "#856404" }}
+            >
+              {!practiceCompleted.g2t1 && "• Materials practice required"}
+              {!practiceCompleted.g2t1 && <br />}
+              {!practiceCompleted.g1t1 && "• Research practice required"}
+              {!practiceCompleted.g1t1 && <br />}
+              {!practiceCompleted.g3t1 && "• Engagement practice required"}
+            </div>
+          </div>
+        ) : null}
+
         <button
           className="start-main-game-btn"
-          onClick={startMainGame}
+          onClick={onStartMainGame}
           style={{
-            opacity: Object.keys(completedPractice).length === 0 ? 0.8 : 1,
+            opacity: !isAdmin && !allComplete ? 0.5 : 1,
+            cursor: !isAdmin && !allComplete ? "not-allowed" : "pointer",
           }}
+          disabled={!isAdmin && !allComplete}
         >
-          {Object.keys(completedPractice).length === 0
-            ? "Start Main Game (or practice first!)"
-            : "Start Main Game - You're Ready! 🚀"}
+          {isAdmin
+            ? "Start Main Game (Admin)"
+            : allComplete
+            ? "Start Main Game - You're Ready! 🚀"
+            : "Complete Practice First"}
         </button>
       </div>
     </div>
@@ -162,24 +260,27 @@ export default function PracticeMode({
         {game === "1" && (
           <CountingTask
             taskNum={taskNum}
-            onComplete={handlePracticeComplete}
+            onComplete={handlePracticeTaskComplete}
             isPractice={true}
+            currentTaskId={currentPractice}
           />
         )}
 
         {game === "2" && (
           <SliderTask
             taskNum={taskNum}
-            onComplete={handlePracticeComplete}
+            onComplete={handlePracticeTaskComplete}
             isPractice={true}
+            currentTaskId={currentPractice}
           />
         )}
 
         {game === "3" && (
           <TypingTask
             taskNum={taskNum}
-            onComplete={handlePracticeComplete}
+            onComplete={handlePracticeTaskComplete}
             isPractice={true}
+            currentTaskId={currentPractice}
           />
         )}
       </div>
