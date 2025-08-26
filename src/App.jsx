@@ -84,6 +84,7 @@ function App() {
   const [randomSeed, setRandomSeed] = useState(null);
   const [checkpointReached, setCheckpointReached] = useState(false);
   const [checkpointBonus, setCheckpointBonus] = useState(0);
+  const [currentPractice, setCurrentPractice] = useState(null);
   const [practiceCompleted, setPracticeCompleted] = useState({
     g2t1: false, // Materials (was slider)
     g1t1: false, // Research (was counting)
@@ -845,15 +846,15 @@ function App() {
       setPracticeCompleted((prev) => ({ ...prev, [taskId]: true }));
       showNotification("Perfect! Practice task completed.");
 
-      // Auto-return to practice menu
+      // Return to practice menu after short delay
       setTimeout(() => {
-        setMode("practiceChoice");
+        setCurrentPractice(null); // This returns to practice menu
       }, 1500);
     } else {
       showNotification("Practice requires perfect accuracy (100%). Try again!");
-      // Reset the task
+      // DON'T reload - just reset the current practice task
       setTimeout(() => {
-        window.location.reload();
+        setCurrentPractice(null); // Return to practice menu to try again
       }, 2000);
     }
   };
@@ -982,36 +983,6 @@ function App() {
             </h1>
 
             <div className="game-info">
-              <h2
-                style={{
-                  color: "#555",
-                  fontSize: "20px",
-                  marginBottom: "15px",
-                }}
-              >
-                Maximize student learning through strategic teaching!
-              </h2>
-
-              <div style={{ marginBottom: "20px" }}>
-                <h3 style={{ color: "#4CAF50" }}>🎯 Materials</h3>
-                <p>
-                  Create teaching materials - each point directly contributes to
-                  your goal points!
-                </p>
-
-                <h3 style={{ color: "#9C27B0" }}>📚 Research</h3>
-                <p>
-                  Research amplifies your materials! Each point adds +15%
-                  multiplier to all materials points.
-                </p>
-
-                <h3 style={{ color: "#f44336" }}>✉️ Engagement</h3>
-                <p>
-                  Build interest that compounds! Each point adds 0.15% interest
-                  after every task completion.
-                </p>
-              </div>
-
               <div
                 style={{
                   background: "#f0f8ff",
@@ -1061,6 +1032,7 @@ function App() {
                   <li>
                     Strategic timing matters - early multipliers compound!
                   </li>
+                  <li>Maximize student learning through strategic teaching!</li>
                   {currentSemester === 2 && (
                     <li>
                       At minute {isAdmin ? "1" : "10"}: Exam checkpoint with
@@ -1068,6 +1040,26 @@ function App() {
                     </li>
                   )}
                 </ul>
+              </div>
+
+              <div style={{ marginBottom: "20px" }}>
+                <h3 style={{ color: "#4CAF50" }}>🎯 Materials</h3>
+                <p>
+                  Create teaching materials - each point directly contributes to
+                  your goal points!
+                </p>
+
+                <h3 style={{ color: "#9C27B0" }}>📚 Research</h3>
+                <p>
+                  Research amplifies your materials! Each point adds +15%
+                  multiplier to all materials points.
+                </p>
+
+                <h3 style={{ color: "#f44336" }}>✉️ Engagement</h3>
+                <p>
+                  Build interest that compounds! Each point adds 0.15% interest
+                  after every task completion.
+                </p>
               </div>
 
               {/* Only show AI assistance for Section 2 students (who have AI) */}
@@ -1358,7 +1350,7 @@ function App() {
                     <span
                       style={{ flex: 1, fontSize: "15px", color: "#424242" }}
                     >
-                      <strong>Materials</strong> (Slider task)
+                      <strong>Materials</strong>
                     </span>
                     {practiceCompleted.g2t1 ? (
                       <span
@@ -1404,7 +1396,7 @@ function App() {
                     <span
                       style={{ flex: 1, fontSize: "15px", color: "#424242" }}
                     >
-                      <strong>Research</strong> (Counting task)
+                      <strong>Research</strong>
                     </span>
                     {practiceCompleted.g1t1 ? (
                       <span
@@ -1450,7 +1442,7 @@ function App() {
                     <span
                       style={{ flex: 1, fontSize: "15px", color: "#424242" }}
                     >
-                      <strong>Engagement</strong> (Typing task)
+                      <strong>Engagement</strong>
                     </span>
                     {practiceCompleted.g3t1 ? (
                       <span
@@ -1537,32 +1529,102 @@ function App() {
   }
 
   // Practice mode
+  // Practice mode
   if (mode === "practice") {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
     const isAdmin = config.role === "admin";
 
+    // If no current practice task selected, show practice menu
+    if (!currentPractice) {
+      return (
+        <div className="app">
+          <h1>Teaching Simulation - Practice Mode</h1>
+          <PracticeMode
+            practiceCompleted={practiceCompleted}
+            onPracticeComplete={handlePracticeComplete}
+            onSelectPractice={setCurrentPractice} // Pass function to set current practice
+            onStartMainGame={() => {
+              const allComplete =
+                practiceCompleted.g2t1 &&
+                practiceCompleted.g1t1 &&
+                practiceCompleted.g3t1;
+
+              if (!isAdmin && !allComplete) {
+                showNotification(
+                  "You must complete all three practice tasks first!"
+                );
+              } else {
+                startMainGame();
+              }
+            }}
+            isAdmin={isAdmin}
+          />
+        </div>
+      );
+    }
+
+    // Render the selected practice task
+    const game = currentPractice[1];
+    const taskNum = 1; // Always use task 1 for practice
+
     return (
       <div className="app">
-        <h1>Teaching Simulation - Practice Mode</h1>
-        <PracticeMode
-          practiceCompleted={practiceCompleted}
-          onPracticeComplete={handlePracticeComplete}
-          onStartMainGame={() => {
-            const allComplete =
-              practiceCompleted.g2t1 &&
-              practiceCompleted.g1t1 &&
-              practiceCompleted.g3t1;
+        <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
+          <button
+            onClick={() => setCurrentPractice(null)}
+            style={{
+              marginBottom: "20px",
+              padding: "10px 20px",
+              background: "#666",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+            }}
+          >
+            ← Back to Practice Menu
+          </button>
 
-            if (!isAdmin && !allComplete) {
-              showNotification(
-                "You must complete all three practice tasks first!"
-              );
-            } else {
-              startMainGame();
-            }
-          }}
-          isAdmin={isAdmin}
-        />
+          <div
+            style={{
+              textAlign: "center",
+              padding: "10px",
+              background: "#fff3cd",
+              borderRadius: "6px",
+              margin: "10px 0",
+              fontSize: "14px",
+              color: "#856404",
+            }}
+          >
+            <strong>Practice Mode:</strong> 100% accuracy required. Will
+            auto-return after completion.
+          </div>
+
+          {game === "1" && (
+            <CountingTask
+              taskNum={taskNum}
+              onComplete={handlePracticeComplete}
+              currentTaskId={currentPractice}
+              isPractice={true}
+            />
+          )}
+          {game === "2" && (
+            <SliderTask
+              taskNum={taskNum}
+              onComplete={handlePracticeComplete}
+              currentTaskId={currentPractice}
+              isPractice={true}
+            />
+          )}
+          {game === "3" && (
+            <TypingTask
+              taskNum={taskNum}
+              onComplete={handlePracticeComplete}
+              currentTaskId={currentPractice}
+              isPractice={true}
+            />
+          )}
+        </div>
       </div>
     );
   }

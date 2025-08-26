@@ -145,7 +145,7 @@ export default function PracticeMode({
           </p>
           <div className="practice-buttons">
             <button
-              onClick={() => setCurrentPractice("g2t1")}
+              onClick={() => onSelectPractice("g2t1")}
               className={practiceCompleted.g2t1 ? "completed" : ""}
             >
               {practiceCompleted.g2t1 ? "✓ Completed" : "Try Materials"}
