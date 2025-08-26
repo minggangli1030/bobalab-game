@@ -990,6 +990,26 @@ function App() {
               Can you beat Park? - Semester {currentSemester}/{totalSemesters}
             </h1>
 
+            <div style={{ marginBottom: "20px" }}>
+              <h3 style={{ color: "#4CAF50" }}>🎯 Materials</h3>
+              <p>
+                Create teaching materials - each point directly contributes to
+                your goal points!
+              </p>
+
+              <h3 style={{ color: "#9C27B0" }}>📚 Research</h3>
+              <p>
+                Research amplifies your materials! Each point adds +15%
+                multiplier to all materials points.
+              </p>
+
+              <h3 style={{ color: "#f44336" }}>✉️ Engagement</h3>
+              <p>
+                Build interest that compounds! Each point adds 0.15% interest
+                after every task completion.
+              </p>
+            </div>
+
             <div className="game-info">
               <div
                 style={{
@@ -1048,26 +1068,6 @@ function App() {
                     </li>
                   )}
                 </ul>
-              </div>
-
-              <div style={{ marginBottom: "20px" }}>
-                <h3 style={{ color: "#4CAF50" }}>🎯 Materials</h3>
-                <p>
-                  Create teaching materials - each point directly contributes to
-                  your goal points!
-                </p>
-
-                <h3 style={{ color: "#9C27B0" }}>📚 Research</h3>
-                <p>
-                  Research amplifies your materials! Each point adds +15%
-                  multiplier to all materials points.
-                </p>
-
-                <h3 style={{ color: "#f44336" }}>✉️ Engagement</h3>
-                <p>
-                  Build interest that compounds! Each point adds 0.15% interest
-                  after every task completion.
-                </p>
               </div>
 
               {/* Only show AI assistance for Section 2 students (who have AI) */}

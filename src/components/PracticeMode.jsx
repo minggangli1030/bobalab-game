@@ -1,4 +1,4 @@
-// src/components/PracticeMode.jsx - Updated with enforced practice and new order
+// src/components/PracticeMode.jsx - Fixed with proper navigation
 import React, { useState } from "react";
 import CountingTask from "./CountingTask";
 import SliderTask from "./SliderTask";
@@ -15,18 +15,46 @@ export default function PracticeMode({
   const [currentPractice, setCurrentPractice] = useState(null);
 
   const handlePracticeTaskComplete = (taskId, data) => {
-    // Only accept if perfect accuracy
-    if (data.points === 2) {
-      onPracticeComplete(taskId);
+    console.log("Practice task complete:", taskId, data); // Debug log
+
+    // Check if perfect accuracy (2 points)
+    if (data && data.points === 2) {
+      // Mark as complete
+      onPracticeComplete(taskId, data);
+
+      // Show success message
+      const notification = document.createElement("div");
+      notification.className = "notification-enter";
+      notification.style.cssText =
+        "position: fixed; bottom: 20px; left: 20px; background: #4CAF50; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10000; max-width: 400px;";
+      notification.textContent =
+        "Perfect! Practice task completed. Returning to menu...";
+      document.body.appendChild(notification);
+
       // Auto-return to menu after completion
       setTimeout(() => {
         setCurrentPractice(null);
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
       }, 1500);
     } else {
-      // Don't return to menu, let them retry
+      // Show retry message
+      const points = data?.points || 0;
+      const notification = document.createElement("div");
+      notification.className = "notification-enter";
+      notification.style.cssText =
+        "position: fixed; bottom: 20px; left: 20px; background: #ff9800; color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 10000; max-width: 400px;";
+      notification.textContent = `Practice requires 100% accuracy. You scored ${
+        points === 1 ? "50%" : "0%"
+      }. Try again!`;
+      document.body.appendChild(notification);
+
       setTimeout(() => {
-        window.location.reload(); // Refresh the practice task
-      }, 2000);
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 3000);
     }
   };
 
@@ -147,6 +175,8 @@ export default function PracticeMode({
           <div className="practice-buttons">
             <button
               onClick={() => {
+                setCurrentPractice("g2t1");
+                // Also call onSelectPractice if it exists (for compatibility)
                 if (onSelectPractice) {
                   onSelectPractice("g2t1");
                 }
@@ -168,7 +198,13 @@ export default function PracticeMode({
           </p>
           <div className="practice-buttons">
             <button
-              onClick={() => setCurrentPractice("g1t1")}
+              onClick={() => {
+                setCurrentPractice("g1t1");
+                // Also call onSelectPractice if it exists
+                if (onSelectPractice) {
+                  onSelectPractice("g1t1");
+                }
+              }}
               className={practiceCompleted.g1t1 ? "completed" : ""}
               disabled={false}
             >
@@ -186,7 +222,13 @@ export default function PracticeMode({
           </p>
           <div className="practice-buttons">
             <button
-              onClick={() => setCurrentPractice("g3t1")}
+              onClick={() => {
+                setCurrentPractice("g3t1");
+                // Also call onSelectPractice if it exists
+                if (onSelectPractice) {
+                  onSelectPractice("g3t1");
+                }
+              }}
               className={practiceCompleted.g3t1 ? "completed" : ""}
               disabled={false}
             >
@@ -276,7 +318,7 @@ export default function PracticeMode({
   }
 
   const game = currentPractice[1];
-  const taskNum = Number(currentPractice[3]);
+  const taskNum = 1; // Always use task 1 for practice
 
   return (
     <div className="practice-container">
@@ -295,8 +337,8 @@ export default function PracticeMode({
           color: "#856404",
         }}
       >
-        <strong>Practice Mode:</strong> No time limit, unlimited attempts. Will
-        auto-return after completion.
+        <strong>Practice Mode:</strong> 100% accuracy required. Will auto-return
+        after completion.
       </div>
 
       <div className="practice-task-wrapper">
