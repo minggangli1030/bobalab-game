@@ -1550,7 +1550,7 @@ function App() {
           <PracticeMode
             practiceCompleted={practiceCompleted}
             onPracticeComplete={handlePracticeComplete}
-            onSelectPractice={setCurrentPractice} // Pass function to set current practice
+            onSelectPractice={setCurrentPractice} // Make sure this is here
             onStartMainGame={() => {
               const allComplete =
                 practiceCompleted.g2t1 &&

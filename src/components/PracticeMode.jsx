@@ -9,6 +9,7 @@ export default function PracticeMode({
   practiceCompleted = {},
   onPracticeComplete,
   onStartMainGame,
+  onSelectPractice,
   isAdmin = false,
 }) {
   const [currentPractice, setCurrentPractice] = useState(null);
@@ -145,7 +146,11 @@ export default function PracticeMode({
           </p>
           <div className="practice-buttons">
             <button
-              onClick={() => onSelectPractice("g2t1")}
+              onClick={() => {
+                if (onSelectPractice) {
+                  onSelectPractice("g2t1");
+                }
+              }}
               className={practiceCompleted.g2t1 ? "completed" : ""}
               disabled={false}
             >
