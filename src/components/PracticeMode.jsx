@@ -35,25 +35,164 @@ export default function PracticeMode({
   const renderPracticeMenu = () => (
     <div className="practice-menu">
       <h2>Practice Mode {!isAdmin && "(Required)"}</h2>
+
+      {/* Combined warning box at the top */}
       {!isAdmin && (
         <div
           style={{
-            background: "#ffebee",
-            borderRadius: "6px",
-            padding: "15px",
-            marginBottom: "20px",
-            border: "1px solid #f44336",
+            background: "linear-gradient(135deg, #fff3cd 0%, #ffebee 100%)",
+            borderRadius: "12px",
+            padding: "20px",
+            marginBottom: "25px",
+            border: "2px solid #f57c00",
+            boxShadow: "0 4px 6px rgba(245, 124, 0, 0.1)",
           }}
         >
-          <strong style={{ color: "#c62828" }}>⚠️ Important:</strong>
-          <p style={{ color: "#d32f2f", margin: "10px 0 0 0" }}>
-            You must complete all three practice tasks before starting the main
-            game. This ensures you understand each task type.
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              marginBottom: "12px",
+            }}
+          >
+            <span style={{ fontSize: "24px" }}>⚠️</span>
+            <h3
+              style={{
+                margin: 0,
+                color: "#e65100",
+                fontSize: "18px",
+                fontWeight: "600",
+              }}
+            >
+              Required Practice - 100% Accuracy Needed
+            </h3>
+          </div>
+
+          <p
+            style={{
+              color: "#bf360c",
+              margin: "0 0 12px 0",
+              fontWeight: "500",
+            }}
+          >
+            You must complete all three practice tasks with perfect accuracy
+            before starting the main game.
           </p>
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, 1fr)",
+              gap: "12px",
+              marginTop: "16px",
+            }}
+          >
+            <div
+              style={{
+                padding: "8px",
+                background: practiceCompleted.g2t1 ? "#e8f5e9" : "white",
+                borderRadius: "6px",
+                textAlign: "center",
+                border: `1px solid ${
+                  practiceCompleted.g2t1 ? "#4CAF50" : "#ffb74d"
+                }`,
+              }}
+            >
+              <div
+                style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}
+              >
+                Materials
+              </div>
+              <div
+                style={{
+                  fontWeight: "bold",
+                  color: practiceCompleted.g2t1 ? "#4CAF50" : "#f57c00",
+                }}
+              >
+                {practiceCompleted.g2t1 ? "✓ Complete" : "Required"}
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: "8px",
+                background: practiceCompleted.g1t1 ? "#e8f5e9" : "white",
+                borderRadius: "6px",
+                textAlign: "center",
+                border: `1px solid ${
+                  practiceCompleted.g1t1 ? "#4CAF50" : "#ffb74d"
+                }`,
+              }}
+            >
+              <div
+                style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}
+              >
+                Research
+              </div>
+              <div
+                style={{
+                  fontWeight: "bold",
+                  color: practiceCompleted.g1t1 ? "#4CAF50" : "#f57c00",
+                }}
+              >
+                {practiceCompleted.g1t1 ? "✓ Complete" : "Required"}
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: "8px",
+                background: practiceCompleted.g3t1 ? "#e8f5e9" : "white",
+                borderRadius: "6px",
+                textAlign: "center",
+                border: `1px solid ${
+                  practiceCompleted.g3t1 ? "#4CAF50" : "#ffb74d"
+                }`,
+              }}
+            >
+              <div
+                style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}
+              >
+                Engagement
+              </div>
+              <div
+                style={{
+                  fontWeight: "bold",
+                  color: practiceCompleted.g3t1 ? "#4CAF50" : "#f57c00",
+                }}
+              >
+                {practiceCompleted.g3t1 ? "✓ Complete" : "Required"}
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: "12px",
+              padding: "8px",
+              background: "rgba(255, 255, 255, 0.5)",
+              borderRadius: "4px",
+              fontSize: "13px",
+              color: "#bf360c",
+              textAlign: "center",
+            }}
+          >
+            <strong>Remember:</strong> Exact = 2 pts (required) | Within 1 = 1
+            pt (retry) | Otherwise = 0 pts (retry)
+          </div>
         </div>
       )}
 
-      <p className="practice-hint">
+      <p
+        className="practice-hint"
+        style={{
+          textAlign: "center",
+          fontSize: "16px",
+          color: "#666",
+          marginBottom: "30px",
+        }}
+      >
         Try each task type before starting the main challenge. No time pressure!
       </p>
 
@@ -113,13 +252,14 @@ export default function PracticeMode({
       {/* Progress indicator */}
       <div
         style={{
-          marginTop: "20px",
+          marginTop: "25px",
           padding: "15px",
           background: "#f5f5f5",
           borderRadius: "8px",
+          textAlign: "center",
         }}
       >
-        <h4 style={{ margin: "0 0 10px 0", color: "#333" }}>
+        <h4 style={{ margin: "0 0 10px 0", color: "#333", fontSize: "16px" }}>
           Practice Progress:
         </h4>
         <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
@@ -157,70 +297,14 @@ export default function PracticeMode({
             Engagement {practiceCompleted.g3t1 && "✓"}
           </div>
         </div>
-      </div>
 
-      {/* Tips section */}
-
-      <li>
-        <strong>100% accuracy required</strong> to complete each practice task
-      </li>
-      <div
-        style={{
-          marginTop: "30px",
-          padding: "15px",
-          background: "#f0f8ff",
-          borderRadius: "8px",
-          border: "1px solid #2196F3",
-        }}
-      >
-        <h4 style={{ margin: "0 0 10px 0", color: "#2196F3" }}>
-          💡 Practice Tips:
-        </h4>
-        <ul
-          style={{
-            margin: "0",
-            paddingLeft: "20px",
-            fontSize: "14px",
-            lineHeight: "1.6",
-            textAlign: "left",
-          }}
-        >
-          <li>AI help is available - click the help buttons in the chat!</li>
-          <li>
-            AI is most reliable early on, might be less reliable as you progress
-          </li>
-          <li>Tasks auto-advance after completion (0.8s delay)</li>
-          <li>Scoring: Exact = 2 pts, Within 1 = 1 pt, Otherwise = 0 pts</li>
-        </ul>
+        <div style={{ marginTop: "12px", fontSize: "13px", color: "#666" }}>
+          <strong>100% accuracy required</strong> to complete each practice task
+        </div>
       </div>
 
       {/* Start button */}
       <div style={{ textAlign: "center", marginTop: "30px" }}>
-        {!isAdmin && !allComplete ? (
-          <div
-            style={{
-              padding: "15px",
-              background: "#fff3cd",
-              borderRadius: "6px",
-              border: "1px solid #ffc107",
-              marginBottom: "15px",
-            }}
-          >
-            <strong style={{ color: "#856404" }}>
-              Complete all three practice tasks with 100% accuracy
-            </strong>
-            <div
-              style={{ marginTop: "10px", fontSize: "14px", color: "#856404" }}
-            >
-              {!practiceCompleted.g2t1 && "• Materials practice required"}
-              {!practiceCompleted.g2t1 && <br />}
-              {!practiceCompleted.g1t1 && "• Research practice required"}
-              {!practiceCompleted.g1t1 && <br />}
-              {!practiceCompleted.g3t1 && "• Engagement practice required"}
-            </div>
-          </div>
-        ) : null}
-
         <button
           className="start-main-game-btn"
           onClick={onStartMainGame}
