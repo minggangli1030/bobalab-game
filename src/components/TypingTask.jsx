@@ -192,9 +192,9 @@ export default function TypingTask({
         attempts: attemptsRef.current,
         totalTime: timeTaken,
         accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
-        userAnswer: input,
-        correctAnswer: pattern,
-        points: points,
+        userAnswer: userValue, // or input for typing/counting
+        correctAnswer: target, // or pattern for typing
+        points: points, // THIS IS CRITICAL - must include points
       });
     }, 800);
   };

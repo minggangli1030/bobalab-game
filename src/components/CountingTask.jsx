@@ -331,9 +331,9 @@ export default function CountingTask({
         attempts: attemptsRef.current,
         totalTime: timeTaken,
         accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
-        userAnswer: userAnswer,
-        correctAnswer: correctAnswer,
-        points: points,
+        userAnswer: userValue, // or input for typing/counting
+        correctAnswer: target, // or pattern for typing
+        points: points, // THIS IS CRITICAL - must include points
       });
     }, 800);
   };

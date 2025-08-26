@@ -147,6 +147,7 @@ export default function PracticeMode({
             <button
               onClick={() => onSelectPractice("g2t1")}
               className={practiceCompleted.g2t1 ? "completed" : ""}
+              disabled={false}
             >
               {practiceCompleted.g2t1 ? "✓ Completed" : "Try Materials"}
             </button>
@@ -164,6 +165,7 @@ export default function PracticeMode({
             <button
               onClick={() => setCurrentPractice("g1t1")}
               className={practiceCompleted.g1t1 ? "completed" : ""}
+              disabled={false}
             >
               {practiceCompleted.g1t1 ? "✓ Completed" : "Try Research"}
             </button>
@@ -181,6 +183,7 @@ export default function PracticeMode({
             <button
               onClick={() => setCurrentPractice("g3t1")}
               className={practiceCompleted.g3t1 ? "completed" : ""}
+              disabled={false}
             >
               {practiceCompleted.g3t1 ? "✓ Completed" : "Try Engagement"}
             </button>

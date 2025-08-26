@@ -841,20 +841,28 @@ function App() {
 
   // Handle practice completion
   const handlePracticeComplete = (taskId, data) => {
-    // Only mark complete if 100% accuracy (2 points)
-    if (data && data.points === 2) {
+    console.log("Practice complete data:", data); // Debug log
+
+    // Check if perfect score
+    if (data && data.points && data.points === 2) {
       setPracticeCompleted((prev) => ({ ...prev, [taskId]: true }));
       showNotification("Perfect! Practice task completed.");
 
-      // Return to practice menu after short delay
+      // Return to practice menu
       setTimeout(() => {
-        setCurrentPractice(null); // This returns to practice menu
+        setCurrentPractice(null);
       }, 1500);
     } else {
-      showNotification("Practice requires perfect accuracy (100%). Try again!");
-      // DON'T reload - just reset the current practice task
+      const points = data?.points || 0;
+      showNotification(
+        `Practice requires 100% accuracy. You scored ${
+          points === 1 ? "50%" : "0%"
+        }. Try again!`
+      );
+
+      // Return to menu to retry
       setTimeout(() => {
-        setCurrentPractice(null); // Return to practice menu to try again
+        setCurrentPractice(null);
       }, 2000);
     }
   };

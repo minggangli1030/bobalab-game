@@ -201,10 +201,10 @@ export default function SliderTask({
       onComplete(`g2t${taskNum}`, {
         attempts: attemptsRef.current,
         totalTime: timeTaken,
-        difference: difference,
-        userValue: userValue,
-        targetValue: target,
-        points: points,
+        accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
+        userAnswer: userValue, // or input for typing/counting
+        correctAnswer: target, // or pattern for typing
+        points: points, // THIS IS CRITICAL - must include points
       });
     }, 800);
   };
