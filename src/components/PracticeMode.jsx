@@ -13,12 +13,20 @@ export default function PracticeMode({
 }) {
   const [currentPractice, setCurrentPractice] = useState(null);
 
-  const handlePracticeTaskComplete = (taskId) => {
-    onPracticeComplete(taskId);
-    // Auto-return to menu after completion
-    setTimeout(() => {
-      setCurrentPractice(null);
-    }, 1500);
+  const handlePracticeTaskComplete = (taskId, data) => {
+    // Only accept if perfect accuracy
+    if (data.points === 2) {
+      onPracticeComplete(taskId);
+      // Auto-return to menu after completion
+      setTimeout(() => {
+        setCurrentPractice(null);
+      }, 1500);
+    } else {
+      // Don't return to menu, let them retry
+      setTimeout(() => {
+        window.location.reload(); // Refresh the practice task
+      }, 2000);
+    }
   };
 
   const allComplete =
@@ -152,6 +160,10 @@ export default function PracticeMode({
       </div>
 
       {/* Tips section */}
+
+      <li>
+        <strong>100% accuracy required</strong> to complete each practice task
+      </li>
       <div
         style={{
           marginTop: "30px",
@@ -195,7 +207,7 @@ export default function PracticeMode({
             }}
           >
             <strong style={{ color: "#856404" }}>
-              Complete all three practice tasks to unlock the main game
+              Complete all three practice tasks with 100% accuracy
             </strong>
             <div
               style={{ marginTop: "10px", fontSize: "14px", color: "#856404" }}

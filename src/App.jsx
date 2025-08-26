@@ -840,7 +840,13 @@ function App() {
 
   // Handle practice completion
   const handlePracticeComplete = (taskId) => {
-    setPracticeCompleted((prev) => ({ ...prev, [taskId]: true }));
+    // Only mark complete if 100% accuracy (2 points)
+    if (data.points === 2) {
+      setPracticeCompleted((prev) => ({ ...prev, [taskId]: true }));
+      showNotification("Perfect! Practice task completed.");
+    } else {
+      showNotification("Practice requires perfect accuracy. Try again!");
+    }
 
     // Check if all practice tasks are complete
     const updatedPractice = { ...practiceCompleted, [taskId]: true };
@@ -967,78 +973,6 @@ function App() {
       <div className="app">
         <div className="landing-container">
           <div className="landing-card">
-            {/* Critical Warning for Students */}
-            {!isAdmin && (
-              <div
-                style={{
-                  background: "#ffebee",
-                  borderRadius: "8px",
-                  padding: "20px",
-                  marginBottom: "25px",
-                  border: "2px solid #f44336",
-                }}
-              >
-                <h3
-                  style={{
-                    color: "#c62828",
-                    margin: "0 0 10px 0",
-                    fontSize: "20px",
-                  }}
-                >
-                  ⚠️ CRITICAL: ONE ATTEMPT ONLY
-                </h3>
-                <p
-                  style={{
-                    color: "#c62828",
-                    margin: "0 0 10px 0",
-                    fontWeight: "bold",
-                    fontSize: "16px",
-                  }}
-                >
-                  You have ONLY ONE CHANCE to complete this game.
-                </p>
-                <ul
-                  style={{
-                    color: "#d32f2f",
-                    margin: "0",
-                    paddingLeft: "20px",
-                    lineHeight: "1.8",
-                  }}
-                >
-                  <li>
-                    <strong>DO NOT refresh the page</strong> - Your session will
-                    end permanently
-                  </li>
-                  <li>
-                    <strong>DO NOT close the browser</strong> - You cannot
-                    return
-                  </li>
-                  <li>
-                    <strong>DO NOT switch tabs</strong> - You have 30 seconds
-                    before auto-termination
-                  </li>
-                  <li>
-                    <strong>DO NOT go idle</strong> - Inactivity will terminate
-                    your session
-                  </li>
-                </ul>
-                <p
-                  style={{
-                    color: "#c62828",
-                    margin: "15px 0 0 0",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                    background: "#fff",
-                    padding: "10px",
-                    borderRadius: "4px",
-                  }}
-                >
-                  Make sure you have 40 minutes of uninterrupted time before
-                  starting.
-                </p>
-              </div>
-            )}
-
             <h1
               style={{ color: "#333", marginBottom: "20px", fontSize: "28px" }}
             >
@@ -1198,6 +1132,78 @@ function App() {
                 </div>
               )}
             </div>
+
+            {/* Critical Warning for Students */}
+            {!isAdmin && (
+              <div
+                style={{
+                  background: "#ffebee",
+                  borderRadius: "8px",
+                  padding: "20px",
+                  marginBottom: "25px",
+                  border: "2px solid #f44336",
+                }}
+              >
+                <h3
+                  style={{
+                    color: "#c62828",
+                    margin: "0 0 10px 0",
+                    fontSize: "20px",
+                  }}
+                >
+                  ⚠️ CRITICAL: ONE ATTEMPT ONLY
+                </h3>
+                <p
+                  style={{
+                    color: "#c62828",
+                    margin: "0 0 10px 0",
+                    fontWeight: "bold",
+                    fontSize: "16px",
+                  }}
+                >
+                  You have ONLY ONE CHANCE to complete this game.
+                </p>
+                <ul
+                  style={{
+                    color: "#d32f2f",
+                    margin: "0",
+                    paddingLeft: "20px",
+                    lineHeight: "1.8",
+                  }}
+                >
+                  <li>
+                    <strong>DO NOT refresh the page</strong> - Your session will
+                    end permanently
+                  </li>
+                  <li>
+                    <strong>DO NOT close the browser</strong> - You cannot
+                    return
+                  </li>
+                  <li>
+                    <strong>DO NOT switch tabs</strong> - You have 30 seconds
+                    before auto-termination
+                  </li>
+                  <li>
+                    <strong>DO NOT go idle</strong> - Inactivity will terminate
+                    your session
+                  </li>
+                </ul>
+                <p
+                  style={{
+                    color: "#c62828",
+                    margin: "15px 0 0 0",
+                    fontWeight: "bold",
+                    fontSize: "14px",
+                    background: "#fff",
+                    padding: "10px",
+                    borderRadius: "4px",
+                  }}
+                >
+                  Make sure you have 40 minutes of uninterrupted time before
+                  starting.
+                </p>
+              </div>
+            )}
 
             <button
               className="start-button"
