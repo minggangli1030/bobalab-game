@@ -983,61 +983,146 @@ function App() {
     return (
       <div className="app">
         <div className="landing-container">
-          <div className="landing-card">
+          <div
+            className="landing-card"
+            style={{ padding: "40px", maxWidth: "900px" }}
+          >
             <h1
-              style={{ color: "#333", marginBottom: "20px", fontSize: "28px" }}
+              style={{
+                color: "#333",
+                marginBottom: "30px",
+                fontSize: "32px",
+                textAlign: "left",
+              }}
             >
               Can you beat Park? - Semester {currentSemester}/{totalSemesters}
             </h1>
 
-            <div style={{ marginBottom: "20px" }}>
-              <h3 style={{ color: "#4CAF50" }}>🎯 Materials</h3>
-              <p>
-                Create teaching materials - each point directly contributes to
-                your goal points!
-              </p>
+            <div className="game-info" style={{ textAlign: "left" }}>
+              <div
+                style={{
+                  marginBottom: "35px",
+                  textAlign: "left",
+                }}
+              >
+                <h3
+                  style={{
+                    color: "#4CAF50",
+                    fontSize: "20px",
+                    marginBottom: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                  }}
+                >
+                  <span style={{ fontSize: "24px" }}>🎯</span> Materials
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "34px",
+                    fontSize: "16px",
+                    lineHeight: "1.6",
+                    color: "#555",
+                  }}
+                >
+                  Create teaching materials - each point directly contributes to
+                  your goal points!
+                </p>
+              </div>
 
-              <h3 style={{ color: "#9C27B0" }}>📚 Research</h3>
-              <p>
-                Research amplifies your materials! Each point adds +15%
-                multiplier to all materials points.
-              </p>
+              <div
+                style={{
+                  marginBottom: "35px",
+                  textAlign: "left",
+                }}
+              >
+                <h3
+                  style={{
+                    color: "#9C27B0",
+                    fontSize: "20px",
+                    marginBottom: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                  }}
+                >
+                  <span style={{ fontSize: "24px" }}>📚</span> Research
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "34px",
+                    fontSize: "16px",
+                    lineHeight: "1.6",
+                    color: "#555",
+                  }}
+                >
+                  Research amplifies your materials! Each point adds +15%
+                  multiplier to all materials points.
+                </p>
+              </div>
 
-              <h3 style={{ color: "#f44336" }}>✉️ Engagement</h3>
-              <p>
-                Build interest that compounds! Each point adds 0.15% interest
-                after every task completion.
-              </p>
-            </div>
+              <div
+                style={{
+                  marginBottom: "35px",
+                  textAlign: "left",
+                }}
+              >
+                <h3
+                  style={{
+                    color: "#f44336",
+                    fontSize: "20px",
+                    marginBottom: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                  }}
+                >
+                  <span style={{ fontSize: "24px" }}>✉️</span> Engagement
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "34px",
+                    fontSize: "16px",
+                    lineHeight: "1.6",
+                    color: "#555",
+                  }}
+                >
+                  Build interest that compounds! Each point adds 0.15% interest
+                  after every task completion.
+                </p>
+              </div>
 
-            <div className="game-info">
               <div
                 style={{
                   background: "#f0f8ff",
                   borderRadius: "8px",
-                  padding: "20px",
-                  marginBottom: "20px",
+                  padding: "25px",
+                  marginBottom: "30px",
                   border: "2px solid #2196F3",
                 }}
               >
                 <h3
                   style={{
                     color: "#2196F3",
-                    fontSize: "18px",
-                    marginBottom: "15px",
+                    fontSize: "20px",
+                    marginBottom: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
                   }}
                 >
-                  📊 Student Learning Formula
+                  <span style={{ fontSize: "24px" }}>📊</span> Student Learning
+                  Formula
                 </h3>
                 <div
                   style={{
                     background: "white",
-                    padding: "15px",
+                    padding: "18px",
                     borderRadius: "6px",
                     fontFamily: "monospace",
-                    fontSize: "16px",
+                    fontSize: "18px",
                     textAlign: "center",
-                    marginBottom: "15px",
+                    marginBottom: "20px",
                     border: "1px solid #e0e0e0",
                   }}
                 >
@@ -1046,10 +1131,10 @@ function App() {
                 <ul
                   style={{
                     color: "#333",
-                    lineHeight: "1.8",
+                    lineHeight: "2",
                     margin: "0",
-                    paddingLeft: "20px",
-                    fontSize: "14px",
+                    paddingLeft: "25px",
+                    fontSize: "15px",
                     textAlign: "left",
                   }}
                 >

@@ -1,4 +1,4 @@
-// src/components/TypingTask.jsx - COMPLETE FILE WITH AI INTEGRATION
+// src/components/TypingTask.jsx - FIXED onComplete call
 import React, { useEffect, useState, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
 import { patternGenerator } from "../utils/patternGenerator";
@@ -17,7 +17,7 @@ export default function TypingTask({
   const [feedback, setFeedback] = useState(null);
   const [startTime] = useState(Date.now());
   const [patternImageUrl, setPatternImageUrl] = useState("");
-  const [isAITyping, setIsAITyping] = useState(false); // ADD THIS
+  const [isAITyping, setIsAITyping] = useState(false);
   const attemptsRef = useRef(0);
 
   // Generate uncopyable pattern image
@@ -61,7 +61,7 @@ export default function TypingTask({
     attemptsRef.current = 0;
   }, [taskNum]);
 
-  // ADD THIS: Listen for AI help
+  // Listen for AI help
   useEffect(() => {
     const handleAIHelp = (event) => {
       const { action, text, typeSpeed } = event.detail;
@@ -192,9 +192,9 @@ export default function TypingTask({
         attempts: attemptsRef.current,
         totalTime: timeTaken,
         accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
-        userAnswer: userValue, // or input for typing/counting
-        correctAnswer: target, // or pattern for typing
-        points: points, // THIS IS CRITICAL - must include points
+        userAnswer: input, // FIXED: was using undefined 'userValue'
+        correctAnswer: pattern, // FIXED: was using undefined 'target'
+        points: points,
       });
     }, 800);
   };
@@ -259,8 +259,8 @@ export default function TypingTask({
           style={{
             backgroundColor: isAITyping ? "#e3f2fd" : "white",
             transition: "background-color 0.3s",
-            width: "100%", // Full width of container
-            maxWidth: "100%", // Remove the 600px limit
+            width: "100%",
+            maxWidth: "100%",
             fontFamily: '"Courier New", monospace',
             fontSize: "28px",
             padding: "12px 14px",
@@ -276,8 +276,8 @@ export default function TypingTask({
         className="submit-btn"
         disabled={isAITyping}
         style={{
-          display: "block", // align buttom
-          margin: "20px auto 0", // Changed from just marginTop
+          display: "block",
+          margin: "20px auto 0",
         }}
       >
         Submit

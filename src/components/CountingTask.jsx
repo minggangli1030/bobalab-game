@@ -1,4 +1,4 @@
-// src/components/CountingTask.jsx - COMPLETE FILE WITH AI INTEGRATION (fixed)
+// src/components/CountingTask.jsx - FIXED onComplete call
 import React, { useEffect, useState, useRef } from "react";
 import { eventTracker } from "../utils/eventTracker";
 import { patternGenerator } from "../utils/patternGenerator";
@@ -317,6 +317,7 @@ export default function CountingTask({
         console.error("Error storing accuracy:", error);
       }
     }
+
     // Always complete the task, but show points earned
     if (points === 2) {
       setFeedback("✓ Perfect! 2 points earned!");
@@ -331,9 +332,9 @@ export default function CountingTask({
         attempts: attemptsRef.current,
         totalTime: timeTaken,
         accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
-        userAnswer: userValue, // or input for typing/counting
-        correctAnswer: target, // or pattern for typing
-        points: points, // THIS IS CRITICAL - must include points
+        userAnswer: userAnswer, // FIXED: was using undefined 'userValue'
+        correctAnswer: correctAnswer, // FIXED: was using undefined 'target'
+        points: points,
       });
     }, 800);
   };
@@ -400,8 +401,8 @@ export default function CountingTask({
         onClick={handleSubmit}
         className="submit-btn"
         style={{
-          display: "block", // align buttom
-          margin: "20px auto 0", // Changed from just marginTop
+          display: "block",
+          margin: "20px auto 0",
         }}
       >
         Submit

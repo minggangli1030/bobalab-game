@@ -19,8 +19,10 @@ export default function PracticeMode({
 
     // Check if perfect accuracy (2 points)
     if (data && data.points === 2) {
-      // Mark as complete
-      onPracticeComplete(taskId, data);
+      // Mark as complete - pass the data object too
+      if (typeof onPracticeComplete === "function") {
+        onPracticeComplete(taskId, data);
+      }
 
       // Show success message
       const notification = document.createElement("div");
