@@ -42,144 +42,83 @@ export default function PracticeMode({
           style={{
             background: "linear-gradient(135deg, #fff3cd 0%, #ffebee 100%)",
             borderRadius: "12px",
-            padding: "20px",
+            padding: "16px",
             marginBottom: "25px",
             border: "2px solid #f57c00",
             boxShadow: "0 4px 6px rgba(245, 124, 0, 0.1)",
+            textAlign: "center",
           }}
         >
           <div
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "10px",
-              marginBottom: "12px",
+              justifyContent: "center",
+              gap: "8px",
             }}
           >
-            <span style={{ fontSize: "24px" }}>⚠️</span>
-            <h3
-              style={{
-                margin: 0,
-                color: "#e65100",
-                fontSize: "18px",
-                fontWeight: "600",
-              }}
-            >
-              Required Practice - 100% Accuracy Needed
-            </h3>
+            <span style={{ fontSize: "20px" }}>📋</span>
+            <strong style={{ color: "#e65100", fontSize: "16px" }}>
+              Practice: You must complete all three practice tasks with perfect
+              accuracy before starting the main game.
+            </strong>
           </div>
-
-          <p
-            style={{
-              color: "#bf360c",
-              margin: "0 0 12px 0",
-              fontWeight: "500",
-            }}
-          >
-            You must complete all three practice tasks with perfect accuracy
-            before starting the main game.
-          </p>
 
           <div
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
+              display: "flex",
               gap: "12px",
-              marginTop: "16px",
+              justifyContent: "center",
+              marginTop: "12px",
             }}
           >
-            <div
+            <span
               style={{
-                padding: "8px",
+                padding: "4px 12px",
                 background: practiceCompleted.g2t1 ? "#e8f5e9" : "white",
-                borderRadius: "6px",
-                textAlign: "center",
+                borderRadius: "20px",
+                fontSize: "13px",
+                color: practiceCompleted.g2t1 ? "#4CAF50" : "#f57c00",
+                fontWeight: "600",
                 border: `1px solid ${
                   practiceCompleted.g2t1 ? "#4CAF50" : "#ffb74d"
                 }`,
               }}
             >
-              <div
-                style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}
-              >
-                Materials
-              </div>
-              <div
-                style={{
-                  fontWeight: "bold",
-                  color: practiceCompleted.g2t1 ? "#4CAF50" : "#f57c00",
-                }}
-              >
-                {practiceCompleted.g2t1 ? "✓ Complete" : "Required"}
-              </div>
-            </div>
+              Materials {practiceCompleted.g2t1 ? "✓" : "Required"}
+            </span>
 
-            <div
+            <span
               style={{
-                padding: "8px",
+                padding: "4px 12px",
                 background: practiceCompleted.g1t1 ? "#e8f5e9" : "white",
-                borderRadius: "6px",
-                textAlign: "center",
+                borderRadius: "20px",
+                fontSize: "13px",
+                color: practiceCompleted.g1t1 ? "#4CAF50" : "#f57c00",
+                fontWeight: "600",
                 border: `1px solid ${
                   practiceCompleted.g1t1 ? "#4CAF50" : "#ffb74d"
                 }`,
               }}
             >
-              <div
-                style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}
-              >
-                Research
-              </div>
-              <div
-                style={{
-                  fontWeight: "bold",
-                  color: practiceCompleted.g1t1 ? "#4CAF50" : "#f57c00",
-                }}
-              >
-                {practiceCompleted.g1t1 ? "✓ Complete" : "Required"}
-              </div>
-            </div>
+              Research {practiceCompleted.g1t1 ? "✓" : "Required"}
+            </span>
 
-            <div
+            <span
               style={{
-                padding: "8px",
+                padding: "4px 12px",
                 background: practiceCompleted.g3t1 ? "#e8f5e9" : "white",
-                borderRadius: "6px",
-                textAlign: "center",
+                borderRadius: "20px",
+                fontSize: "13px",
+                color: practiceCompleted.g3t1 ? "#4CAF50" : "#f57c00",
+                fontWeight: "600",
                 border: `1px solid ${
                   practiceCompleted.g3t1 ? "#4CAF50" : "#ffb74d"
                 }`,
               }}
             >
-              <div
-                style={{ fontSize: "12px", color: "#666", marginBottom: "4px" }}
-              >
-                Engagement
-              </div>
-              <div
-                style={{
-                  fontWeight: "bold",
-                  color: practiceCompleted.g3t1 ? "#4CAF50" : "#f57c00",
-                }}
-              >
-                {practiceCompleted.g3t1 ? "✓ Complete" : "Required"}
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              marginTop: "12px",
-              padding: "8px",
-              background: "rgba(255, 255, 255, 0.5)",
-              borderRadius: "4px",
-              fontSize: "13px",
-              color: "#bf360c",
-              textAlign: "center",
-            }}
-          >
-            <strong>Remember:</strong> Exact = 2 pts (required) | Within 1 = 1
-            pt (retry) | Otherwise = 0 pts (retry)
+              Engagement {practiceCompleted.g3t1 ? "✓" : "Required"}
+            </span>
           </div>
         </div>
       )}

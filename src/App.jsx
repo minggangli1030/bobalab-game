@@ -839,41 +839,41 @@ function App() {
   };
 
   // Handle practice completion
-  const handlePracticeComplete = (taskId) => {
+  const handlePracticeComplete = (taskId, data) => {
     // Only mark complete if 100% accuracy (2 points)
-    if (data.points === 2) {
+    if (data && data.points === 2) {
       setPracticeCompleted((prev) => ({ ...prev, [taskId]: true }));
       showNotification("Perfect! Practice task completed.");
+
+      // Auto-return to practice menu
+      setTimeout(() => {
+        setMode("practiceChoice");
+      }, 1500);
     } else {
-      showNotification("Practice requires perfect accuracy. Try again!");
-    }
-
-    // Check if all practice tasks are complete
-    const updatedPractice = { ...practiceCompleted, [taskId]: true };
-    const allComplete =
-      updatedPractice.g2t1 && updatedPractice.g1t1 && updatedPractice.g3t1;
-
-    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
-    const isAdmin = config.role === "admin";
-
-    if (!isAdmin && allComplete) {
-      showNotification(
-        "All practice tasks complete! You can now start the main game."
-      );
+      showNotification("Practice requires perfect accuracy (100%). Try again!");
+      // Reset the task
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
     }
   };
 
+  // Render current task
   // Render current task
   const renderTask = () => {
     const game = currentTab[1];
     const taskNum = parseInt(currentTab.substring(3));
 
+    // Add isPractice check
+    const isPractice = mode === "practice";
+
     if (game === "1") {
       return (
         <CountingTask
           taskNum={taskNum}
-          onComplete={handleComplete}
+          onComplete={isPractice ? handlePracticeComplete : handleComplete}
           currentTaskId={currentTab}
+          isPractice={isPractice}
         />
       );
     }
@@ -881,16 +881,18 @@ function App() {
       return (
         <SliderTask
           taskNum={taskNum}
-          onComplete={handleComplete}
+          onComplete={isPractice ? handlePracticeComplete : handleComplete}
           currentTaskId={currentTab}
+          isPractice={isPractice}
         />
       );
     }
     return (
       <TypingTask
         taskNum={taskNum}
-        onComplete={handleComplete}
+        onComplete={isPractice ? handlePracticeComplete : handleComplete}
         currentTaskId={currentTab}
+        isPractice={isPractice}
       />
     );
   };
@@ -1068,42 +1070,45 @@ function App() {
                 </ul>
               </div>
 
-              <div
-                style={{
-                  background: "#fff3cd",
-                  borderRadius: "6px",
-                  padding: "15px",
-                  marginBottom: "20px",
-                  border: "1px solid #ffc107",
-                }}
-              >
-                <h3
+              {/* Only show AI assistance for Section 2 students (who have AI) */}
+              {config.hasAI && (
+                <div
                   style={{
-                    color: "#856404",
-                    fontSize: "16px",
-                    marginBottom: "10px",
+                    background: "#fff3cd",
+                    borderRadius: "6px",
+                    padding: "15px",
+                    marginBottom: "20px",
+                    border: "1px solid #ffc107",
                   }}
                 >
-                  AI Assistant Available:
-                </h3>
-                <ul
-                  style={{
-                    color: "#856404",
-                    lineHeight: "1.6",
-                    margin: "0",
-                    paddingLeft: "20px",
-                    fontSize: "14px",
-                  }}
-                >
-                  <li>
-                    Click the help buttons below each task for AI assistance
-                  </li>
-                  <li>Unlimited use but reliability varies</li>
-                  <li>
-                    Type "strategy" or "order" in chat for strategic advice!
-                  </li>
-                </ul>
-              </div>
+                  <h3
+                    style={{
+                      color: "#856404",
+                      fontSize: "16px",
+                      marginBottom: "10px",
+                    }}
+                  >
+                    AI Assistant Available:
+                  </h3>
+                  <ul
+                    style={{
+                      color: "#856404",
+                      lineHeight: "1.6",
+                      margin: "0",
+                      paddingLeft: "20px",
+                      fontSize: "14px",
+                    }}
+                  >
+                    <li>
+                      Click the help buttons below each task for AI assistance
+                    </li>
+                    <li>Unlimited use but reliability varies</li>
+                    <li>
+                      Type "strategy" or "order" in chat for strategic advice!
+                    </li>
+                  </ul>
+                </div>
+              )}
 
               {/* Semester 2 warning */}
               {currentSemester === 2 && (
@@ -1140,121 +1145,85 @@ function App() {
                   background:
                     "linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)",
                   borderRadius: "12px",
-                  padding: "24px",
+                  padding: "20px",
                   marginTop: "20px",
                   marginBottom: "20px",
                   border: "2px solid #d32f2f",
                   boxShadow: "0 4px 6px rgba(211, 47, 47, 0.1)",
-                  textAlign: "left", // Changed from center
                 }}
               >
                 <div
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: "12px",
-                    marginBottom: "16px",
+                    justifyContent: "center",
+                    gap: "10px",
+                    marginBottom: "12px",
                   }}
                 >
-                  <span style={{ fontSize: "28px" }}>⚠️</span>
+                  <span style={{ fontSize: "24px" }}>⚠️</span>
                   <h3
                     style={{
                       color: "#b71c1c",
                       margin: 0,
-                      fontSize: "22px",
-                      fontWeight: "700",
+                      fontSize: "18px",
+                      fontWeight: "600",
                     }}
                   >
-                    CRITICAL: ONE ATTEMPT ONLY
+                    ONE ATTEMPT ONLY - NO RESTART
                   </h3>
                 </div>
 
-                <p
+                <div
                   style={{
-                    color: "#c62828",
-                    margin: "0 0 16px 0",
-                    fontWeight: "600",
-                    fontSize: "16px",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "12px",
+                    marginBottom: "12px",
                   }}
                 >
-                  You have ONLY ONE CHANCE to complete this game.
-                </p>
-
-                <ul
-                  style={{
-                    color: "#d32f2f",
-                    margin: "0 0 16px 0",
-                    paddingLeft: "24px",
-                    lineHeight: "1.8",
-                    listStyle: "none", // Remove default bullets
-                  }}
-                >
-                  <li style={{ marginBottom: "8px" }}>
-                    <strong>❌ DO NOT refresh the page</strong>
-                    <span
-                      style={{
-                        display: "block",
-                        marginLeft: "28px",
-                        fontSize: "14px",
-                        color: "#e57373",
-                      }}
-                    >
-                      Your session will end permanently
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span style={{ color: "#d32f2f", fontSize: "18px" }}>
+                      ❌
                     </span>
-                  </li>
-                  <li style={{ marginBottom: "8px" }}>
-                    <strong>❌ DO NOT close the browser</strong>
-                    <span
-                      style={{
-                        display: "block",
-                        marginLeft: "28px",
-                        fontSize: "14px",
-                        color: "#e57373",
-                      }}
-                    >
-                      You cannot return to the game
+                    <span style={{ fontSize: "14px", color: "#c62828" }}>
+                      <strong>No refresh/close</strong> - Session ends
                     </span>
-                  </li>
-                  <li style={{ marginBottom: "8px" }}>
-                    <strong>❌ DO NOT switch tabs</strong>
-                    <span
-                      style={{
-                        display: "block",
-                        marginLeft: "28px",
-                        fontSize: "14px",
-                        color: "#e57373",
-                      }}
-                    >
-                      You have 30 seconds before auto-termination
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <span style={{ color: "#d32f2f", fontSize: "18px" }}>
+                      ❌
                     </span>
-                  </li>
-                  <li style={{ marginBottom: "8px" }}>
-                    <strong>❌ DO NOT go idle</strong>
-                    <span
-                      style={{
-                        display: "block",
-                        marginLeft: "28px",
-                        fontSize: "14px",
-                        color: "#e57373",
-                      }}
-                    >
-                      Inactivity will terminate your session
+                    <span style={{ fontSize: "14px", color: "#c62828" }}>
+                      <strong>No tab switching</strong> - 30s warning
                     </span>
-                  </li>
-                </ul>
+                  </div>
+                </div>
 
                 <div
                   style={{
                     background: "white",
-                    padding: "12px 16px",
-                    borderRadius: "8px",
-                    borderLeft: "4px solid #ff5252",
-                    marginTop: "16px",
+                    padding: "10px",
+                    borderRadius: "6px",
+                    textAlign: "center",
+                    fontSize: "14px",
+                    color: "#b71c1c",
+                    fontWeight: "600",
                   }}
                 >
-                  <strong style={{ color: "#b71c1c", fontSize: "14px" }}>
-                    ⏰ Required: 40 minutes of uninterrupted time
-                  </strong>
+                  ⏰ Ensure 40 minutes uninterrupted before starting
                 </div>
               </div>
             )}
