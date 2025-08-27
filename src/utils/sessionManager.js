@@ -31,7 +31,23 @@ export const sessionManager = {
     );
 
     try {
-      // Query Firebase for sessions from this student today
+      // First check for admin refresh
+      const refreshRef = collection(db, "accessRefreshes");
+      const refreshQuery = query(
+        refreshRef,
+        where("studentId", "==", studentId),
+        where("refreshedAt", ">=", todayMidnight)
+      );
+
+      const refreshSnapshot = await getDocs(refreshQuery);
+
+      if (!refreshSnapshot.empty) {
+        // Student has been granted refresh access
+        console.log("Student has refresh access granted by admin");
+        return { allowed: true, refreshGranted: true };
+      }
+
+      // Check for existing sessions today
       const sessionsRef = collection(db, "sessions");
       const q = query(
         sessionsRef,
@@ -42,12 +58,30 @@ export const sessionManager = {
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        // Student already played today
-        const existingSession = querySnapshot.docs[0].data();
+        // Check if they have a refresh record AFTER their session
+        const latestSession = querySnapshot.docs[0].data();
+        const sessionTime = latestSession.startTime?.toDate
+          ? latestSession.startTime.toDate()
+          : new Date(latestSession.clientStartTime);
+
+        // Check for refresh after session
+        const refreshAfterQuery = query(
+          refreshRef,
+          where("studentId", "==", studentId),
+          where("refreshedAt", ">", sessionTime)
+        );
+
+        const refreshAfterSnapshot = await getDocs(refreshAfterQuery);
+
+        if (!refreshAfterSnapshot.empty) {
+          return { allowed: true, refreshGranted: true };
+        }
+
+        // No refresh - they already played
         return {
           allowed: false,
           reason: "daily_limit",
-          existingSession: existingSession,
+          existingSession: latestSession,
           nextAvailable: new Date(
             todayMidnight.getTime() + 24 * 60 * 60 * 1000
           ),
@@ -131,10 +165,10 @@ export const sessionManager = {
       const isAdmin = gameConfig.role === "admin";
 
       if (!isAdmin && gameConfig.studentId) {
-        // Check daily limit for students
+        // Check daily limit for students (with refresh support)
         const dailyCheck = await this.checkDailyLimit(gameConfig.studentId);
 
-        if (!dailyCheck.allowed) {
+        if (!dailyCheck.allowed && !dailyCheck.refreshGranted) {
           const nextAvailable = dailyCheck.nextAvailable;
           const hoursUntil = Math.ceil(
             (nextAvailable - Date.now()) / (1000 * 60 * 60)

@@ -16,6 +16,7 @@ import "./App.css";
 import AdminPage from "./AdminPage";
 import GameModeSelector from "./components/GameModeSelector";
 import CompletionCodeDisplay from "./components/CompletionCodeDisplay";
+import MasterAdmin from "./components/MasterAdmin";
 
 // Helper function to calculate Levenshtein distance
 function calculateLevenshteinDistance(str1, str2) {
@@ -46,6 +47,14 @@ function calculateLevenshteinDistance(str1, str2) {
 }
 
 function App() {
+  // Master Admin interface (highest priority)
+  if (window.location.search.includes("master=true")) {
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    if (config.role === "master_admin") {
+      return <MasterAdmin />;
+    }
+  }
+
   // Admin page (hidden route)
   if (window.location.search.includes("admin=true")) {
     return <AdminPage />;

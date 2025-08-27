@@ -17,6 +17,14 @@ export default function StudentLogin({ onLoginSuccess }) {
 
   // Master codes for testing - with new experimental conditions
   const MASTER_CODES = {
+    // Able to refresh student access
+    "ADMIN-MASTER": {
+      role: "master_admin",
+      name: "Master Administrator",
+      hasAI: false,
+      isMasterInterface: true,
+    },
+
     // Original admin codes (kept the same)
     "ADMIN-REGULAR": {
       role: "admin",
@@ -278,7 +286,22 @@ export default function StudentLogin({ onLoginSuccess }) {
           hasAI: validation.data.hasAI,
           checkpointSemester2: validation.data.checkpointSemester2,
           isMasterCode: true,
+          isMasterInterface: validation.data.isMasterInterface || false,
         };
+
+        // Special redirect for master admin
+        if (validation.data.isMasterInterface) {
+          sessionStorage.setItem(
+            "gameConfig",
+            JSON.stringify({
+              role: "master_admin",
+              displayName: validation.data.name,
+            })
+          );
+
+          window.location.href = `${window.location.origin}?master=true`;
+          return;
+        }
       } else {
         // Regular student - apply experimental condition
         const condition = validation.condition;
