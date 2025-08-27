@@ -1298,10 +1298,9 @@ function App() {
                     lineHeight: "1.8",
                   }}
                 >
-                  Goal = Materials
-                  <br />
-                  × (1 + 0.15×Research)
-                  <br />+ Engagement Interest
+                  Goal = <strong>Materials</strong>
+                  <br />× (1 + 0.15×<strong>Research</strong>)<br />+{" "}
+                  <strong>Engagement</strong> Interest
                 </div>
                 <ul
                   style={{
