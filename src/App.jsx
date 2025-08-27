@@ -1166,7 +1166,7 @@ function App() {
                 textAlign: "left",
               }}
             >
-              Can you beat Park? - Semester {currentSemester}/{totalSemesters}
+              Can you beat Park? - Sem {currentSemester}/{totalSemesters}
             </h1>
 
             <div className="game-info" style={{ textAlign: "left" }}>
@@ -1295,9 +1295,13 @@ function App() {
                     textAlign: "center",
                     marginBottom: "20px",
                     border: "1px solid #e0e0e0",
+                    lineHeight: "1.8",
                   }}
                 >
-                  Goal = Materials × (1 + 0.15×Research) + Engagement Interest
+                  Goal = Materials
+                  <br />
+                  × (1 + 0.15×Research)
+                  <br />+ Engagement Interest
                 </div>
                 <ul
                   style={{
@@ -2736,7 +2740,7 @@ function App() {
 
       <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
         <h1 style={{ marginBottom: "30px", textAlign: "center" }}>
-          Can you beat Park? - Semester {currentSemester}/{totalSemesters}
+          Can you beat Park? - Sem {currentSemester}/{totalSemesters}
         </h1>
 
         {/* Use NavTabsEnhanced with updated category names */}
