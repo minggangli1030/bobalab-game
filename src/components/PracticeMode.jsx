@@ -86,13 +86,19 @@ export default function PracticeMode({
               alignItems: "center",
               justifyContent: "center",
               gap: "8px",
+              marginBottom: "8px",
             }}
           >
-            <span style={{ fontSize: "20px" }}>📋</span>
-            <strong style={{ color: "#e65100", fontSize: "16px" }}>
-              Practice: You must complete all three practice tasks with perfect
-              accuracy before starting the main game.
+            <span style={{ fontSize: "20px" }}>⚠️</span>
+            <strong style={{ color: "#e65100", fontSize: "18px" }}>
+              100% PERFECT ACCURACY REQUIRED
             </strong>
+          </div>
+          <div style={{ color: "#e65100", fontSize: "14px" }}>
+            You must score 2/2 points (exact answer) on all three practice tasks
+            to proceed.
+            <br />
+            <strong>No partial credit in practice mode!</strong>
           </div>
 
           <div

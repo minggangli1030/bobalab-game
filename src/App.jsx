@@ -143,7 +143,9 @@ function App() {
     };
 
     const handleBlur = () => {
-      console.log("Window blurred - student will be warned");
+      console.log("Window blurred - focus detection disabled");
+      // Focus/blur detection disabled for now
+      /*
       // Only trigger for students in challenge mode
       if (mode === "challenge" && !isAdmin) {
         setIsOutOfFocus(true);
@@ -179,6 +181,7 @@ function App() {
           }
         }, 1000);
       }
+      */
     };
 
     // Add idle detection
@@ -372,30 +375,15 @@ function App() {
         ...prev,
         bonus: (prev.bonus || 0) + bonus,
       }));
-
-      showNotification(
-        `🎉 Midterm Bonus! +${bonus} points for ${Math.round(
-          studentLearning
-        )} student learning!`
-      );
     } else {
       setCheckpointBonus(0);
-      showNotification(
-        `📚 Midterm: Need 50+ student learning for bonus (current: ${Math.round(
-          studentLearning
-        )})`
-      );
     }
 
-    // Show checkpoint modal
+    // Show checkpoint modal - pause the game
     setIsInBreak(true);
     setBreakDestination("checkpoint");
 
-    // Continue after 5 seconds...
-    setTimeout(() => {
-      setIsInBreak(false);
-      setBreakDestination(null);
-    }, 5000);
+    // Don't auto-close - wait for user to click continue
   };
 
   const startTimer = () => {
@@ -970,6 +958,180 @@ function App() {
       </div>
     );
   }
+
+  // Semester Break Screen
+  if (mode === "semesterBreak") {
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const hasCheckpointNext =
+      currentSemester === 2 && config.checkpointSemester2;
+
+    return (
+      <div className="app">
+        <div
+          style={{
+            maxWidth: "700px",
+            margin: "50px auto",
+            padding: "40px",
+            background: "white",
+            borderRadius: "12px",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+            textAlign: "center",
+          }}
+        >
+          <h1 style={{ color: "#2196F3", marginBottom: "30px" }}>
+            🎉 Semester {currentSemester - 1} Complete!
+          </h1>
+
+          <div
+            style={{
+              background: "#e3f2fd",
+              padding: "20px",
+              borderRadius: "8px",
+              marginBottom: "30px",
+              border: "2px solid #2196F3",
+            }}
+          >
+            <h3 style={{ color: "#1976d2", marginBottom: "10px" }}>
+              Take a Break!
+            </h3>
+            <p style={{ fontSize: "16px", color: "#666", marginBottom: "0" }}>
+              Great job completing Semester {currentSemester - 1}! Take a moment
+              to rest your eyes, stretch, or grab some water before continuing.
+            </p>
+          </div>
+
+          {/* Show checkpoint info only if they have it enabled */}
+          {hasCheckpointNext && (
+            <div
+              style={{
+                background: "linear-gradient(135deg, #fff3cd 0%, #ffebee 100%)",
+                padding: "25px",
+                borderRadius: "8px",
+                marginBottom: "30px",
+                border: "2px solid #ff9800",
+              }}
+            >
+              <h3 style={{ color: "#f57c00", marginBottom: "15px" }}>
+                📚 Midterm Checkpoint Coming!
+              </h3>
+              <div
+                style={{ fontSize: "16px", color: "#666", textAlign: "left" }}
+              >
+                <p style={{ marginBottom: "10px" }}>
+                  <strong>
+                    Semester 2 includes a midterm exam at the 10-minute mark!
+                  </strong>
+                </p>
+                <ul style={{ marginLeft: "20px", marginBottom: "10px" }}>
+                  <li>Your students will be tested at the midpoint</li>
+                  <li>
+                    If student learning ≥ 50 points:{" "}
+                    <strong>+300 bonus points!</strong>
+                  </li>
+                  <li>
+                    Build up your teaching effectiveness early to maximize the
+                    bonus
+                  </li>
+                </ul>
+                <p
+                  style={{
+                    background: "white",
+                    padding: "10px",
+                    borderRadius: "4px",
+                    textAlign: "center",
+                    fontWeight: "bold",
+                    color: "#f57c00",
+                  }}
+                >
+                  Goal: Reach 50+ Student Learning by minute 10
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Previous semester summary */}
+          {semesterHistory.length > 0 && (
+            <div
+              style={{
+                background: "#f5f5f5",
+                padding: "20px",
+                borderRadius: "8px",
+                marginBottom: "30px",
+              }}
+            >
+              <h4 style={{ color: "#666", marginBottom: "10px" }}>
+                Your Performance So Far:
+              </h4>
+              {semesterHistory.map((sem, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    marginBottom: "8px",
+                    fontSize: "16px",
+                  }}
+                >
+                  Semester {idx + 1}: <strong>{sem.finalScore} points</strong>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Ready button */}
+          <div style={{ marginTop: "30px" }}>
+            <button
+              onClick={() => {
+                // Start the next semester
+                setMode("challenge");
+                startTimer();
+                setTaskStartTimes({ g2t1: Date.now() });
+                eventTracker.setPageStartTime("g2t1");
+                eventTracker.logEvent("semester_start", {
+                  semester: currentSemester,
+                  timestamp: Date.now(),
+                  hasCheckpoint: hasCheckpointNext,
+                });
+              }}
+              style={{
+                padding: "15px 40px",
+                background: "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "18px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                transition: "all 0.3s",
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 6px 12px rgba(0,0,0,0.15)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 4px 6px rgba(0,0,0,0.1)";
+              }}
+            >
+              I'm Ready - Start Semester {currentSemester}
+            </button>
+
+            <p
+              style={{
+                marginTop: "15px",
+                fontSize: "14px",
+                color: "#999",
+              }}
+            >
+              Click when you're ready to continue. The timer will start
+              immediately.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Landing page with warning
 
   // Landing page with warning
   if (mode === "landing") {
@@ -1758,15 +1920,10 @@ function App() {
 
       setCurrentSemester(currentSemester + 1);
 
-      // Show midterm warning when starting semester 2
-      if (currentSemester === 1) {
-        setTimeout(() => {
-          showNotification(
-            "📚 Semester 2 Alert: Midterm at 10 minutes! Get 50+ student learning for 300 bonus points!"
-          );
-        }, 2000);
-      }
+      // Go to semester break page instead of directly starting
+      setMode("semesterBreak");
 
+      // Reset everything for next semester
       setCompleted({});
       setCompletedLevels(0);
       setSwitches(0);
@@ -1774,15 +1931,11 @@ function App() {
       setGlobalTimer(0);
       setPausedTime(0);
       setCurrentTab("g2t1"); // Start with materials
-      setMode("challenge");
+      setCheckpointReached(false);
 
       const newSeed = Math.floor(Math.random() * 1000000);
       setRandomSeed(newSeed);
       patternGenerator.initializeSeed(newSeed);
-
-      startTimer();
-      setTaskStartTimes({ g2t1: Date.now() });
-      eventTracker.setPageStartTime("g2t1");
     };
 
     const isLastSemester = currentSemester >= totalSemesters;
@@ -2239,74 +2392,222 @@ function App() {
               padding: "40px",
               borderRadius: "12px",
               textAlign: "center",
-              maxWidth: "600px",
+              maxWidth: "700px",
+              width: "90%",
+              maxHeight: "90vh",
+              overflow: "auto",
             }}
           >
-            <h2 style={{ color: "#4CAF50", marginBottom: "20px" }}>
-              📚 Exam Season Checkpoint!
-            </h2>
-            <p style={{ fontSize: "18px", marginBottom: "20px" }}>
-              The midterm is here! Let's see how your students are doing...
-            </p>
-            <div style={{ marginBottom: "20px" }}>
-              <h3>Teaching Performance:</h3>
-              <div>Materials: {categoryPoints.materials} pts</div>
-              <div>
-                Research: {categoryPoints.research} pts (×
-                {(1 + categoryPoints.research * 0.15).toFixed(2)})
-              </div>
-              <div>
-                Engagement: {categoryPoints.engagement} pts (+
-                {(categoryPoints.engagement * 0.15).toFixed(1)}% interest/task)
-              </div>
-            </div>
-            <div
+            <h2
               style={{
-                background: "#e3f2fd",
-                padding: "15px",
-                borderRadius: "8px",
-                marginBottom: "20px",
+                color: "#4CAF50",
+                marginBottom: "25px",
+                fontSize: "28px",
               }}
             >
+              📚 Midterm Exam Results!
+            </h2>
+
+            <div
+              style={{
+                fontSize: "18px",
+                marginBottom: "25px",
+                padding: "20px",
+                background: "#f8f9fa",
+                borderRadius: "8px",
+              }}
+            >
+              <p style={{ marginBottom: "15px" }}>
+                The midterm exam has arrived! Let's see how your students
+                performed...
+              </p>
+
               <div
                 style={{
                   fontSize: "20px",
                   fontWeight: "bold",
                   color: "#1976d2",
+                  padding: "15px",
+                  background: "white",
+                  borderRadius: "6px",
+                  margin: "15px 0",
                 }}
               >
                 Student Learning Score: {Math.round(calculateStudentLearning())}{" "}
                 pts
               </div>
+            </div>
+
+            {/* Teaching breakdown */}
+            <div
+              style={{
+                marginBottom: "25px",
+                padding: "20px",
+                background: "#e3f2fd",
+                borderRadius: "8px",
+                textAlign: "left",
+              }}
+            >
+              <h3 style={{ marginBottom: "15px", textAlign: "center" }}>
+                Your Teaching Performance:
+              </h3>
               <div
-                style={{ fontSize: "14px", color: "#666", marginTop: "5px" }}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 1fr",
+                  gap: "10px",
+                }}
               >
-                = {categoryPoints.materials} ×{" "}
-                {(1 + categoryPoints.research * 0.15).toFixed(2)} + Interest
+                <div
+                  style={{
+                    padding: "10px",
+                    background: "white",
+                    borderRadius: "6px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ color: "#4CAF50", fontWeight: "bold" }}>
+                    Materials
+                  </div>
+                  <div style={{ fontSize: "20px" }}>
+                    {categoryPoints.materials} pts
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: "10px",
+                    background: "white",
+                    borderRadius: "6px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ color: "#9C27B0", fontWeight: "bold" }}>
+                    Research
+                  </div>
+                  <div style={{ fontSize: "20px" }}>
+                    {categoryPoints.research} pts
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>
+                    ×{(1 + categoryPoints.research * 0.15).toFixed(2)}
+                  </div>
+                </div>
+                <div
+                  style={{
+                    padding: "10px",
+                    background: "white",
+                    borderRadius: "6px",
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ color: "#f44336", fontWeight: "bold" }}>
+                    Engagement
+                  </div>
+                  <div style={{ fontSize: "20px" }}>
+                    {categoryPoints.engagement} pts
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#666" }}>
+                    +{(categoryPoints.engagement * 0.15).toFixed(1)}% interest
+                  </div>
+                </div>
               </div>
             </div>
+
+            {/* Bonus result */}
             <div
               style={{
                 fontSize: "24px",
                 fontWeight: "bold",
-                color: checkpointBonus > 0 ? "#4CAF50" : "#ff9800",
+                padding: "20px",
+                borderRadius: "8px",
+                marginBottom: "25px",
+                background:
+                  checkpointBonus > 0
+                    ? "linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 100%)"
+                    : "linear-gradient(135deg, #fff3cd 0%, #ffe082 100%)",
+                border: `2px solid ${
+                  checkpointBonus > 0 ? "#4CAF50" : "#ff9800"
+                }`,
+                color: checkpointBonus > 0 ? "#2e7d32" : "#f57c00",
               }}
             >
               {currentSemester === 2 ? (
                 checkpointBonus > 0 ? (
-                  <>🎉 Midterm Bonus Earned: +{checkpointBonus} points!</>
+                  <>
+                    🎉 Excellent Teaching! +{checkpointBonus} bonus points
+                    earned!
+                  </>
                 ) : (
                   <>
-                    📚 Need 50+ Student Learning for 300 bonus (current:{" "}
-                    {Math.round(calculateStudentLearning())})
+                    📚 Goal was 50+ points (you had{" "}
+                    {Math.round(calculateStudentLearning())}). Keep teaching!
                   </>
                 )
               ) : (
                 <>Checkpoint reached! Keep going!</>
               )}
             </div>
-            <p style={{ marginTop: "20px", color: "#666" }}>
-              Continuing in 5 seconds...
+
+            {/* Tips for remainder */}
+            <div
+              style={{
+                marginBottom: "20px",
+                padding: "15px",
+                background: "#f5f5f5",
+                borderRadius: "6px",
+                fontSize: "14px",
+                color: "#666",
+                textAlign: "left",
+              }}
+            >
+              <strong>Tips for the rest of the semester:</strong>
+              <ul style={{ margin: "10px 0 0 20px", lineHeight: "1.6" }}>
+                <li>You have about 10 minutes remaining</li>
+                <li>Focus on accuracy - every point counts!</li>
+                <li>
+                  Research multiplies everything, Engagement compounds over time
+                </li>
+                <li>Materials give direct points - use them strategically</li>
+              </ul>
+            </div>
+
+            {/* Continue button */}
+            <button
+              onClick={() => {
+                setIsInBreak(false);
+                setBreakDestination(null);
+              }}
+              style={{
+                padding: "12px 35px",
+                background: "#2196F3",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "16px",
+                fontWeight: "bold",
+                cursor: "pointer",
+                boxShadow: "0 3px 6px rgba(0,0,0,0.15)",
+                transition: "all 0.3s",
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = "translateY(-2px)";
+                e.currentTarget.style.boxShadow = "0 5px 10px rgba(0,0,0,0.2)";
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 3px 6px rgba(0,0,0,0.15)";
+              }}
+            >
+              Continue Teaching →
+            </button>
+
+            <p
+              style={{
+                marginTop: "10px",
+                color: "#999",
+                fontSize: "12px",
+              }}
+            >
+              The timer is paused. Click to continue when ready.
             </p>
           </div>
         </div>

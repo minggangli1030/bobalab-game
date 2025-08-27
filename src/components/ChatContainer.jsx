@@ -113,7 +113,7 @@ class AITaskHelper {
         }
       });
     } else {
-      // After 5th use: bad 75% of the time
+      // After 5th use: correct 75% of the time
       if (Math.random() < 0.75) {
         if (Math.random() < 0.5) {
           // Within 1 point
@@ -445,6 +445,35 @@ export default function ChatContainer({
     }
   };
 
+  // Handler for planning/strategy help
+  const handlePlanningHelp = () => {
+    const planningResponses = [
+      "📊 Strategic Order: Start with Research tasks for the 15% multiplier per point, then do Engagement for compound interest that builds over time, finally complete Materials for maximum base points!",
+      "🎯 Pro Strategy: Research → Engagement → Materials. Build your multipliers first, then let interest compound, and maximize base points at the end!",
+      "💡 Optimal Workflow: 1) Research multiplies everything (×1.15 per point), 2) Engagement adds 0.15% interest after EVERY task, 3) Materials are pure points - save them for last when multipliers are active!",
+      "🚀 Best Practice: Complete Research early (multiplier effect), then Engagement (compounds over time), finally Materials. Each Research point makes ALL your Materials worth 15% more!",
+      "📈 Planning Tip: Think of it as investing - Research is your growth multiplier, Engagement is compound interest, Materials are your principal. Build multipliers before collecting points!",
+    ];
+
+    const response =
+      planningResponses[Math.floor(Math.random() * planningResponses.length)];
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: "bot",
+        text: response,
+      },
+    ]);
+
+    // Log planning help request
+    eventTracker.trackUserAction("planning_help_requested", {
+      response: response,
+      currentTask: currentTask,
+      timestamp: Date.now(),
+    });
+  };
+
   // Handler for typing help (Engagement) - FIXED
   const handleTypingHelp = () => {
     const patternElement = document.querySelector("[data-typing-pattern]");
@@ -529,12 +558,22 @@ export default function ChatContainer({
         } else {
           response = "Click the help buttons below for task assistance!";
         }
-      } else if (userMessage.includes("strategy")) {
+      } else if (
+        userMessage.includes("strategy") ||
+        userMessage.includes("plan") ||
+        userMessage.includes("order")
+      ) {
+        const planningResponses = [
+          "📊 Strategic Order: Start with Research tasks for the 15% multiplier per point, then do Engagement for compound interest that builds over time, finally complete Materials for maximum base points!",
+          "🎯 Pro Strategy: Research → Engagement → Materials. Build your multipliers first, then let interest compound, and maximize base points at the end!",
+          "💡 Optimal Workflow: 1) Research multiplies everything (×1.15 per point), 2) Engagement adds 0.15% interest after EVERY task, 3) Materials are pure points - save them for last when multipliers are active!",
+          "🚀 Best Practice: Complete Research early (multiplier effect), then Engagement (compounds over time), finally Materials. Each Research point makes ALL your Materials worth 15% more!",
+          "📈 Planning Tip: Think of it as investing - Research is your growth multiplier, Engagement is compound interest, Materials are your principal. Build multipliers before collecting points!",
+        ];
         response =
-          "Pro tip: Start with Research for the multiplier (×1.15 per point), then Engagement for compound interest on every task, finally Materials for maximum base points!";
-      } else if (userMessage.includes("order")) {
-        response =
-          "Optimal order: Research → Engagement → Materials. Build multipliers and interest first, then maximize base points at the end!";
+          planningResponses[
+            Math.floor(Math.random() * planningResponses.length)
+          ];
       } else if (
         userMessage.includes("tip") ||
         userMessage.includes("advice")
@@ -674,6 +713,30 @@ export default function ChatContainer({
               {currentGameType
                 ? `Help with Current Task`
                 : "Start a task to enable help"}
+            </button>
+
+            {/* Planning Help Button */}
+            <button
+              onClick={handlePlanningHelp}
+              style={{
+                gridColumn: "1 / -1",
+                padding: "12px",
+                background: "#FF9800",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontWeight: "bold",
+                fontSize: "14px",
+                transition: "all 0.2s",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+              }}
+            >
+              <span style={{ fontSize: "18px" }}>📊</span>
+              Help with Planning
             </button>
 
             {/* Individual Task Buttons */}

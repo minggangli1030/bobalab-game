@@ -54,11 +54,11 @@ export default function NavTabsEnhanced({
     return completed[previousTask] === true;
   };
 
-  // Group tabs by game
+  // Group tabs by game - reordered to show Materials first
   const gameGroups = {
-    1: tabs.filter((t) => t.game === 1),
-    2: tabs.filter((t) => t.game === 2),
-    3: tabs.filter((t) => t.game === 3),
+    2: tabs.filter((t) => t.game === 2), // Materials first
+    1: tabs.filter((t) => t.game === 1), // Research second
+    3: tabs.filter((t) => t.game === 3), // Engagement third
   };
 
   const gameColors = {
