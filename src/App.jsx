@@ -429,7 +429,7 @@ function App() {
         const checkpointTime =
           config.role === "admin" && config.semesterDuration === 120000
             ? 60 // 1 minute for admin fast mode
-            : 600; // 10 minutes for regular mode
+            : 360; // 6 minutes for regular mode
 
         if (elapsedSeconds === checkpointTime && !checkpointReached) {
           handleCheckpoint();
@@ -1028,7 +1028,7 @@ function App() {
               >
                 <p style={{ marginBottom: "10px" }}>
                   <strong>
-                    Semester 2 includes a midterm exam at the 10-minute mark!
+                    Semester 2 includes a midterm exam at the 6-minute mark!
                   </strong>
                 </p>
                 <ul style={{ marginLeft: "20px", marginBottom: "10px" }}>
@@ -2570,7 +2570,7 @@ function App() {
             >
               <strong>Tips for the rest of the semester:</strong>
               <ul style={{ margin: "10px 0 0 20px", lineHeight: "1.6" }}>
-                <li>You have about 10 minutes remaining</li>
+                <li>You have about 6 minutes remaining</li>
                 <li>Focus on accuracy - every point counts!</li>
                 <li>
                   Research multiplies everything, Engagement compounds over time

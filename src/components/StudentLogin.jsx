@@ -28,7 +28,7 @@ export default function StudentLogin({ onLoginSuccess }) {
     // Original admin codes (kept the same)
     "ADMIN-REGULAR": {
       role: "admin",
-      semesterDuration: 1200000, // 20 min
+      semesterDuration: 720000, // 12 min
       name: "Admin Regular Mode",
       hasAI: true,
       checkpointSemester2: true,
@@ -309,7 +309,7 @@ export default function StudentLogin({ onLoginSuccess }) {
           ...codeData,
           studentIdentifier: identifier,
           role: "student",
-          semesterDuration: 1200000, // Normal 20 min
+          semesterDuration: 720000, // Normal 12 min
           displayName: condition.displayName,
           section: condition.section,
           hasAI: condition.hasAI,

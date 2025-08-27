@@ -269,7 +269,7 @@ export const sessionManager = {
         accessCode,
         studentId: gameConfig.studentId || null,
         role: gameConfig.role || "student",
-        semesterDuration: gameConfig.semesterDuration || 1200000,
+        semesterDuration: gameConfig.semesterDuration || 720000,
         displayName: gameConfig.displayName || "Student",
         startTime: serverTimestamp(),
         clientStartTime: new Date().toISOString(),
