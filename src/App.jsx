@@ -2791,8 +2791,8 @@ function App() {
               background: "white",
               borderRadius: "8px",
               border: "1px solid #e0e0e0",
-              overflow: "hidden",
-              height: "700px" /* Increased from 650px */,
+              overflow: "visible" /* Changed from hidden to visible */,
+              height: "680px" /* Increased height slightly */,
               display: "flex",
               flexDirection: "column",
             }}
