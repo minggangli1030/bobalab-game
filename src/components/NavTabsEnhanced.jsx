@@ -105,7 +105,9 @@ export default function NavTabsEnhanced({
           marginBottom: "25px",
         }}
       >
-        {Object.entries(gameGroups).map(([gameNum, gameTabs]) => {
+        {/* Explicitly order: Materials (2), Research (1), Engagement (3) */}
+        {[2, 1, 3].map((gameNum) => {
+          const gameTabs = gameGroups[gameNum];
           const completedInGame = gameTabs.filter(
             (t) => completed[t.id]
           ).length;
