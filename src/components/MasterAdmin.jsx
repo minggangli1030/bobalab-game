@@ -21,6 +21,146 @@ export default function MasterAdmin() {
   const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Complete student roster with sections
+  const CLASS_1A_ID_CHECKPOINT = [
+    "3040748714",
+    "3040729812",
+    "3040859968",
+    "3040852909",
+    "3040869211",
+    "3040849958",
+    "3039838870",
+    "15177695",
+    "3040849997",
+    "3039845630",
+    "3040682661",
+    "26416809",
+    "3039850622",
+    "3040869510",
+    "3031977170",
+    "3040806629",
+    "3040848528",
+    "3039840443",
+    "3040848749",
+    "3040849893",
+    "3039850830",
+    "3039850713",
+  ];
+
+  const CLASS_1A_ID_NOCHECKPOINT = [
+    "3040850023",
+    "22900589",
+    "3039850570",
+    "3040882302",
+    "3040815651",
+    "3040701758",
+    "3040852077",
+    "3036343361",
+    "3040869458",
+    "3040705047",
+    "3040702343",
+    "3039842887",
+    "3040848593",
+    "3040702603",
+    "3039840222",
+    "3039840209",
+    "3040861190",
+    "18565110",
+    "3040869302",
+    "3040814338",
+    "3039754031",
+  ];
+
+  const CLASS_2A_ID_CHECKPOINT = [
+    "3040705476",
+    "3040697715",
+    "3039753992",
+    "3040729513",
+    "3040681595",
+    "3040850010",
+    "3032682772",
+    "3039842484",
+    "3040869445",
+    "3040814455",
+    "3039840781",
+    "3040696831",
+    "3040705125",
+    "3034184066",
+    "3039843004",
+    "3039842835",
+    "3040860072",
+    "3040871018",
+    "3039839026",
+    "3040814429",
+    "3040869094",
+    "3040748064",
+    "3040875945",
+    "3040701589",
+    "3040682193",
+    "3040729422",
+    "3040836165",
+    "21798975",
+    "3038626424",
+    "3039753017",
+    "3039840287",
+    "3040806382",
+  ];
+
+  const CLASS_2A_ID_NOCHECKPOINT = [
+    "25958106",
+    "3040814351",
+    "3040848697",
+    "3040684039",
+    "3040869289",
+    "22971551",
+    "3040837218",
+    "3040864570",
+    "3040705099",
+    "3034288430",
+    "3040848541",
+    "3040864531",
+    "3040869237",
+    "3032342054",
+    "3040682479",
+    "3039840170",
+    "3032397447",
+    "3039850856",
+    "3039840118",
+    "3040729552",
+    "3040683181",
+    "3040861073",
+    "3031968434",
+    "3040882575",
+    "3035320237",
+    "3040823815",
+    "3039842575",
+    "24261697",
+    "23420611",
+    "3032000089",
+    "3040882341",
+  ];
+
+  // Helper function to determine student section and checkpoint status
+  const getStudentInfo = (studentId) => {
+    if (CLASS_1A_ID_CHECKPOINT.includes(studentId)) {
+      return { section: "01A-CP", hasCheckpoint: true };
+    }
+    if (CLASS_1A_ID_NOCHECKPOINT.includes(studentId)) {
+      return { section: "01A-NCP", hasCheckpoint: false };
+    }
+    if (CLASS_2A_ID_CHECKPOINT.includes(studentId)) {
+      return { section: "02A-CP", hasCheckpoint: true };
+    }
+    if (CLASS_2A_ID_NOCHECKPOINT.includes(studentId)) {
+      return { section: "02A-NCP", hasCheckpoint: false };
+    }
+    // Admin codes or test accounts
+    if (studentId.includes("ADMIN") || studentId.includes("admin")) {
+      return { section: "ADMIN", hasCheckpoint: false };
+    }
+    return { section: "Unknown", hasCheckpoint: false };
+  };
+
   useEffect(() => {
     loadStudentData();
   }, []);
@@ -28,27 +168,36 @@ export default function MasterAdmin() {
   const loadStudentData = async () => {
     setLoading(true);
     try {
-      // Get all sessions
+      // Get all sessions from Firebase
       const sessionsSnapshot = await getDocs(collection(db, "sessions"));
 
-      // Group by student ID
-      const studentMap = {};
+      // Create a map of students who have played
+      const playedStudentsMap = {};
 
       sessionsSnapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.studentId && data.role !== "admin") {
-          if (!studentMap[data.studentId]) {
-            studentMap[data.studentId] = {
+        // Skip actual admin sessions
+        if (data.role === "admin" || data.role === "master_admin") {
+          return; // Skip admin sessions
+        }
+
+        if (data.studentId) {
+          const studentInfo = getStudentInfo(data.studentId);
+
+          if (!playedStudentsMap[data.studentId]) {
+            playedStudentsMap[data.studentId] = {
               studentId: data.studentId,
               sessions: [],
               latestAccess: null,
               totalAccesses: 0,
-              displayName: data.displayName || data.studentId,
-              section: data.section || "Unknown",
+              displayName: `Student ${data.studentId}`,
+              section: studentInfo.section,
+              hasCheckpoint: studentInfo.hasCheckpoint,
+              hasPlayed: true,
             };
           }
 
-          studentMap[data.studentId].sessions.push({
+          playedStudentsMap[data.studentId].sessions.push({
             id: doc.id,
             timestamp: data.startTime?.toDate
               ? data.startTime.toDate()
@@ -56,30 +205,60 @@ export default function MasterAdmin() {
             status: data.status,
             completedTasks: Object.keys(data.completedTasks || {}).length,
             finalScore: data.finalScore || 0,
+            currentSemester: data.currentSemester || 1,
           });
         }
       });
 
-      // Process student data
-      const studentList = Object.values(studentMap).map((student) => {
-        // Sort sessions by timestamp
+      // Process played students
+      Object.values(playedStudentsMap).forEach((student) => {
         student.sessions.sort((a, b) => b.timestamp - a.timestamp);
-
-        // Set latest access and total count
         student.latestAccess = student.sessions[0]?.timestamp || null;
         student.totalAccesses = student.sessions.length;
-
-        return student;
       });
 
-      // Sort by latest access
-      studentList.sort((a, b) => {
-        if (!a.latestAccess) return 1;
-        if (!b.latestAccess) return -1;
-        return b.latestAccess - a.latestAccess;
+      // Create complete roster including students who haven't played
+      const completeRoster = [];
+
+      // Add all students from rosters
+      const allRosterIds = [
+        ...CLASS_1A_ID_CHECKPOINT,
+        ...CLASS_1A_ID_NOCHECKPOINT,
+        ...CLASS_2A_ID_CHECKPOINT,
+        ...CLASS_2A_ID_NOCHECKPOINT,
+      ];
+
+      allRosterIds.forEach((studentId) => {
+        if (playedStudentsMap[studentId]) {
+          // Student has played - use their data
+          completeRoster.push(playedStudentsMap[studentId]);
+        } else {
+          // Student hasn't played - create entry
+          const studentInfo = getStudentInfo(studentId);
+          completeRoster.push({
+            studentId: studentId,
+            sessions: [],
+            latestAccess: null,
+            totalAccesses: 0,
+            displayName: `Student ${studentId}`,
+            section: studentInfo.section,
+            hasCheckpoint: studentInfo.hasCheckpoint,
+            hasPlayed: false,
+          });
+        }
       });
 
-      setStudents(studentList);
+      // Sort by latest access (played students first, then by ID)
+      completeRoster.sort((a, b) => {
+        if (a.hasPlayed && !b.hasPlayed) return -1;
+        if (!a.hasPlayed && b.hasPlayed) return 1;
+        if (a.latestAccess && b.latestAccess) {
+          return b.latestAccess - a.latestAccess;
+        }
+        return a.studentId.localeCompare(b.studentId);
+      });
+
+      setStudents(completeRoster);
     } catch (error) {
       console.error("Error loading student data:", error);
     } finally {
@@ -118,10 +297,8 @@ export default function MasterAdmin() {
     }
   };
 
-  const filteredStudents = students.filter(
-    (student) =>
-      student.studentId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.displayName.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredStudents = students.filter((student) =>
+    student.studentId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const formatDate = (date) => {
@@ -145,6 +322,23 @@ export default function MasterAdmin() {
       return sessionDate.getTime() === today.getTime();
     }).length;
   };
+
+  // Calculate summary stats
+  const totalStudents = students.filter(
+    (s) => !s.section.includes("ADMIN")
+  ).length;
+  const playedToday = students.filter(
+    (s) => !s.section.includes("ADMIN") && getTodayCount(s) > 0
+  ).length;
+  const totalSessions = students
+    .filter((s) => !s.section.includes("ADMIN"))
+    .reduce((sum, s) => sum + s.totalAccesses, 0);
+  const needsRefresh = students.filter(
+    (s) => !s.section.includes("ADMIN") && getTodayCount(s) >= 1
+  ).length;
+  const neverPlayed = students.filter(
+    (s) => !s.section.includes("ADMIN") && !s.hasPlayed
+  ).length;
 
   return (
     <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
@@ -177,7 +371,7 @@ export default function MasterAdmin() {
         <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
           <input
             type="text"
-            placeholder="Search by Student ID or Name..."
+            placeholder="Search by Student ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{
@@ -209,7 +403,7 @@ export default function MasterAdmin() {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
+            gridTemplateColumns: "repeat(5, 1fr)",
             gap: "15px",
             marginTop: "20px",
           }}
@@ -225,7 +419,7 @@ export default function MasterAdmin() {
             <div
               style={{ fontSize: "24px", fontWeight: "bold", color: "#2196F3" }}
             >
-              {students.length}
+              {totalStudents}
             </div>
             <div style={{ fontSize: "12px", color: "#666" }}>
               Total Students
@@ -243,7 +437,7 @@ export default function MasterAdmin() {
             <div
               style={{ fontSize: "24px", fontWeight: "bold", color: "#4CAF50" }}
             >
-              {students.filter((s) => getTodayCount(s) > 0).length}
+              {playedToday}
             </div>
             <div style={{ fontSize: "12px", color: "#666" }}>Played Today</div>
           </div>
@@ -259,7 +453,7 @@ export default function MasterAdmin() {
             <div
               style={{ fontSize: "24px", fontWeight: "bold", color: "#ff9800" }}
             >
-              {students.reduce((sum, s) => sum + s.totalAccesses, 0)}
+              {totalSessions}
             </div>
             <div style={{ fontSize: "12px", color: "#666" }}>
               Total Sessions
@@ -277,9 +471,25 @@ export default function MasterAdmin() {
             <div
               style={{ fontSize: "24px", fontWeight: "bold", color: "#e91e63" }}
             >
-              {students.filter((s) => getTodayCount(s) >= 1).length}
+              {needsRefresh}
             </div>
             <div style={{ fontSize: "12px", color: "#666" }}>Needs Refresh</div>
+          </div>
+
+          <div
+            style={{
+              padding: "15px",
+              background: "#f3e5f5",
+              borderRadius: "8px",
+              textAlign: "center",
+            }}
+          >
+            <div
+              style={{ fontSize: "24px", fontWeight: "bold", color: "#9c27b0" }}
+            >
+              {neverPlayed}
+            </div>
+            <div style={{ fontSize: "12px", color: "#666" }}>Never Played</div>
           </div>
         </div>
       </div>
@@ -317,16 +527,16 @@ export default function MasterAdmin() {
                   fontWeight: "600",
                 }}
               >
-                Name
+                Section
               </th>
               <th
                 style={{
                   padding: "15px",
-                  textAlign: "left",
+                  textAlign: "center",
                   fontWeight: "600",
                 }}
               >
-                Section
+                Status
               </th>
               <th
                 style={{
@@ -389,6 +599,7 @@ export default function MasterAdmin() {
               filteredStudents.map((student) => {
                 const todayCount = getTodayCount(student);
                 const needsRefresh = todayCount >= 1;
+                const isAdmin = student.section === "ADMIN";
 
                 return (
                   <tr
@@ -398,25 +609,75 @@ export default function MasterAdmin() {
                       background:
                         selectedStudent === student.studentId
                           ? "#f0f8ff"
+                          : !student.hasPlayed
+                          ? "#fafafa"
+                          : isAdmin
+                          ? "#fff9c4"
                           : "white",
                     }}
                   >
                     <td style={{ padding: "15px", fontFamily: "monospace" }}>
                       {student.studentId}
                     </td>
-                    <td style={{ padding: "15px" }}>{student.displayName}</td>
                     <td style={{ padding: "15px" }}>
                       <span
                         style={{
                           padding: "4px 8px",
-                          background:
-                            student.section === "01A" ? "#e3f2fd" : "#f3e5f5",
+                          background: isAdmin
+                            ? "#ffeb3b"
+                            : student.section.includes("01A")
+                            ? "#e3f2fd"
+                            : student.section.includes("02A")
+                            ? "#f3e5f5"
+                            : "#f5f5f5",
                           borderRadius: "4px",
                           fontSize: "12px",
+                          fontWeight: isAdmin ? "bold" : "normal",
+                          color: isAdmin ? "#333" : "inherit",
                         }}
                       >
                         {student.section}
                       </span>
+                    </td>
+                    <td style={{ padding: "15px", textAlign: "center" }}>
+                      {!student.hasPlayed ? (
+                        <span
+                          style={{
+                            padding: "4px 8px",
+                            background: "#e0e0e0",
+                            color: "#666",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                          }}
+                        >
+                          Never Played
+                        </span>
+                      ) : isAdmin ? (
+                        <span
+                          style={{
+                            padding: "4px 8px",
+                            background: "#ffeb3b",
+                            color: "#333",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          Admin Test
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            padding: "4px 8px",
+                            background: "#e8f5e9",
+                            color: "#2e7d32",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                          }}
+                        >
+                          Active
+                        </span>
+                      )}
                     </td>
                     <td style={{ padding: "15px", textAlign: "center" }}>
                       {formatDate(student.latestAccess)}
@@ -425,8 +686,16 @@ export default function MasterAdmin() {
                       <span
                         style={{
                           padding: "4px 8px",
-                          background: needsRefresh ? "#ffebee" : "#e8f5e9",
-                          color: needsRefresh ? "#c62828" : "#2e7d32",
+                          background: needsRefresh
+                            ? "#ffebee"
+                            : todayCount > 0
+                            ? "#e8f5e9"
+                            : "#f5f5f5",
+                          color: needsRefresh
+                            ? "#c62828"
+                            : todayCount > 0
+                            ? "#2e7d32"
+                            : "#999",
                           borderRadius: "12px",
                           fontSize: "12px",
                           fontWeight: "bold",
@@ -445,31 +714,33 @@ export default function MasterAdmin() {
                       {student.totalAccesses}
                     </td>
                     <td style={{ padding: "15px", textAlign: "center" }}>
-                      <button
-                        onClick={() => {
-                          setSelectedStudent(student.studentId);
-                          if (
-                            confirm(
-                              `Reset access for ${student.displayName} (${student.studentId})?\n\nThis will allow them to play again today.`
-                            )
-                          ) {
-                            refreshStudentAccess(student.studentId);
-                          }
-                        }}
-                        disabled={refreshing}
-                        style={{
-                          padding: "6px 12px",
-                          background: needsRefresh ? "#ff9800" : "#4CAF50",
-                          color: "white",
-                          border: "none",
-                          borderRadius: "4px",
-                          cursor: "pointer",
-                          fontSize: "12px",
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {needsRefresh ? "🔄 Refresh" : "✓ OK"}
-                      </button>
+                      {!isAdmin && (
+                        <button
+                          onClick={() => {
+                            setSelectedStudent(student.studentId);
+                            if (
+                              confirm(
+                                `Reset access for Student ${student.studentId} (${student.section})?\n\nThis will allow them to play again today.`
+                              )
+                            ) {
+                              refreshStudentAccess(student.studentId);
+                            }
+                          }}
+                          disabled={refreshing}
+                          style={{
+                            padding: "6px 12px",
+                            background: needsRefresh ? "#ff9800" : "#4CAF50",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "12px",
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {needsRefresh ? "🔄 Refresh" : "✓ OK"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
@@ -493,6 +764,9 @@ export default function MasterAdmin() {
       >
         Access automatically resets at midnight PST. Use refresh button to
         manually grant access.
+        <br />
+        Total roster: {totalStudents} students across 4 conditions (01A-CP,
+        01A-NCP, 02A-CP, 02A-NCP)
       </div>
     </div>
   );
