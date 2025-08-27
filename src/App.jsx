@@ -2792,7 +2792,7 @@ function App() {
               borderRadius: "8px",
               border: "1px solid #e0e0e0",
               overflow: "hidden",
-              height: "650px",
+              height: "700px" /* Increased from 650px */,
               display: "flex",
               flexDirection: "column",
             }}

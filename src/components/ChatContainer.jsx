@@ -688,56 +688,62 @@ export default function ChatContainer({
               marginBottom: "10px",
             }}
           >
-            {/* Smart Auto-Detect Button */}
-            <button
-              onClick={() => handleSmartHelp()}
-              disabled={!currentGameType}
+            {/* Help buttons side by side */}
+            <div
               style={{
                 gridColumn: "1 / -1",
-                padding: "12px",
-                background: currentGameType ? "#2196F3" : "#ccc",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: currentGameType ? "pointer" : "not-allowed",
-                fontWeight: "bold",
-                fontSize: "14px",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
                 gap: "8px",
               }}
             >
-              <span style={{ fontSize: "18px" }}>🤖</span>
-              {currentGameType
-                ? `Help with Current Task`
-                : "Start a task to enable help"}
-            </button>
+              {/* Help Task Button */}
+              <button
+                onClick={() => handleSmartHelp()}
+                disabled={!currentGameType}
+                style={{
+                  padding: "12px",
+                  background: currentGameType ? "#2196F3" : "#ccc",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: currentGameType ? "pointer" : "not-allowed",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  transition: "all 0.2s",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                }}
+              >
+                <span style={{ fontSize: "18px" }}>🤖</span>
+                {currentGameType ? "Help Task" : "Start task first"}
+              </button>
 
-            {/* Planning Help Button */}
-            <button
-              onClick={handlePlanningHelp}
-              style={{
-                gridColumn: "1 / -1",
-                padding: "12px",
-                background: "#FF9800",
-                color: "white",
-                border: "none",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontWeight: "bold",
-                fontSize: "14px",
-                transition: "all 0.2s",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-              }}
-            >
-              <span style={{ fontSize: "18px" }}>📊</span>
-              Help with Planning
-            </button>
+              {/* Help Plan Button */}
+              <button
+                onClick={handlePlanningHelp}
+                style={{
+                  padding: "12px",
+                  background: "#FF9800",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "14px",
+                  transition: "all 0.2s",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px",
+                }}
+              >
+                <span style={{ fontSize: "18px" }}>📊</span>
+                Help Plan
+              </button>
+            </div>
 
             {/* Individual Task Buttons */}
             <button

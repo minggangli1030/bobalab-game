@@ -28,8 +28,9 @@ export default function NavTabsEnhanced({
     parseFloat(localStorage.getItem("typingInterest") || "0") || 0;
   const countingMultiplier = 1 + (categoryPoints.counting || 0) * 0.15;
 
-  // Generate all 150 tabs (50 per game)
+  // Generate all 150 tabs (50 per game) - reordered for display
   const tabs = [];
+  // Generate in original order first (important for task IDs)
   for (let game = 1; game <= 3; game++) {
     for (let level = 1; level <= 50; level++) {
       const gameLabel = ["Research", "Materials", "Engage"][game - 1];

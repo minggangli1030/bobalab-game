@@ -7,7 +7,7 @@
   padding: 20px;
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .messages {
@@ -29,7 +29,7 @@
 }
 
 .message.user {
-  background: #2196F3;
+  background: #2196f3;
   color: white;
   margin-left: auto;
   text-align: right;
@@ -56,7 +56,7 @@
 
 .chat-input button {
   padding: 12px 24px;
-  background: #2196F3;
+  background: #2196f3;
   color: white;
   border: none;
   border-radius: 24px;
@@ -97,7 +97,7 @@
 
 .chat-header .prompt-counter {
   background: #e3f2fd;
-  border: 1px solid #2196F3;
+  border: 1px solid #2196f3;
   padding: 6px 12px;
   margin: 0;
   border-radius: 12px;
@@ -115,6 +115,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 350px; /* Increased from default */
+  max-height: 450px; /* Increased to show more messages */
 }
 
 .messages-sidebar .message {
@@ -127,7 +129,7 @@
 }
 
 .messages-sidebar .message.user {
-  background: #2196F3;
+  background: #2196f3;
   color: white;
   align-self: flex-end;
   margin-left: 20px;
@@ -184,7 +186,7 @@
 
 .chat-input-sidebar input:focus {
   outline: none;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .chat-input-sidebar input:disabled {
@@ -194,7 +196,7 @@
 
 .chat-input-sidebar button {
   padding: 10px 16px;
-  background: #2196F3;
+  background: #2196f3;
   color: white;
   border: none;
   border-radius: 6px;
