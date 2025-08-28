@@ -91,7 +91,78 @@ class AITaskHelper {
   helpWithCounting(text, targetPattern, currentTaskId) {
     this.incrementTaskUsage(currentTaskId, "research");
     const attemptNumber = this.getUniversalAttemptNumber();
+    const isCorrect = this.shouldAIBeCorrect(attemptNumber);
 
+    // Check if we're counting single letters/characters (medium/hard level)
+    const isLetterCounting = targetPattern.length === 1 || 
+                            targetPattern.includes(" and ") || 
+                            targetPattern.includes(",");
+
+    if (isLetterCounting) {
+      return this.helpWithLetterCounting(text, targetPattern, attemptNumber, isCorrect);
+    } else {
+      return this.helpWithWordCounting(text, targetPattern, attemptNumber, isCorrect);
+    }
+  }
+
+  helpWithLetterCounting(text, targetPattern, attemptNumber, isCorrect) {
+    // Extract target letters from pattern like "a", "a and e", or "a, e"
+    let targetLetters = [];
+    if (targetPattern.includes(" and ") || targetPattern.includes(",")) {
+      targetLetters = targetPattern.match(/[a-z]/gi) || [];
+    } else {
+      targetLetters = [targetPattern];
+    }
+
+    // Calculate correct count
+    let correctCount = 0;
+    targetLetters.forEach(letter => {
+      const regex = new RegExp(letter, "gi");
+      const matches = text.match(regex);
+      correctCount += matches ? matches.length : 0;
+    });
+
+    let aiCount = correctCount;
+    let highlightLetters = [...targetLetters]; // For letter highlighting
+
+    // Apply accuracy based on attempt number
+    if (!isCorrect) {
+      if (attemptNumber === 3) {
+        // Attempt 3: always off by 1
+        aiCount = correctCount + (Math.random() < 0.5 ? -1 : 1);
+      } else {
+        // Attempts 6+: 25% chance of being wrong
+        if (Math.random() < 0.5) {
+          // Off by 1 (still gets 1 point)
+          aiCount = correctCount + (Math.random() < 0.5 ? -1 : 1);
+        } else {
+          // Way off (0 points) - but reasonable range
+          const maxReasonableCount = Math.min(text.length, correctCount * 3);
+          aiCount = Math.floor(Math.random() * maxReasonableCount);
+        }
+      }
+      aiCount = Math.max(0, aiCount);
+
+      // For wrong answers, sometimes highlight wrong letters too
+      if (Math.random() < 0.3) {
+        const allLetters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+        const wrongLetters = allLetters.filter(l => !targetLetters.includes(l.toLowerCase()));
+        const randomWrongLetter = wrongLetters[Math.floor(Math.random() * wrongLetters.length)];
+        highlightLetters.push(randomWrongLetter);
+      }
+    }
+
+    return {
+      action: "highlightAndCount",
+      highlightWords: [], // Empty for letter counting
+      suggestedCount: aiCount,
+      animate: true,
+      isMultiLetter: true,
+      targetLetters: highlightLetters
+    };
+  }
+
+  helpWithWordCounting(text, targetPattern, attemptNumber, isCorrect) {
     const words = text.split(/\s+/);
     const highlightWords = [];
     let aiCount = 0;
@@ -105,7 +176,7 @@ class AITaskHelper {
       }
     });
 
-    if (this.shouldAIBeCorrect(attemptNumber)) {
+    if (isCorrect) {
       // AI gives correct answer
       words.forEach((word) => {
         const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
@@ -438,50 +509,17 @@ export default function ChatContainer({
           ?.replace(/['"]/g, "")
           .trim() || "";
 
-      let help;
-      let suggestedCount;
+      // Use the enhanced AITaskHelper that handles both words and letters
+      const help = aiTaskHelper.helpWithCounting(text, pattern, currentTask);
+      const suggestedCount = help.suggestedCount;
       
-      // Check if it's a multi-letter pattern (contains "and" or comma)
-      if (pattern.includes(" and ") || pattern.includes(",")) {
-        // Extract individual letters from pattern like "a and e" or "a, e"
-        const letters = pattern.match(/[a-z]/gi) || [];
-
-        // For multi-letter, highlight all occurrences
-        help = {
-          action: "highlightAndCount",
-          highlightWords: [], // Will handle differently for letters
-          suggestedCount: 0,
-          animate: true,
-          isMultiLetter: true,
-          targetLetters: letters,
-        };
-
-        // Count occurrences
-        letters.forEach((letter) => {
-          const regex = new RegExp(letter, "gi");
-          const matches = text.match(regex);
-          help.suggestedCount += matches ? matches.length : 0;
-        });
-        
-        suggestedCount = help.suggestedCount;
-
-        window.dispatchEvent(
-          new CustomEvent("aiCountingHelp", { detail: help })
-        );
-      } else {
-        // Single word/letter pattern - use existing logic
-        help = aiTaskHelper.helpWithCounting(text, pattern, currentTask);
-        suggestedCount = help.suggestedCount;
-        
-        window.dispatchEvent(
-          new CustomEvent("aiCountingHelp", { detail: help })
-        );
-      }
+      window.dispatchEvent(
+        new CustomEvent("aiCountingHelp", { detail: help })
+      );
       
       // Track AI help request
       const attemptNumber = aiTaskHelper.getUniversalAttemptNumber();
-      const wasCorrect = attemptNumber <= 2 || attemptNumber === 4 || attemptNumber === 5 || 
-                         (attemptNumber > 5 && Math.random() < 0.75);
+      const wasCorrect = aiTaskHelper.shouldAIBeCorrect(attemptNumber);
       
       eventTracker.trackAITaskHelp(
         currentTask,
@@ -497,16 +535,18 @@ export default function ChatContainer({
         suggestion: suggestedCount,
         timestamp: Date.now(),
         wasCorrect,
-        highlightedWords: help.highlightWords
+        highlightedWords: help.highlightWords || [],
+        targetLetters: help.targetLetters || []
       }));
 
       setAiUsageCount(aiTaskHelper.totalAIUsage); // Update display counter
       
+      const countType = help.isMultiLetter ? "letters/characters" : "words";
       setMessages((prev) => [
         ...prev,
         {
           sender: "bot",
-          text: `🔬 Helping with research... Found ${suggestedCount} occurrences`,
+          text: `🔬 Helping with research... Found ${suggestedCount} ${countType}`,
         },
       ]);
     }

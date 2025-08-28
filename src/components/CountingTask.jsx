@@ -137,11 +137,102 @@ export default function CountingTask({
   }, [taskNum]);
 
   useEffect(() => {
+    // Function to handle letter/character highlighting
+    const handleLetterHighlighting = async (targetLetters, suggestedCount) => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 900;
+      canvas.height = 350;
+
+      // Background + border
+      ctx.fillStyle = "#fafafa";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#e0e0e0";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+      ctx.font = "24px monospace";
+      const lineHeight = 36;
+      const padding = 20;
+      const maxWidth = canvas.width - padding * 2;
+
+      const wrapText = (t, maxW) => {
+        const words = t.split(" ");
+        const lines = [];
+        let currentLine = "";
+        for (let word of words) {
+          const testLine = currentLine + (currentLine ? " " : "") + word;
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > maxW && currentLine) {
+            lines.push(currentLine);
+            currentLine = word;
+          } else {
+            currentLine = testLine;
+          }
+        }
+        if (currentLine) lines.push(currentLine);
+        return lines;
+      };
+
+      const lines = wrapText(text, maxWidth);
+
+      // Animate letter highlighting
+      for (let letterIndex = 0; letterIndex < targetLetters.length; letterIndex++) {
+        const targetLetter = targetLetters[letterIndex];
+        
+        // Draw text with character-level highlighting
+        lines.forEach((line, lineIndex) => {
+          const y = padding + (lineIndex + 1) * lineHeight;
+          let x = padding;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            const charWidth = ctx.measureText(char).width;
+            
+            // Check if this character matches any target letter
+            const shouldHighlight = targetLetters.some(letter => 
+              char.toLowerCase() === letter.toLowerCase()
+            );
+            
+            if (shouldHighlight) {
+              // Highlight with yellow background
+              ctx.fillStyle = "rgba(255, 255, 0, 0.6)";
+              ctx.fillRect(x - 1, y - 20, charWidth + 2, 26);
+            }
+            
+            // Draw the character
+            ctx.fillStyle = "#333";
+            ctx.fillText(char, x, y);
+            
+            x += charWidth;
+          }
+        });
+        
+        setTextImageUrl(canvas.toDataURL());
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      // Fill in the count after animation completes
+      setTimeout(() => {
+        setInput(suggestedCount.toString());
+      }, 300);
+    };
+
     const handleAIHelp = async (event) => {
-      const { action, highlightWords, suggestedCount, animate } =
+      const { action, highlightWords, suggestedCount, animate, isMultiLetter, targetLetters } =
         event.detail || {};
 
-      if (action === "highlightAndCount" && Array.isArray(highlightWords)) {
+      if (action === "highlightAndCount") {
+        // Handle letter/character highlighting for medium/hard levels
+        if (isMultiLetter && Array.isArray(targetLetters)) {
+          if (animate) {
+            await handleLetterHighlighting(targetLetters, suggestedCount);
+          }
+          return;
+        }
+        
+        // Handle word highlighting for easy levels
+        if (Array.isArray(highlightWords)) {
         if (animate) {
           // Animate highlighting word by word
           const words = text.split(" ");
