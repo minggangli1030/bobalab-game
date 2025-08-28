@@ -23,8 +23,13 @@ class AITaskHelper {
   // Determine if AI should be correct based on universal pattern
   shouldAIBeCorrect(attemptNumber) {
     let isCorrect;
-    
-    if (attemptNumber === 1 || attemptNumber === 2 || attemptNumber === 4 || attemptNumber === 5) {
+
+    if (
+      attemptNumber === 1 ||
+      attemptNumber === 2 ||
+      attemptNumber === 4 ||
+      attemptNumber === 5
+    ) {
       // Attempts 1, 2, 4, 5 are always correct
       isCorrect = true;
     } else if (attemptNumber === 3) {
@@ -34,7 +39,7 @@ class AITaskHelper {
       // Attempts 6+ have 75% chance of being correct
       isCorrect = Math.random() < 0.75;
     }
-    
+
     return isCorrect;
   }
 
@@ -93,14 +98,25 @@ class AITaskHelper {
     const isCorrect = this.shouldAIBeCorrect(attemptNumber);
 
     // Check if we're counting single letters/characters (medium/hard level)
-    const isLetterCounting = targetPattern.length === 1 || 
-                            targetPattern.includes(" and ") || 
-                            targetPattern.includes(",");
+    const isLetterCounting =
+      targetPattern.length === 1 ||
+      targetPattern.includes(" and ") ||
+      targetPattern.includes(",");
 
     if (isLetterCounting) {
-      return this.helpWithLetterCounting(text, targetPattern, attemptNumber, isCorrect);
+      return this.helpWithLetterCounting(
+        text,
+        targetPattern,
+        attemptNumber,
+        isCorrect
+      );
     } else {
-      return this.helpWithWordCounting(text, targetPattern, attemptNumber, isCorrect);
+      return this.helpWithWordCounting(
+        text,
+        targetPattern,
+        attemptNumber,
+        isCorrect
+      );
     }
   }
 
@@ -115,7 +131,7 @@ class AITaskHelper {
 
     // Calculate correct count
     let correctCount = 0;
-    targetLetters.forEach(letter => {
+    targetLetters.forEach((letter) => {
       const regex = new RegExp(letter, "gi");
       const matches = text.match(regex);
       correctCount += matches ? matches.length : 0;
@@ -142,8 +158,10 @@ class AITaskHelper {
       aiCount = Math.max(0, aiCount);
 
       // For wrong answers, ALWAYS highlight extra wrong letters for visibility
-      const allLetters = 'abcdefghijklmnopqrstuvwxyz'.split('');
-      const wrongLetters = allLetters.filter(l => !targetLetters.includes(l.toLowerCase()));
+      const allLetters = "abcdefghijklmnopqrstuvwxyz".split("");
+      const wrongLetters = allLetters.filter(
+        (l) => !targetLetters.includes(l.toLowerCase())
+      );
       const numExtraLetters = Math.floor(Math.random() * 2) + 1; // Add 1-2 extra letters
       for (let i = 0; i < numExtraLetters && wrongLetters.length > 0; i++) {
         const randomIndex = Math.floor(Math.random() * wrongLetters.length);
@@ -158,7 +176,7 @@ class AITaskHelper {
       suggestedCount: aiCount,
       animate: true,
       isMultiLetter: true,
-      targetLetters: highlightLetters
+      targetLetters: highlightLetters,
     };
   }
 
@@ -197,14 +215,15 @@ class AITaskHelper {
           highlightWords.push(word);
         }
       });
-      
+
       // Add extra highlights (wrong words) to make mistake obvious
-      const nonTargetWords = words.filter(word => {
+      const nonTargetWords = words.filter((word) => {
         const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
         return cleanWord !== targetPattern.toLowerCase();
       });
       if (nonTargetWords.length > 0 && highlightWords.length < aiCount) {
-        const randomWrongWord = nonTargetWords[Math.floor(Math.random() * nonTargetWords.length)];
+        const randomWrongWord =
+          nonTargetWords[Math.floor(Math.random() * nonTargetWords.length)];
         highlightWords.push(randomWrongWord);
       }
     } else {
@@ -225,13 +244,13 @@ class AITaskHelper {
           highlightWords.push(word);
         }
       });
-      
+
       // Add extra wrong highlights to reach aiCount
-      const nonTargetWords = words.filter(word => {
+      const nonTargetWords = words.filter((word) => {
         const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
         return cleanWord !== targetPattern.toLowerCase();
       });
-      
+
       while (highlightWords.length < aiCount && nonTargetWords.length > 0) {
         const randomIndex = Math.floor(Math.random() * nonTargetWords.length);
         const wrongWord = nonTargetWords[randomIndex];
@@ -479,11 +498,11 @@ export default function ChatContainer({
       parseFloat(sliderTarget),
       currentTask
     );
-    
+
     // Track AI help request
     const attemptNumber = aiTaskHelper.getUniversalAttemptNumber();
     const wasCorrect = aiTaskHelper.shouldAIBeCorrect(attemptNumber);
-    
+
     eventTracker.trackAITaskHelp(
       currentTask,
       "slider",
@@ -491,14 +510,17 @@ export default function ChatContainer({
       wasCorrect,
       attemptNumber
     );
-    
+
     // Store help data for tracking response later
-    localStorage.setItem(`lastAIHelp_${currentTask}`, JSON.stringify({
-      type: "slider",
-      suggestion: help.value,
-      timestamp: Date.now(),
-      wasCorrect
-    }));
+    localStorage.setItem(
+      `lastAIHelp_${currentTask}`,
+      JSON.stringify({
+        type: "slider",
+        suggestion: help.value,
+        timestamp: Date.now(),
+        wasCorrect,
+      })
+    );
 
     window.dispatchEvent(
       new CustomEvent("aiSliderHelp", {
@@ -512,7 +534,9 @@ export default function ChatContainer({
       ...prev,
       {
         sender: "bot",
-        text: `📊 Helping with materials... Suggested value: ${help.value.toFixed(2)}`,
+        text: `📊 Helping with materials... <br/> Suggested value: ${help.value.toFixed(
+          2
+        )}`,
       },
     ]);
   };
@@ -532,15 +556,13 @@ export default function ChatContainer({
       // Use the enhanced AITaskHelper that handles both words and letters
       const help = aiTaskHelper.helpWithCounting(text, pattern, currentTask);
       const suggestedCount = help.suggestedCount;
-      
-      window.dispatchEvent(
-        new CustomEvent("aiCountingHelp", { detail: help })
-      );
-      
+
+      window.dispatchEvent(new CustomEvent("aiCountingHelp", { detail: help }));
+
       // Track AI help request
       const attemptNumber = aiTaskHelper.getUniversalAttemptNumber();
       const wasCorrect = aiTaskHelper.shouldAIBeCorrect(attemptNumber);
-      
+
       eventTracker.trackAITaskHelp(
         currentTask,
         "counting",
@@ -548,25 +570,28 @@ export default function ChatContainer({
         wasCorrect,
         attemptNumber
       );
-      
+
       // Store help data for tracking response later
-      localStorage.setItem(`lastAIHelp_${currentTask}`, JSON.stringify({
-        type: "counting",
-        suggestion: suggestedCount,
-        timestamp: Date.now(),
-        wasCorrect,
-        highlightedWords: help.highlightWords || [],
-        targetLetters: help.targetLetters || []
-      }));
+      localStorage.setItem(
+        `lastAIHelp_${currentTask}`,
+        JSON.stringify({
+          type: "counting",
+          suggestion: suggestedCount,
+          timestamp: Date.now(),
+          wasCorrect,
+          highlightedWords: help.highlightWords || [],
+          targetLetters: help.targetLetters || [],
+        })
+      );
 
       setAiUsageCount(aiTaskHelper.totalAIUsage); // Update display counter
-      
+
       const countType = help.isMultiLetter ? "letters/characters" : "words";
       setMessages((prev) => [
         ...prev,
         {
           sender: "bot",
-          text: `🔬 Helping with research...\nFound ${suggestedCount} ${countType}`,
+          text: `🔬 Helping with research... <br/> Found ${suggestedCount} ${countType}`,
         },
       ]);
     }
@@ -610,11 +635,11 @@ export default function ChatContainer({
 
       if (pattern) {
         const help = aiTaskHelper.helpWithTyping(pattern, currentTask);
-        
+
         // Track AI help request
         const attemptNumber = aiTaskHelper.getUniversalAttemptNumber();
         const wasCorrect = help.perfect;
-        
+
         eventTracker.trackAITaskHelp(
           currentTask,
           "typing",
@@ -622,15 +647,18 @@ export default function ChatContainer({
           wasCorrect,
           attemptNumber
         );
-        
+
         // Store help data for tracking response later
-        localStorage.setItem(`lastAIHelp_${currentTask}`, JSON.stringify({
-          type: "typing",
-          suggestion: help.text,
-          timestamp: Date.now(),
-          wasCorrect,
-          originalPattern: pattern
-        }));
+        localStorage.setItem(
+          `lastAIHelp_${currentTask}`,
+          JSON.stringify({
+            type: "typing",
+            suggestion: help.text,
+            timestamp: Date.now(),
+            wasCorrect,
+            originalPattern: pattern,
+          })
+        );
 
         window.dispatchEvent(
           new CustomEvent("aiTypingHelp", {
@@ -644,7 +672,10 @@ export default function ChatContainer({
           ...prev,
           {
             sender: "bot",
-            text: `✉️ Helping with engagement... Typing: "${help.text.substring(0, 30)}${help.text.length > 30 ? '...' : ''}"`,
+            text: `✉️ Helping with engagement... <br/> Typing: "${help.text.substring(
+              0,
+              30
+            )}${help.text.length > 30 ? "..." : ""}"`,
           },
         ]);
       }
@@ -755,9 +786,9 @@ export default function ChatContainer({
         currentTask: currentTask,
         categoryPoints: categoryPoints,
         studentLearning: calculateStudentLearning(),
-        aiUsageCount: aiTaskHelper.totalAIUsage
+        aiUsageCount: aiTaskHelper.totalAIUsage,
       });
-      
+
       setMessages((prev) => [...prev, { sender: "bot", text: response }]);
       setIsTyping(false);
     }, 800);
