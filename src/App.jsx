@@ -311,6 +311,20 @@ function App() {
       const urlParams = new URLSearchParams(window.location.search);
       const hasCode = urlParams.has("code") || urlParams.has("c");
 
+      // Set up admin gameConfig if admin mode but no gameConfig exists
+      if (isAdminMode && !sessionStorage.getItem("gameConfig")) {
+        sessionStorage.setItem(
+          "gameConfig", 
+          JSON.stringify({
+            role: "admin",
+            section: "admin",
+            hasAI: true,
+            checkpointSemester2: true,
+            displayName: "Admin User"
+          })
+        );
+      }
+
       if (!hasCode) {
         setMode("studentLogin");
         setIsLoading(false);

@@ -296,6 +296,9 @@ export default function StudentLogin({ onLoginSuccess }) {
             JSON.stringify({
               role: "master_admin",
               displayName: validation.data.name,
+              section: "master_admin",
+              hasAI: true,
+              checkpointSemester2: true,
             })
           );
 

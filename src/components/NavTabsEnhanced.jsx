@@ -422,8 +422,8 @@ export default function NavTabsEnhanced({
             {Math.round(calculateStudentLearning())}
           </div>
           <div style={{ fontSize: "10px", color: "#999" }}>
-            Multiplier = {countingMultiplier.toFixed(2)}, Interest ={" "}
-            {typingInterest.toFixed(2)}
+            Multiplier = {researchMultiplier.toFixed(2)}, Interest ={" "}
+            {engagementInterest.toFixed(2)}
           </div>
         </div>
 
