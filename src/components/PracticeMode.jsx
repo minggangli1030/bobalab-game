@@ -15,7 +15,6 @@ export default function PracticeMode({
   const [currentPractice, setCurrentPractice] = useState(null);
 
   const handlePracticeTaskComplete = (taskId, data) => {
-    console.log("Practice task complete:", taskId, data); // Debug log
 
     // Check if perfect accuracy (2 points)
     if (data && data.points === 2) {

@@ -97,6 +97,5 @@ export const taskDependencies = {
   
   clearAllDependencies() {
     this.activeDependencies = {};
-    console.log('All task dependencies cleared');
   }
 };

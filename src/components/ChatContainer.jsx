@@ -35,7 +35,6 @@ class AITaskHelper {
       isCorrect = Math.random() < 0.75;
     }
     
-    console.log(`AI Help Attempt #${attemptNumber}: ${isCorrect ? 'CORRECT (2pts)' : 'WRONG (1pt or 0pts)'}`);
     return isCorrect;
   }
 
@@ -128,27 +127,28 @@ class AITaskHelper {
     // Apply accuracy based on attempt number
     if (!isCorrect) {
       if (attemptNumber === 3) {
-        // Attempt 3: always off by 1
-        aiCount = correctCount + (Math.random() < 0.5 ? -1 : 1);
+        // Attempt 3: always off by 1 (over-highlight for visibility)
+        aiCount = correctCount + 1; // Always add one extra
       } else {
         // Attempts 6+: 25% chance of being wrong
         if (Math.random() < 0.5) {
-          // Off by 1 (still gets 1 point)
-          aiCount = correctCount + (Math.random() < 0.5 ? -1 : 1);
+          // Off by 1 (over-highlight for visibility)
+          aiCount = correctCount + 1; // Always add one extra
         } else {
-          // Way off (0 points) - but reasonable range
-          const maxReasonableCount = Math.min(text.length, correctCount * 3);
-          aiCount = Math.floor(Math.random() * maxReasonableCount);
+          // Way off (over-highlight significantly)
+          aiCount = correctCount + Math.floor(Math.random() * 3) + 2; // Add 2-4 extra
         }
       }
       aiCount = Math.max(0, aiCount);
 
-      // For wrong answers, sometimes highlight wrong letters too
-      if (Math.random() < 0.3) {
-        const allLetters = 'abcdefghijklmnopqrstuvwxyz'.split('');
-        const wrongLetters = allLetters.filter(l => !targetLetters.includes(l.toLowerCase()));
-        const randomWrongLetter = wrongLetters[Math.floor(Math.random() * wrongLetters.length)];
-        highlightLetters.push(randomWrongLetter);
+      // For wrong answers, ALWAYS highlight extra wrong letters for visibility
+      const allLetters = 'abcdefghijklmnopqrstuvwxyz'.split('');
+      const wrongLetters = allLetters.filter(l => !targetLetters.includes(l.toLowerCase()));
+      const numExtraLetters = Math.floor(Math.random() * 2) + 1; // Add 1-2 extra letters
+      for (let i = 0; i < numExtraLetters && wrongLetters.length > 0; i++) {
+        const randomIndex = Math.floor(Math.random() * wrongLetters.length);
+        highlightLetters.push(wrongLetters[randomIndex]);
+        wrongLetters.splice(randomIndex, 1); // Remove to avoid duplicates
       }
     }
 
@@ -186,39 +186,60 @@ class AITaskHelper {
         }
       });
     } else if (attemptNumber === 3) {
-      // Attempt 3: always off by 1 (to earn 1 point)
-      aiCount = correctCount + (Math.random() < 0.5 ? -1 : 1);
+      // Attempt 3: always over-highlight by 1 for visibility
+      aiCount = correctCount + 1;
       aiCount = Math.max(0, aiCount);
 
-      // Highlight approximately the right number
+      // Highlight all correct words first
       words.forEach((word) => {
         const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
-        if (
-          cleanWord === targetPattern.toLowerCase() &&
-          highlightWords.length < aiCount
-        ) {
+        if (cleanWord === targetPattern.toLowerCase()) {
           highlightWords.push(word);
         }
       });
+      
+      // Add extra highlights (wrong words) to make mistake obvious
+      const nonTargetWords = words.filter(word => {
+        const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
+        return cleanWord !== targetPattern.toLowerCase();
+      });
+      if (nonTargetWords.length > 0 && highlightWords.length < aiCount) {
+        const randomWrongWord = nonTargetWords[Math.floor(Math.random() * nonTargetWords.length)];
+        highlightWords.push(randomWrongWord);
+      }
     } else {
-      // Attempts 6+: when wrong (25% of time), be off
+      // Attempts 6+: when wrong (25% of time), over-highlight
       if (Math.random() < 0.5) {
-        // Off by 1 (still gets 1 point)
-        aiCount = correctCount + (Math.random() < 0.5 ? -1 : 1);
+        // Off by 1 (over-highlight for visibility)
+        aiCount = correctCount + 1;
       } else {
-        // Way off (0 points)
-        aiCount = Math.floor(Math.random() * words.length);
+        // Way off (over-highlight significantly)
+        aiCount = correctCount + Math.floor(Math.random() * 3) + 2; // Add 2-4 extra
       }
       aiCount = Math.max(0, aiCount);
 
-      // Highlight some words to match the count
-      let highlightCount = 0;
+      // Highlight all correct words first
       words.forEach((word) => {
-        if (highlightCount < aiCount && Math.random() < 0.5) {
+        const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
+        if (cleanWord === targetPattern.toLowerCase()) {
           highlightWords.push(word);
-          highlightCount++;
         }
       });
+      
+      // Add extra wrong highlights to reach aiCount
+      const nonTargetWords = words.filter(word => {
+        const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
+        return cleanWord !== targetPattern.toLowerCase();
+      });
+      
+      while (highlightWords.length < aiCount && nonTargetWords.length > 0) {
+        const randomIndex = Math.floor(Math.random() * nonTargetWords.length);
+        const wrongWord = nonTargetWords[randomIndex];
+        if (!highlightWords.includes(wrongWord)) {
+          highlightWords.push(wrongWord);
+        }
+        nonTargetWords.splice(randomIndex, 1);
+      }
     }
 
     return {
@@ -359,7 +380,6 @@ export default function ChatContainer({
   useEffect(() => {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
     setHasAI(config.hasAI !== false); // Default to true if not specified
-    console.log("AI enabled for this session:", config.hasAI !== false);
   }, []);
 
   const [messages, setMessages] = useState([

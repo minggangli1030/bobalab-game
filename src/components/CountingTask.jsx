@@ -233,8 +233,8 @@ export default function CountingTask({
         
         // Handle word highlighting for easy levels
         if (Array.isArray(highlightWords)) {
-        if (animate) {
-          // Animate highlighting word by word
+          if (animate) {
+            // Animate highlighting word by word
           const words = text.split(" ");
           let highlightedSoFar = [];
 
@@ -317,7 +317,8 @@ export default function CountingTask({
             setInput(suggestedCount.toString());
           }, 300);
 
-          // Keep the final highlighted image (don't revert)
+            // Keep the final highlighted image (don't revert)
+          }
         }
       }
     };

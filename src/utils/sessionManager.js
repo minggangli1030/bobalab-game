@@ -31,21 +31,8 @@ export const sessionManager = {
     );
 
     try {
-      // First check for admin refresh
-      const refreshRef = collection(db, "accessRefreshes");
-      const refreshQuery = query(
-        refreshRef,
-        where("studentId", "==", studentId),
-        where("refreshedAt", ">=", todayMidnight)
-      );
-
-      const refreshSnapshot = await getDocs(refreshQuery);
-
-      if (!refreshSnapshot.empty) {
-        // Student has been granted refresh access
-        console.log("Student has refresh access granted by admin");
-        return { allowed: true, refreshGranted: true };
-      }
+      // DISABLED: Daily refresh access feature
+      // Admin refresh functionality has been disabled
 
       // Check for existing sessions today
       const sessionsRef = collection(db, "sessions");
@@ -64,18 +51,8 @@ export const sessionManager = {
           ? latestSession.startTime.toDate()
           : new Date(latestSession.clientStartTime);
 
-        // Check for refresh after session
-        const refreshAfterQuery = query(
-          refreshRef,
-          where("studentId", "==", studentId),
-          where("refreshedAt", ">", sessionTime)
-        );
-
-        const refreshAfterSnapshot = await getDocs(refreshAfterQuery);
-
-        if (!refreshAfterSnapshot.empty) {
-          return { allowed: true, refreshGranted: true };
-        }
+        // DISABLED: Refresh after session check
+        // No longer checking for admin-granted refresh access
 
         // No refresh - they already played
         return {
@@ -197,10 +174,6 @@ export const sessionManager = {
 
       // CASE 1: Valid login
       if (gameConfig.studentId) {
-        console.log(
-          `✅ Valid ${isAdmin ? "admin" : "student"} login detected:`,
-          gameConfig.studentId
-        );
 
         // Mark that they're playing today (for students only)
         if (!isAdmin) {
@@ -220,7 +193,6 @@ export const sessionManager = {
       }
 
       // CASE 2: No game config
-      console.log("❌ No valid login found");
       return {
         allowed: false,
         reason: "Please login with your Berkeley student ID",
@@ -315,7 +287,6 @@ export const sessionManager = {
         });
       }
 
-      console.log("✅ Session created:", sessionId);
       return sessionId;
     } catch (error) {
       console.error("Error creating session:", error);
@@ -341,7 +312,6 @@ export const sessionManager = {
         };
         localStorage.setItem("offlineSession", JSON.stringify(sessionData));
 
-        console.log("✅ Offline admin session created:", offlineId);
         return offlineId;
       }
 

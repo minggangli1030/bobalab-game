@@ -135,12 +135,10 @@ function App() {
 
     // Skip all focus/idle detection for admin
     if (isAdmin) {
-      console.log("Admin mode - skipping focus/idle detection");
       return;
     }
 
     const handleFocus = () => {
-      console.log("Window focused");
       if (isOutOfFocus) {
         setIsOutOfFocus(false);
         setOutOfFocusCountdown(30);
@@ -152,7 +150,6 @@ function App() {
     };
 
     const handleBlur = () => {
-      console.log("Window blurred - focus detection disabled");
       // Focus/blur detection disabled for now
       /*
       // Only trigger for students in challenge mode
@@ -163,7 +160,6 @@ function App() {
         outOfFocusTimerRef.current = setInterval(() => {
           countdown--;
           setOutOfFocusCountdown(countdown);
-          console.log(`Out of focus countdown: ${countdown}`);
 
           if (countdown <= 0) {
             // Block the game
@@ -287,35 +283,24 @@ function App() {
   }, [mode]);
 
   const calculateStudentLearning = (points = categoryPoints) => {
-    console.log("=== calculateStudentLearning DEBUG ===");
-    console.log("Input points object:", points);
-    console.log("categoryPoints state:", categoryPoints);
-
     const materialsPoints = points.materials || 0;
     const researchPoints = points.research || 0;
     const engagementPoints = points.engagement || 0;
 
-    console.log("Extracted values:");
-    console.log("- materialsPoints:", materialsPoints);
-    console.log("- researchPoints:", researchPoints);
-    console.log("- engagementPoints:", engagementPoints);
-
     // Research multiplier: each point adds 0.15 to multiplier
     const researchMultiplier = 1 + researchPoints * 0.15;
-    console.log("- researchMultiplier:", researchMultiplier);
 
     // Base score: Materials × Research multiplier
     const baseScore = materialsPoints * researchMultiplier;
-    console.log("- baseScore:", baseScore);
 
     // Get accumulated interest from localStorage
     const accumulatedInterest =
       parseFloat(localStorage.getItem("engagementInterest") || "0") || 0;
-    console.log("- accumulatedInterest:", accumulatedInterest);
 
     const total = baseScore + accumulatedInterest;
-    console.log("FINAL TOTAL:", total);
-    console.log("=====================================");
+    
+    // Student Learning Points Update
+    console.log(`📊 STUDENT LEARNING: ${total.toFixed(1)} pts | Formula: ${materialsPoints} × ${researchMultiplier.toFixed(2)} + ${accumulatedInterest.toFixed(1)} = ${total.toFixed(1)}`);
 
     return isNaN(total) ? 0 : total;
   };
@@ -353,7 +338,6 @@ function App() {
       await eventTracker.syncOfflineEvents();
       setIsLoading(false);
     } catch (error) {
-      console.error("Session init error:", error);
       setIsLoading(false);
     }
   };
@@ -367,7 +351,6 @@ function App() {
 
     if (!checkpointEnabled) {
       // No checkpoint for this condition
-      console.log("Checkpoint skipped - not enabled for this condition");
       return;
     }
 
@@ -400,11 +383,6 @@ function App() {
     const duration = config.semesterDuration || 1200000;
     const limitInSeconds = Math.floor(duration / 1000);
 
-    console.log("Starting timer with limit:", limitInSeconds, "seconds");
-    console.log(
-      "Checkpoint enabled for semester 2:",
-      config.checkpointSemester2
-    );
 
     setTimeLimit(limitInSeconds);
     setTimeRemaining(limitInSeconds);
@@ -535,10 +513,6 @@ function App() {
       : "engagement";
 
     // DEBUGGING
-    console.log("=== handleComplete DEBUG ===");
-    console.log("Task ID:", tabId);
-    console.log("Category determined:", category);
-    console.log("Current categoryPoints BEFORE update:", categoryPoints);
 
     if (category === "materials") {
       // Slider: exact = 2 points, within 1 = 1 point
@@ -838,7 +812,6 @@ function App() {
 
   // Handle practice completion
   const handlePracticeComplete = (taskId, data) => {
-    console.log("Practice complete data:", data); // Debug log
 
     // Check if perfect score
     if (data && data.points && data.points === 2) {
@@ -1071,7 +1044,7 @@ function App() {
               <h4 style={{ color: "#666", marginBottom: "10px" }}>
                 Your Performance So Far:
               </h4>
-              {semesterHistory.map((sem, idx) => (
+              {semesterHistory.map((semester, idx) => (
                 <div
                   key={idx}
                   style={{
@@ -1079,7 +1052,7 @@ function App() {
                     fontSize: "16px",
                   }}
                 >
-                  Semester {idx + 1}: <strong>{sem.finalScore} points</strong>
+                  Semester {idx + 1}: <strong>{semester.finalScore} points</strong>
                 </div>
               ))}
             </div>
@@ -1166,7 +1139,7 @@ function App() {
                 textAlign: "left",
               }}
             >
-              Can you beat Park? - Sem {currentSemester}/{totalSemesters}
+              Can you beat Park? - Semester {currentSemester}/{totalSemesters}
             </h1>
 
             <div className="game-info" style={{ textAlign: "left" }}>
@@ -1522,9 +1495,9 @@ function App() {
                 }}
               >
                 <strong>Previous Semesters:</strong>
-                {semesterHistory.map((sem, idx) => (
+                {semesterHistory.map((semester, idx) => (
                   <div key={idx} style={{ marginTop: "5px" }}>
-                    Semester {idx + 1}: {sem.finalScore} points
+                    Semester {idx + 1}: {semester.finalScore} points
                   </div>
                 ))}
               </div>
@@ -2305,7 +2278,7 @@ function App() {
                   gap: "10px",
                 }}
               >
-                {[...semesterHistory, semesterData].map((sem, idx) => (
+                {[...semesterHistory, semesterData].map((semester, idx) => (
                   <div
                     key={idx}
                     style={{
@@ -2327,7 +2300,7 @@ function App() {
                         color: "#333",
                       }}
                     >
-                      {sem.finalScore}
+                      {semester.finalScore}
                     </div>
                   </div>
                 ))}
@@ -2739,7 +2712,7 @@ function App() {
 
       <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
         <h1 style={{ marginBottom: "30px", textAlign: "center" }}>
-          Can you beat Park? - Sem {currentSemester}/{totalSemesters}
+          Can you beat Park? - Semester {currentSemester}/{totalSemesters}
         </h1>
 
         {/* Use NavTabsEnhanced with updated category names */}

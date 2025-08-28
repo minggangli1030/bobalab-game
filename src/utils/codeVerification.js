@@ -16,7 +16,6 @@ export const codeVerification = {
 
     // For student logins, we don't need to store in Firebase immediately
     // We'll only store when they actually start playing (to track usage)
-    console.log("Generated access code:", code);
 
     return {
       success: true,
@@ -40,7 +39,6 @@ export const codeVerification = {
       };
 
       await setDoc(doc(db, "accessCodes", code), codeData);
-      console.log("✅ Code marked as used:", code);
 
       return { success: true };
     } catch (error) {

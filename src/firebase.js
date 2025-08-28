@@ -20,8 +20,3 @@ export const db = initializeFirestore(app, {
 });
 export const functions = getFunctions(app);
 
-console.log("Firebase config:", {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? "loaded" : "missing",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-});
