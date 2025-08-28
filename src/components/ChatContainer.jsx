@@ -546,7 +546,7 @@ export default function ChatContainer({
         ...prev,
         {
           sender: "bot",
-          text: `🔬 Helping with research... Found ${suggestedCount} ${countType}`,
+          text: `🔬 Helping with research...\nFound ${suggestedCount} ${countType}`,
         },
       ]);
     }
@@ -774,8 +774,8 @@ export default function ChatContainer({
             Student Learning: {Math.round(calculateStudentLearning())} pts
           </div>
           <div style={{ fontSize: "10px", color: "#666", marginTop: "2px" }}>
-            {categoryPoints.slider || 0} ×{" "}
-            {(1 + (categoryPoints.counting || 0) * 0.15).toFixed(2)} + Interest
+            {categoryPoints.materials || 0} ×{" "}
+            {(1 + (categoryPoints.research || 0) * 0.15).toFixed(2)} + Interest
           </div>
         </div>
       </div>
