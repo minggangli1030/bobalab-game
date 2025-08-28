@@ -6,11 +6,7 @@ import {
   getDocs,
   addDoc,
   query,
-  where,
-  orderBy,
-  doc,
   deleteDoc,
-  updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
 
@@ -143,16 +139,16 @@ export default function MasterAdmin() {
   // Helper function to determine student section and checkpoint status
   const getStudentInfo = (studentId) => {
     if (CLASS_1A_ID_CHECKPOINT.includes(studentId)) {
-      return { section: "01A-CP", hasCheckpoint: true };
+      return { section: "01A-Checkpoint", hasCheckpoint: true };
     }
     if (CLASS_1A_ID_NOCHECKPOINT.includes(studentId)) {
-      return { section: "01A-NCP", hasCheckpoint: false };
+      return { section: "01A-No Checkpoint", hasCheckpoint: false };
     }
     if (CLASS_2A_ID_CHECKPOINT.includes(studentId)) {
-      return { section: "02A-CP", hasCheckpoint: true };
+      return { section: "02A-Checkpoint", hasCheckpoint: true };
     }
     if (CLASS_2A_ID_NOCHECKPOINT.includes(studentId)) {
-      return { section: "02A-NCP", hasCheckpoint: false };
+      return { section: "02A-No Checkpoint", hasCheckpoint: false };
     }
     // Admin codes or test accounts
     if (studentId.includes("ADMIN") || studentId.includes("admin")) {
@@ -297,6 +293,50 @@ export default function MasterAdmin() {
     }
   };
 
+  const resetAllData = async () => {
+    if (!confirm("⚠️ DANGER: This will permanently delete ALL student sessions, events, and access data.\n\nThis action cannot be undone. Are you absolutely sure?")) {
+      return;
+    }
+
+    setRefreshing(true);
+    try {
+      // Delete all sessions
+      const sessionsQuery = query(collection(db, "sessions"));
+      const sessionsSnapshot = await getDocs(sessionsQuery);
+      const sessionDeletePromises = sessionsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      
+      // Delete all events
+      const eventsQuery = query(collection(db, "events"));
+      const eventsSnapshot = await getDocs(eventsQuery);
+      const eventDeletePromises = eventsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      
+      // Delete all access refreshes
+      const refreshQuery = query(collection(db, "accessRefreshes"));
+      const refreshSnapshot = await getDocs(refreshQuery);
+      const refreshDeletePromises = refreshSnapshot.docs.map(doc => deleteDoc(doc.ref));
+
+      // Clear all localStorage data
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('played_')) {
+          localStorage.removeItem(key);
+        }
+      });
+
+      // Execute all deletions
+      await Promise.all([...sessionDeletePromises, ...eventDeletePromises, ...refreshDeletePromises]);
+
+      alert(`✅ All data reset complete!\n\nDeleted:\n- ${sessionsSnapshot.size} sessions\n- ${eventsSnapshot.size} events\n- ${refreshSnapshot.size} access refreshes\n- All localStorage data`);
+      
+      // Reload data
+      await loadStudentData();
+    } catch (error) {
+      console.error("Error resetting all data:", error);
+      alert("Failed to reset data. Please check console for details.");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const filteredStudents = students.filter((student) =>
     student.studentId.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -312,30 +352,24 @@ export default function MasterAdmin() {
     }).format(date);
   };
 
-  const getTodayCount = (student) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return student.sessions.filter((session) => {
-      const sessionDate = new Date(session.timestamp);
-      sessionDate.setHours(0, 0, 0, 0);
-      return sessionDate.getTime() === today.getTime();
-    }).length;
+  const getHighestScore = (student) => {
+    if (!student.sessions || student.sessions.length === 0) return 0;
+    return Math.max(...student.sessions.map(session => session.finalScore || 0));
   };
 
   // Calculate summary stats
   const totalStudents = students.filter(
     (s) => !s.section.includes("ADMIN")
   ).length;
-  const playedToday = students.filter(
-    (s) => !s.section.includes("ADMIN") && getTodayCount(s) > 0
+  const playedStudents = students.filter(
+    (s) => !s.section.includes("ADMIN") && s.hasPlayed
   ).length;
   const totalSessions = students
     .filter((s) => !s.section.includes("ADMIN"))
     .reduce((sum, s) => sum + s.totalAccesses, 0);
-  const needsRefresh = students.filter(
-    (s) => !s.section.includes("ADMIN") && getTodayCount(s) >= 1
-  ).length;
+  const avgScore = students
+    .filter((s) => !s.section.includes("ADMIN") && s.hasPlayed)
+    .reduce((sum, s) => sum + getHighestScore(s), 0) / (playedStudents || 1);
   const neverPlayed = students.filter(
     (s) => !s.section.includes("ADMIN") && !s.hasPlayed
   ).length;
@@ -352,10 +386,31 @@ export default function MasterAdmin() {
           color: "white",
         }}
       >
-        <h1 style={{ margin: "0 0 10px 0" }}>🔐 Master Admin Dashboard</h1>
-        <p style={{ margin: 0, opacity: 0.9 }}>
-          Manage student access and view activity logs
-        </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <h1 style={{ margin: "0 0 10px 0" }}>🔐 Master Admin Dashboard</h1>
+            <p style={{ margin: 0, opacity: 0.9 }}>
+              Manage student access and view activity logs
+            </p>
+          </div>
+          <button
+            onClick={resetAllData}
+            disabled={refreshing}
+            style={{
+              padding: "12px 20px",
+              background: "#f44336",
+              color: "white",
+              border: "none",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "14px",
+              opacity: refreshing ? 0.6 : 1,
+            }}
+          >
+            {refreshing ? "Processing..." : "🗑️ Reset All Data"}
+          </button>
+        </div>
       </div>
 
       {/* Controls */}
@@ -437,9 +492,9 @@ export default function MasterAdmin() {
             <div
               style={{ fontSize: "24px", fontWeight: "bold", color: "#4CAF50" }}
             >
-              {playedToday}
+              {playedStudents}
             </div>
-            <div style={{ fontSize: "12px", color: "#666" }}>Played Today</div>
+            <div style={{ fontSize: "12px", color: "#666" }}>Have Played</div>
           </div>
 
           <div
@@ -471,9 +526,9 @@ export default function MasterAdmin() {
             <div
               style={{ fontSize: "24px", fontWeight: "bold", color: "#e91e63" }}
             >
-              {needsRefresh}
+              {neverPlayed}
             </div>
-            <div style={{ fontSize: "12px", color: "#666" }}>Needs Refresh</div>
+            <div style={{ fontSize: "12px", color: "#666" }}>Never Played</div>
           </div>
 
           <div
@@ -554,7 +609,7 @@ export default function MasterAdmin() {
                   fontWeight: "600",
                 }}
               >
-                Today
+                Highest Score
               </th>
               <th
                 style={{
@@ -597,8 +652,7 @@ export default function MasterAdmin() {
               </tr>
             ) : (
               filteredStudents.map((student) => {
-                const todayCount = getTodayCount(student);
-                const needsRefresh = todayCount >= 1;
+                const highestScore = getHighestScore(student);
                 const isAdmin = student.section === "ADMIN";
 
                 return (
@@ -686,22 +740,22 @@ export default function MasterAdmin() {
                       <span
                         style={{
                           padding: "4px 8px",
-                          background: needsRefresh
-                            ? "#ffebee"
-                            : todayCount > 0
+                          background: highestScore >= 1000
                             ? "#e8f5e9"
+                            : highestScore > 0
+                            ? "#fff3e0"
                             : "#f5f5f5",
-                          color: needsRefresh
-                            ? "#c62828"
-                            : todayCount > 0
+                          color: highestScore >= 1000
                             ? "#2e7d32"
+                            : highestScore > 0
+                            ? "#f57c00"
                             : "#999",
                           borderRadius: "12px",
                           fontSize: "12px",
                           fontWeight: "bold",
                         }}
                       >
-                        {todayCount}
+                        {highestScore}
                       </span>
                     </td>
                     <td
@@ -729,7 +783,7 @@ export default function MasterAdmin() {
                           disabled={refreshing}
                           style={{
                             padding: "6px 12px",
-                            background: needsRefresh ? "#ff9800" : "#4CAF50",
+                            background: "#2196F3",
                             color: "white",
                             border: "none",
                             borderRadius: "4px",
@@ -738,7 +792,7 @@ export default function MasterAdmin() {
                             fontWeight: "bold",
                           }}
                         >
-                          {needsRefresh ? "🔄 Refresh" : "✓ OK"}
+                          {"🔄 Reset"}
                         </button>
                       )}
                     </td>
@@ -765,8 +819,8 @@ export default function MasterAdmin() {
         Access automatically resets at midnight PST. Use refresh button to
         manually grant access.
         <br />
-        Total roster: {totalStudents} students across 4 conditions (01A-CP,
-        01A-NCP, 02A-CP, 02A-NCP)
+        Total roster: {totalStudents} students across 4 conditions (01A-Checkpoint,
+        01A-No Checkpoint, 02A-Checkpoint, 02A-No Checkpoint)
       </div>
     </div>
   );

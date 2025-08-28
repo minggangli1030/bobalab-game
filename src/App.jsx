@@ -298,9 +298,15 @@ function App() {
       parseFloat(localStorage.getItem("engagementInterest") || "0") || 0;
 
     const total = baseScore + accumulatedInterest;
-    
+
     // Student Learning Points Update
-    console.log(`📊 STUDENT LEARNING: ${total.toFixed(1)} pts | Formula: ${materialsPoints} × ${researchMultiplier.toFixed(2)} + ${accumulatedInterest.toFixed(1)} = ${total.toFixed(1)}`);
+    console.log(
+      `📊 STUDENT LEARNING: ${total.toFixed(
+        1
+      )} pts | Formula: ${materialsPoints} × ${researchMultiplier.toFixed(
+        2
+      )} + ${accumulatedInterest.toFixed(1)} = ${total.toFixed(1)}`
+    );
 
     return isNaN(total) ? 0 : total;
   };
@@ -314,13 +320,13 @@ function App() {
       // Set up admin gameConfig if admin mode but no gameConfig exists
       if (isAdminMode && !sessionStorage.getItem("gameConfig")) {
         sessionStorage.setItem(
-          "gameConfig", 
+          "gameConfig",
           JSON.stringify({
             role: "admin",
             section: "admin",
             hasAI: true,
             checkpointSemester2: true,
-            displayName: "Admin User"
+            displayName: "Admin User",
           })
         );
       }
@@ -396,7 +402,6 @@ function App() {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
     const duration = config.semesterDuration || 1200000;
     const limitInSeconds = Math.floor(duration / 1000);
-
 
     setTimeLimit(limitInSeconds);
     setTimeRemaining(limitInSeconds);
@@ -562,10 +567,16 @@ function App() {
     }
 
     // Store raw points for the category
-    setCategoryPoints((prev) => ({
-      ...prev,
-      [category]: prev[category] + points,
-    }));
+    setCategoryPoints((prev) => {
+      const newPoints = {
+        ...prev,
+        [category]: prev[category] + points,
+      };
+      console.log(
+        `🎯 Updated ${category}: +${points} (total: ${newPoints[category]})`
+      );
+      return newPoints;
+    });
 
     // Calculate and apply engagement interest after EVERY task completion
     const currentEngagementPoints =
@@ -826,7 +837,6 @@ function App() {
 
   // Handle practice completion
   const handlePracticeComplete = (taskId, data) => {
-
     // Check if perfect score
     if (data && data.points && data.points === 2) {
       setPracticeCompleted((prev) => ({ ...prev, [taskId]: true }));
@@ -1066,7 +1076,8 @@ function App() {
                     fontSize: "16px",
                   }}
                 >
-                  Semester {idx + 1}: <strong>{semester.finalScore} points</strong>
+                  Semester {idx + 1}:{" "}
+                  <strong>{semester.finalScore} points</strong>
                 </div>
               ))}
             </div>
@@ -1286,7 +1297,7 @@ function App() {
                   }}
                 >
                   Goal = <strong>Materials</strong>
-                  <br />× (1 + 0.15×<strong>Research</strong>)<br />+{" "}
+                  <br />× (1 + 0.15× <strong>Research</strong> )<br />+{" "}
                   <strong>Engagement</strong> Interest
                 </div>
                 <ul

@@ -534,7 +534,8 @@ export default function ChatContainer({
       ...prev,
       {
         sender: "bot",
-        text: `📊 Helping with materials... <br/> Suggested value: ${help.value.toFixed(
+        text: `📊 Helping with materials...
+Suggested value: ${help.value.toFixed(
           2
         )}`,
       },
@@ -591,7 +592,8 @@ export default function ChatContainer({
         ...prev,
         {
           sender: "bot",
-          text: `🔬 Helping with research... <br/> Found ${suggestedCount} ${countType}`,
+          text: `🔬 Helping with research...
+Found ${suggestedCount} ${countType}`,
         },
       ]);
     }
@@ -672,7 +674,8 @@ export default function ChatContainer({
           ...prev,
           {
             sender: "bot",
-            text: `✉️ Helping with engagement... <br/> Typing: "${help.text.substring(
+            text: `✉️ Helping with engagement...
+Typing: "${help.text.substring(
               0,
               30
             )}${help.text.length > 30 ? "..." : ""}"`,
@@ -890,16 +893,6 @@ export default function ChatContainer({
             }}
           >
             AI Usage: {aiUsageCount} total attempts
-            {aiUsageCount === 2 && (
-              <span style={{ color: "#ff9800", marginLeft: "8px" }}>
-                (Next will be off by 1)
-              </span>
-            )}
-            {aiUsageCount >= 5 && (
-              <span style={{ color: "#2196F3", marginLeft: "8px" }}>
-                (75% accuracy mode)
-              </span>
-            )}
           </div>
 
           <div

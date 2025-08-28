@@ -26,14 +26,22 @@ export default function SliderTask({
   const attemptsRef = useRef(0);
 
   useEffect(() => {
-    const pattern = patternGenerator.generateSliderPattern(taskNum);
-    setTarget(pattern.target);
-    setStep(pattern.step);
-    setShowValue(pattern.showValue);
+    if (isPractice) {
+      // For practice mode, use fixed values
+      setTarget(3);
+      setStep(0.01);
+      setShowValue(true);
+    } else {
+      // For regular mode, use pattern generator
+      const pattern = patternGenerator.generateSliderPattern(taskNum);
+      setTarget(pattern.target);
+      setStep(pattern.step);
+      setShowValue(pattern.showValue);
+    }
     setInput(0);
     setFeedback(null);
     attemptsRef.current = 0;
-  }, [taskNum]);
+  }, [taskNum, isPractice]);
 
   useEffect(() => {
     const handleAIHelp = (event) => {
