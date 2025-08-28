@@ -6,12 +6,23 @@ export const eventTracker = {
   // Core event logging function
   async logEvent(eventType, eventData) {
     const sessionId = localStorage.getItem("sessionId");
+    const sessionStartTime = parseInt(localStorage.getItem("sessionStartTime") || Date.now());
+    const currentTime = Date.now();
+    const timeElapsed = currentTime - sessionStartTime;
+    
+    // Format readable timestamp (minutes:seconds after start)
+    const minutes = Math.floor(timeElapsed / 60000);
+    const seconds = Math.floor((timeElapsed % 60000) / 1000);
+    const readableTime = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
     const event = {
       sessionId,
       type: eventType,
       timestamp: serverTimestamp(),
-      clientTimestamp: Date.now(),
+      clientTimestamp: currentTime,
+      timeElapsed,
+      readableTime,
+      semesterTime: this.getSemesterTime(),
       ...eventData,
       userAgent: navigator.userAgent,
       screenResolution: `${window.screen.width}x${window.screen.height}`,
@@ -117,6 +128,43 @@ export const eventTracker = {
       bestAccuracy: Math.max(...attemptHistory.map((a) => a.accuracy)),
       worstAccuracy: Math.min(...attemptHistory.map((a) => a.accuracy)),
       improvementTrend: this.calculateImprovementTrend(attemptHistory),
+    });
+  },
+
+  // Track AI help interactions for tasks
+  async trackAITaskHelp(taskId, helpType, aiSuggestion, wasCorrect, attemptNumber) {
+    const startTime = Date.now();
+    const taskCategory = taskId.startsWith("g1") ? "research" : 
+                        taskId.startsWith("g2") ? "materials" : "engagement";
+    
+    return this.logEvent("ai_task_help", {
+      taskId,
+      taskCategory,
+      helpType,
+      aiSuggestion,
+      wasCorrect,
+      attemptNumber,
+      helpRequestTime: startTime,
+      aiAccuracy: wasCorrect ? "correct" : "incorrect",
+      context: this.getCurrentContext()
+    });
+  },
+
+  // Track player's response to AI help
+  async trackAIHelpResponse(taskId, helpType, aiSuggestion, playerAction, playerAnswer, timeBetweenHelpAndSubmit) {
+    return this.logEvent("ai_help_response", {
+      taskId,
+      helpType,
+      aiSuggestion,
+      playerAction, // 'accepted', 'modified', 'rejected'
+      playerAnswer,
+      aiAnswerUsed: aiSuggestion === playerAnswer,
+      timeBetweenHelpAndSubmit,
+      playerModification: aiSuggestion !== playerAnswer ? {
+        original: aiSuggestion,
+        modified: playerAnswer,
+        difference: this.calculateDifference(aiSuggestion, playerAnswer, helpType)
+      } : null
     });
   },
 
@@ -1187,5 +1235,103 @@ export const eventTracker = {
     if (trend > -2) return "stable";
     if (trend > -5) return "slight_decline";
     return "rapid_decline";
+  },
+
+  // Get current semester time for more granular tracking
+  getSemesterTime() {
+    const semesterStartTime = parseInt(localStorage.getItem("semesterStartTime") || Date.now());
+    const elapsed = Date.now() - semesterStartTime;
+    const minutes = Math.floor(elapsed / 60000);
+    const seconds = Math.floor((elapsed % 60000) / 1000);
+    return {
+      elapsed,
+      readable: `${minutes}:${seconds.toString().padStart(2, '0')}`,
+      minutes,
+      seconds
+    };
+  },
+
+  // Calculate difference between AI suggestion and player answer
+  calculateDifference(aiSuggestion, playerAnswer, helpType) {
+    if (helpType === "slider") {
+      return {
+        type: "numerical",
+        difference: Math.abs(aiSuggestion - playerAnswer),
+        percentDiff: Math.abs(aiSuggestion - playerAnswer) / 10 * 100
+      };
+    } else if (helpType === "counting") {
+      return {
+        type: "numerical",
+        difference: Math.abs(aiSuggestion - playerAnswer),
+        percentDiff: aiSuggestion > 0 ? Math.abs(aiSuggestion - playerAnswer) / aiSuggestion * 100 : 100
+      };
+    } else if (helpType === "typing") {
+      const levenshtein = this.calculateLevenshteinDistance(aiSuggestion, playerAnswer);
+      return {
+        type: "textual",
+        levenshteinDistance: levenshtein,
+        charDifference: Math.abs(aiSuggestion.length - playerAnswer.length),
+        exactMatch: aiSuggestion === playerAnswer
+      };
+    }
+    return null;
+  },
+
+  // Calculate Levenshtein distance for text comparison
+  calculateLevenshteinDistance(str1, str2) {
+    const m = str1.length;
+    const n = str2.length;
+    const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (str1[i - 1] === str2[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1];
+        } else {
+          dp[i][j] = Math.min(
+            dp[i - 1][j] + 1,
+            dp[i][j - 1] + 1,
+            dp[i - 1][j - 1] + 1
+          );
+        }
+      }
+    }
+    return dp[m][n];
+  },
+
+  // Track all click events for comprehensive action tracking  
+  trackClick(element, context) {
+    const elementInfo = {
+      tagName: element.tagName,
+      className: element.className,
+      id: element.id,
+      text: element.textContent?.substring(0, 50),
+      dataAttributes: this.extractDataAttributes(element)
+    };
+    
+    return this.logEvent("user_click", {
+      element: elementInfo,
+      context,
+      coordinates: {
+        pageX: event.pageX,
+        pageY: event.pageY,
+        clientX: event.clientX,
+        clientY: event.clientY
+      }
+    });
+  },
+
+  // Extract data attributes from elements
+  extractDataAttributes(element) {
+    const attrs = {};
+    for (let attr of element.attributes) {
+      if (attr.name.startsWith('data-')) {
+        attrs[attr.name] = attr.value;
+      }
+    }
+    return attrs;
   },
 };

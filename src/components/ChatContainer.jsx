@@ -5,12 +5,38 @@ import "./ChatContainer.css";
 
 class AITaskHelper {
   constructor() {
+    // Track total AI usage across ALL tasks for this player
+    this.totalAIUsage = 0; // Universal counter across all tasks
     this.usageCount = {
       materials: 0,
       research: 0,
       engagement: 0,
     };
     this.taskUsageCount = {}; // Track usage per specific task
+  }
+
+  // Get the universal AI attempt number (across all tasks)
+  getUniversalAttemptNumber() {
+    return this.totalAIUsage;
+  }
+
+  // Determine if AI should be correct based on universal pattern
+  shouldAIBeCorrect(attemptNumber) {
+    let isCorrect;
+    
+    if (attemptNumber === 1 || attemptNumber === 2 || attemptNumber === 4 || attemptNumber === 5) {
+      // Attempts 1, 2, 4, 5 are always correct
+      isCorrect = true;
+    } else if (attemptNumber === 3) {
+      // Attempt 3 is always wrong by 1 (to earn 1 point)
+      isCorrect = false;
+    } else {
+      // Attempts 6+ have 75% chance of being correct
+      isCorrect = Math.random() < 0.75;
+    }
+    
+    console.log(`AI Help Attempt #${attemptNumber}: ${isCorrect ? 'CORRECT (2pts)' : 'WRONG (1pt or 0pts)'}`);
+    return isCorrect;
   }
 
   getTaskUsageCount(taskId) {
@@ -21,6 +47,7 @@ class AITaskHelper {
   }
 
   incrementTaskUsage(taskId, category) {
+    this.totalAIUsage++; // Increment universal counter
     this.usageCount[category]++;
     if (!this.taskUsageCount[taskId]) {
       this.taskUsageCount[taskId] = 0;
@@ -30,36 +57,27 @@ class AITaskHelper {
 
   helpWithSlider(targetValue, currentTaskId) {
     this.incrementTaskUsage(currentTaskId, "materials");
-    const taskUsage = this.getTaskUsageCount(currentTaskId);
+    const attemptNumber = this.getUniversalAttemptNumber();
 
     let suggestedValue;
 
-    if (taskUsage === 1) {
-      // First attempt is always correct
+    if (this.shouldAIBeCorrect(attemptNumber)) {
+      // AI gives correct answer
       suggestedValue = targetValue;
-    } else if (taskUsage <= 5) {
-      // 2-5 uses: mistakes within 1 point range
-      const error =
-        Math.random() < 0.7
-          ? 0
-          : (Math.random() < 0.5 ? -1 : 1) * Math.min(1, Math.random());
+    } else if (attemptNumber === 3) {
+      // Attempt 3: always off by 1 (to earn 1 point)
+      const error = Math.random() < 0.5 ? -1 : 1;
       suggestedValue = Math.max(0, Math.min(10, targetValue + error));
     } else {
-      // After 5th use: bad 75% of the time
-      if (Math.random() < 0.75) {
-        // Bad answer
-        if (Math.random() < 0.5) {
-          // Within 1 point (still gets some accuracy)
-          const error = Math.random() < 0.5 ? -1 : 1;
-          suggestedValue = Math.max(0, Math.min(10, targetValue + error));
-        } else {
-          // Way off (0 points)
-          const error = Math.random() < 0.5 ? -3 : 3;
-          suggestedValue = Math.max(0, Math.min(10, targetValue + error));
-        }
+      // Attempts 6+: when wrong, be off by 1 (1 point) or more (0 points)
+      if (Math.random() < 0.5) {
+        // Off by 1 (still gets 1 point)
+        const error = Math.random() < 0.5 ? -1 : 1;
+        suggestedValue = Math.max(0, Math.min(10, targetValue + error));
       } else {
-        // 25% chance still correct
-        suggestedValue = targetValue;
+        // Way off (0 points)
+        const error = (Math.random() < 0.5 ? -1 : 1) * (2 + Math.random() * 2);
+        suggestedValue = Math.max(0, Math.min(10, targetValue + error));
       }
     }
 
@@ -72,7 +90,7 @@ class AITaskHelper {
 
   helpWithCounting(text, targetPattern, currentTaskId) {
     this.incrementTaskUsage(currentTaskId, "research");
-    const taskUsage = this.getTaskUsageCount(currentTaskId);
+    const attemptNumber = this.getUniversalAttemptNumber();
 
     const words = text.split(/\s+/);
     const highlightWords = [];
@@ -87,8 +105,8 @@ class AITaskHelper {
       }
     });
 
-    if (taskUsage === 1) {
-      // First attempt is always correct
+    if (this.shouldAIBeCorrect(attemptNumber)) {
+      // AI gives correct answer
       words.forEach((word) => {
         const cleanWord = word.replace(/[.,;!?]/g, "").toLowerCase();
         if (cleanWord === targetPattern.toLowerCase()) {
@@ -96,10 +114,9 @@ class AITaskHelper {
           aiCount++;
         }
       });
-    } else if (taskUsage <= 5) {
-      // 2-5 uses: small mistakes (within 1)
-      aiCount =
-        correctCount + (Math.random() < 0.7 ? 0 : Math.random() < 0.5 ? -1 : 1);
+    } else if (attemptNumber === 3) {
+      // Attempt 3: always off by 1 (to earn 1 point)
+      aiCount = correctCount + (Math.random() < 0.5 ? -1 : 1);
       aiCount = Math.max(0, aiCount);
 
       // Highlight approximately the right number
@@ -113,19 +130,24 @@ class AITaskHelper {
         }
       });
     } else {
-      // After 5th use: correct 75% of the time
-      if (Math.random() < 0.75) {
-        if (Math.random() < 0.5) {
-          // Within 1 point
-          aiCount = correctCount + (Math.random() < 0.5 ? -1 : 1);
-        } else {
-          // Way off
-          aiCount = Math.floor((Math.random() * words.length) / 2);
-        }
+      // Attempts 6+: when wrong (25% of time), be off
+      if (Math.random() < 0.5) {
+        // Off by 1 (still gets 1 point)
+        aiCount = correctCount + (Math.random() < 0.5 ? -1 : 1);
       } else {
-        aiCount = correctCount;
+        // Way off (0 points)
+        aiCount = Math.floor(Math.random() * words.length);
       }
       aiCount = Math.max(0, aiCount);
+
+      // Highlight some words to match the count
+      let highlightCount = 0;
+      words.forEach((word) => {
+        if (highlightCount < aiCount && Math.random() < 0.5) {
+          highlightWords.push(word);
+          highlightCount++;
+        }
+      });
     }
 
     return {
@@ -138,7 +160,7 @@ class AITaskHelper {
 
   helpWithTyping(pattern, currentTaskId) {
     this.incrementTaskUsage(currentTaskId, "engagement");
-    const taskUsage = this.getTaskUsageCount(currentTaskId);
+    const attemptNumber = this.getUniversalAttemptNumber();
 
     let resultText = pattern;
 
@@ -219,42 +241,33 @@ class AITaskHelper {
       return charArray.join("");
     };
 
-    if (taskUsage === 1) {
-      // First attempt is always correct
+    if (this.shouldAIBeCorrect(attemptNumber)) {
+      // AI gives correct answer
       resultText = pattern;
-    } else if (taskUsage <= 5) {
-      // 2-5 uses: 20% chance of exactly 1 typo (still gets 1 point)
-      if (Math.random() < 0.2) {
-        resultText = makeRealisticTypo(pattern);
-      }
-      // 80% chance still correct
+    } else if (attemptNumber === 3) {
+      // Attempt 3: always exactly 1 typo (to earn 1 point)
+      resultText = makeRealisticTypo(pattern);
     } else {
-      // After 5th use: bad 60% of the time
-      if (Math.random() < 0.6) {
-        if (Math.random() < 0.5) {
-          // 50% of bad attempts: exactly 1 typo (still gets 1 point)
-          resultText = makeRealisticTypo(pattern);
-        } else {
-          // 50% of bad attempts: multiple errors (0 points)
-          let modifiedText = pattern;
-
-          // Make 2-4 typos
-          const numErrors = Math.floor(Math.random() * 3) + 2;
-          for (let i = 0; i < numErrors; i++) {
-            modifiedText = makeRealisticTypo(modifiedText);
-          }
-
-          resultText = modifiedText;
+      // Attempts 6+: when wrong (25% of time), make errors
+      if (Math.random() < 0.5) {
+        // Exactly 1 typo (still gets 1 point)
+        resultText = makeRealisticTypo(pattern);
+      } else {
+        // Multiple errors (0 points)
+        let modifiedText = pattern;
+        const numErrors = Math.floor(Math.random() * 3) + 2; // 2-4 typos
+        for (let i = 0; i < numErrors; i++) {
+          modifiedText = makeRealisticTypo(modifiedText);
         }
+        resultText = modifiedText;
       }
-      // 25% chance still correct
     }
 
     return {
       action: "autoType",
       text: resultText,
       typeSpeed: 50,
-      perfect: taskUsage === 1,
+      perfect: this.shouldAIBeCorrect(attemptNumber),
     };
   }
 }
@@ -270,6 +283,7 @@ export default function ChatContainer({
 }) {
   // Get the game config to check if AI is enabled
   const [hasAI, setHasAI] = useState(true);
+  const [aiUsageCount, setAiUsageCount] = useState(0); // Track AI usage for display
 
   useEffect(() => {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
@@ -374,6 +388,26 @@ export default function ChatContainer({
       parseFloat(sliderTarget),
       currentTask
     );
+    
+    // Track AI help request
+    const attemptNumber = aiTaskHelper.getUniversalAttemptNumber();
+    const wasCorrect = aiTaskHelper.shouldAIBeCorrect(attemptNumber);
+    
+    eventTracker.trackAITaskHelp(
+      currentTask,
+      "slider",
+      help.value,
+      wasCorrect,
+      attemptNumber
+    );
+    
+    // Store help data for tracking response later
+    localStorage.setItem(`lastAIHelp_${currentTask}`, JSON.stringify({
+      type: "slider",
+      suggestion: help.value,
+      timestamp: Date.now(),
+      wasCorrect
+    }));
 
     window.dispatchEvent(
       new CustomEvent("aiSliderHelp", {
@@ -381,11 +415,13 @@ export default function ChatContainer({
       })
     );
 
+    setAiUsageCount(aiTaskHelper.totalAIUsage); // Update display counter
+
     setMessages((prev) => [
       ...prev,
       {
         sender: "bot",
-        text: `📊 Helping with materials...`,
+        text: `📊 Helping with materials... Suggested value: ${help.value.toFixed(2)}`,
       },
     ]);
   };
@@ -402,13 +438,16 @@ export default function ChatContainer({
           ?.replace(/['"]/g, "")
           .trim() || "";
 
+      let help;
+      let suggestedCount;
+      
       // Check if it's a multi-letter pattern (contains "and" or comma)
       if (pattern.includes(" and ") || pattern.includes(",")) {
         // Extract individual letters from pattern like "a and e" or "a, e"
         const letters = pattern.match(/[a-z]/gi) || [];
 
         // For multi-letter, highlight all occurrences
-        const help = {
+        help = {
           action: "highlightAndCount",
           highlightWords: [], // Will handle differently for letters
           suggestedCount: 0,
@@ -423,23 +462,51 @@ export default function ChatContainer({
           const matches = text.match(regex);
           help.suggestedCount += matches ? matches.length : 0;
         });
+        
+        suggestedCount = help.suggestedCount;
 
         window.dispatchEvent(
           new CustomEvent("aiCountingHelp", { detail: help })
         );
       } else {
         // Single word/letter pattern - use existing logic
-        const help = aiTaskHelper.helpWithCounting(text, pattern, currentTask);
+        help = aiTaskHelper.helpWithCounting(text, pattern, currentTask);
+        suggestedCount = help.suggestedCount;
+        
         window.dispatchEvent(
           new CustomEvent("aiCountingHelp", { detail: help })
         );
       }
+      
+      // Track AI help request
+      const attemptNumber = aiTaskHelper.getUniversalAttemptNumber();
+      const wasCorrect = attemptNumber <= 2 || attemptNumber === 4 || attemptNumber === 5 || 
+                         (attemptNumber > 5 && Math.random() < 0.75);
+      
+      eventTracker.trackAITaskHelp(
+        currentTask,
+        "counting",
+        suggestedCount,
+        wasCorrect,
+        attemptNumber
+      );
+      
+      // Store help data for tracking response later
+      localStorage.setItem(`lastAIHelp_${currentTask}`, JSON.stringify({
+        type: "counting",
+        suggestion: suggestedCount,
+        timestamp: Date.now(),
+        wasCorrect,
+        highlightedWords: help.highlightWords
+      }));
 
+      setAiUsageCount(aiTaskHelper.totalAIUsage); // Update display counter
+      
       setMessages((prev) => [
         ...prev,
         {
           sender: "bot",
-          text: `🔬 Helping with research...`,
+          text: `🔬 Helping with research... Found ${suggestedCount} occurrences`,
         },
       ]);
     }
@@ -483,6 +550,27 @@ export default function ChatContainer({
 
       if (pattern) {
         const help = aiTaskHelper.helpWithTyping(pattern, currentTask);
+        
+        // Track AI help request
+        const attemptNumber = aiTaskHelper.getUniversalAttemptNumber();
+        const wasCorrect = help.perfect;
+        
+        eventTracker.trackAITaskHelp(
+          currentTask,
+          "typing",
+          help.text,
+          wasCorrect,
+          attemptNumber
+        );
+        
+        // Store help data for tracking response later
+        localStorage.setItem(`lastAIHelp_${currentTask}`, JSON.stringify({
+          type: "typing",
+          suggestion: help.text,
+          timestamp: Date.now(),
+          wasCorrect,
+          originalPattern: pattern
+        }));
 
         window.dispatchEvent(
           new CustomEvent("aiTypingHelp", {
@@ -490,11 +578,13 @@ export default function ChatContainer({
           })
         );
 
+        setAiUsageCount(aiTaskHelper.totalAIUsage); // Update display counter
+
         setMessages((prev) => [
           ...prev,
           {
             sender: "bot",
-            text: `✉️ Helping with engagement...`,
+            text: `✉️ Helping with engagement... Typing: "${help.text.substring(0, 30)}${help.text.length > 30 ? '...' : ''}"`,
           },
         ]);
       }
@@ -525,15 +615,18 @@ export default function ChatContainer({
     }
 
     const userMessage = input.toLowerCase().trim();
+    const fullQuery = input; // Keep original query for tracking
     setMessages((prev) => [...prev, { sender: "user", text: input }]);
     setInput("");
     setIsTyping(true);
 
     setTimeout(() => {
       let response = "";
+      let responseType = "general";
 
       // Check for text-based help commands (backward compatibility)
       if (userMessage.includes("help")) {
+        responseType = "help_request";
         if (
           userMessage.includes("material") ||
           userMessage.includes("slider")
@@ -563,6 +656,7 @@ export default function ChatContainer({
         userMessage.includes("plan") ||
         userMessage.includes("order")
       ) {
+        responseType = "strategy";
         const planningResponses = [
           "📊 Strategic Order: Start with Research tasks for the 15% multiplier per point, then do Engagement for compound interest that builds over time, finally complete Materials for maximum base points!",
           "🎯 Pro Strategy: Research → Engagement → Materials. Build your multipliers first, then let interest compound, and maximize base points at the end!",
@@ -578,6 +672,7 @@ export default function ChatContainer({
         userMessage.includes("tip") ||
         userMessage.includes("advice")
       ) {
+        responseType = "advice";
         response =
           "Strategic tip: Do Research tasks first for the multiplier effect, then Materials for base points, finally Engagement for compound interest!";
       } else {
@@ -592,6 +687,17 @@ export default function ChatContainer({
           genericResponses[Math.floor(Math.random() * genericResponses.length)];
       }
 
+      // Track chat interaction
+      eventTracker.trackUserAction("chat_message", {
+        query: fullQuery,
+        queryType: responseType,
+        response: response,
+        currentTask: currentTask,
+        categoryPoints: categoryPoints,
+        studentLearning: calculateStudentLearning(),
+        aiUsageCount: aiTaskHelper.totalAIUsage
+      });
+      
       setMessages((prev) => [...prev, { sender: "bot", text: response }]);
       setIsTyping(false);
     }, 800);
@@ -680,6 +786,31 @@ export default function ChatContainer({
             background: "#f8f9fa",
           }}
         >
+          {/* AI Usage Counter */}
+          <div
+            style={{
+              fontSize: "11px",
+              color: "#666",
+              textAlign: "center",
+              marginBottom: "8px",
+              padding: "4px",
+              background: "white",
+              borderRadius: "4px",
+            }}
+          >
+            AI Usage: {aiUsageCount} total attempts
+            {aiUsageCount === 2 && (
+              <span style={{ color: "#ff9800", marginLeft: "8px" }}>
+                (Next will be off by 1)
+              </span>
+            )}
+            {aiUsageCount >= 5 && (
+              <span style={{ color: "#2196F3", marginLeft: "8px" }}>
+                (75% accuracy mode)
+              </span>
+            )}
+          </div>
+
           <div
             style={{
               display: "grid",

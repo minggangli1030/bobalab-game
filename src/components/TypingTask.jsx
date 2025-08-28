@@ -112,6 +112,27 @@ export default function TypingTask({
 
   const handleSubmit = async () => {
     const timeTaken = Date.now() - startTime;
+    const currentTaskId = `g3t${taskNum}`;
+
+    // Check for AI help response tracking
+    const lastAIHelp = localStorage.getItem(`lastAIHelp_${currentTaskId}`);
+    if (lastAIHelp) {
+      const helpData = JSON.parse(lastAIHelp);
+      const timeBetween = Date.now() - helpData.timestamp;
+      const playerAction = input === helpData.suggestion ? "accepted" : "modified";
+      
+      await eventTracker.trackAIHelpResponse(
+        currentTaskId,
+        helpData.type,
+        helpData.suggestion,
+        playerAction,
+        input,
+        timeBetween
+      );
+      
+      // Clear the stored help data
+      localStorage.removeItem(`lastAIHelp_${currentTaskId}`);
+    }
 
     // Calculate Levenshtein distance for typo detection
     const calculateLevenshteinDistance = (str1, str2) => {
@@ -155,7 +176,7 @@ export default function TypingTask({
     attemptsRef.current += 1;
 
     await eventTracker.trackTaskAttempt(
-      `g3t${taskNum}`,
+      currentTaskId,
       attemptsRef.current,
       true, // Always passes
       timeTaken,

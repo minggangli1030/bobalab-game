@@ -281,6 +281,27 @@ export default function CountingTask({
     const userAnswer = parseInt(input, 10) || 0;
     const correctAnswer = answer ?? 0;
     const difference = Math.abs(userAnswer - correctAnswer);
+    const currentTaskId = `g1t${taskNum}`;
+
+    // Check for AI help response tracking
+    const lastAIHelp = localStorage.getItem(`lastAIHelp_${currentTaskId}`);
+    if (lastAIHelp) {
+      const helpData = JSON.parse(lastAIHelp);
+      const timeBetween = Date.now() - helpData.timestamp;
+      const playerAction = userAnswer === helpData.suggestion ? "accepted" : "modified";
+      
+      await eventTracker.trackAIHelpResponse(
+        currentTaskId,
+        helpData.type,
+        helpData.suggestion,
+        playerAction,
+        userAnswer,
+        timeBetween
+      );
+      
+      // Clear the stored help data
+      localStorage.removeItem(`lastAIHelp_${currentTaskId}`);
+    }
 
     // Calculate points based on accuracy
     let points = 0;
@@ -295,7 +316,7 @@ export default function CountingTask({
     attemptsRef.current += 1;
 
     await eventTracker.trackTaskAttempt(
-      `g1t${taskNum}`,
+      currentTaskId,
       attemptsRef.current,
       true, // Always passes in lenient mode
       timeTaken,

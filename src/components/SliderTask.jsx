@@ -152,6 +152,27 @@ export default function SliderTask({
     const timeTaken = Date.now() - startTime;
     const userValue = parseFloat(input);
     const difference = Math.abs(userValue - target);
+    const currentTaskId = `g2t${taskNum}`;
+
+    // Check for AI help response tracking
+    const lastAIHelp = localStorage.getItem(`lastAIHelp_${currentTaskId}`);
+    if (lastAIHelp) {
+      const helpData = JSON.parse(lastAIHelp);
+      const timeBetween = Date.now() - helpData.timestamp;
+      const playerAction = userValue === helpData.suggestion ? "accepted" : "modified";
+      
+      await eventTracker.trackAIHelpResponse(
+        currentTaskId,
+        helpData.type,
+        helpData.suggestion,
+        playerAction,
+        userValue,
+        timeBetween
+      );
+      
+      // Clear the stored help data
+      localStorage.removeItem(`lastAIHelp_${currentTaskId}`);
+    }
 
     // Calculate points based on difference
     let points = 0;
@@ -166,7 +187,7 @@ export default function SliderTask({
     attemptsRef.current += 1;
 
     await eventTracker.trackTaskAttempt(
-      `g2t${taskNum}`,
+      currentTaskId,
       attemptsRef.current,
       true, // Always passes
       timeTaken,
