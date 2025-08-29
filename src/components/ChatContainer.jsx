@@ -626,11 +626,11 @@ Found ${suggestedCount} ${countType}`,
   // Handler for planning/strategy help
   const handlePlanningHelp = () => {
     const planningResponses = [
-      "📊 Strategic Order: Start with Research tasks for the 15% multiplier per point, then do Engagement for compound interest that builds over time, finally complete Materials for maximum base points!",
-      "🎯 Pro Strategy: Research → Engagement → Materials. Build your multipliers first, then let interest compound, and maximize base points at the end!",
-      "💡 Optimal Workflow: 1) Research multiplies everything (×1.15 per point), 2) Engagement adds 0.15% interest after EVERY task, 3) Materials are pure points - save them for last when multipliers are active!",
-      "🚀 Best Practice: Complete Research early (multiplier effect), then Engagement (compounds over time), finally Materials. Each Research point makes ALL your Materials worth 15% more!",
-      "📈 Planning Tip: Think of it as investing - Research is your growth multiplier, Engagement is compound interest, Materials are your principal. Build multipliers before collecting points!",
+      "🎯 CRITICAL STRATEGY: Do tasks in this EXACT order → 1️⃣ Engagement (builds interest from the start) 2️⃣ Research (multiplies future materials) 3️⃣ Materials (gets all multipliers). Materials done early = WASTED points!",
+      "📊 MAXIMUM SCORE ORDER: Engagement FIRST → Research SECOND → Materials LAST! Why? Engagement compounds every task, Research only multiplies FUTURE materials. Doing materials early gets ZERO multiplier!",
+      "⚠️ WARNING: Research multipliers ONLY apply to materials earned AFTER! If you do materials first, you get NO bonus. Always do ALL engagement & research before touching ANY materials!",
+      "💡 PRO TIP: Complete 100% of Engagement tasks first (builds interest early), then 100% of Research (sets up multipliers), THEN do Materials. This order can DOUBLE your score vs doing materials first!",
+      "🚀 OPTIMAL PATH: Think of it like this - Engagement = compound interest (starts early), Research = multiplier (affects future only), Materials = base score (save for last). Wrong order = lost points forever!",
     ];
 
     const response =
@@ -777,11 +777,11 @@ Typing: "${help.text.substring(
       ) {
         responseType = "strategy";
         const planningResponses = [
-          "📊 Strategic Order: Start with Research tasks for the 15% multiplier per point, then do Engagement for compound interest that builds over time, finally complete Materials for maximum base points!",
-          "🎯 Pro Strategy: Research → Engagement → Materials. Build your multipliers first, then let interest compound, and maximize base points at the end!",
-          "💡 Optimal Workflow: 1) Research multiplies everything (×1.15 per point), 2) Engagement adds 0.15% interest after EVERY task, 3) Materials are pure points - save them for last when multipliers are active!",
-          "🚀 Best Practice: Complete Research early (multiplier effect), then Engagement (compounds over time), finally Materials. Each Research point makes ALL your Materials worth 15% more!",
-          "📈 Planning Tip: Think of it as investing - Research is your growth multiplier, Engagement is compound interest, Materials are your principal. Build multipliers before collecting points!",
+          "🎯 CRITICAL STRATEGY: Do tasks in this EXACT order → 1️⃣ Engagement (builds interest from the start) 2️⃣ Research (multiplies future materials) 3️⃣ Materials (gets all multipliers). Materials done early = WASTED points!",
+          "📊 MAXIMUM SCORE ORDER: Engagement FIRST → Research SECOND → Materials LAST! Why? Engagement compounds every task, Research only multiplies FUTURE materials. Doing materials early gets ZERO multiplier!",
+          "⚠️ WARNING: Research multipliers ONLY apply to materials earned AFTER! If you do materials first, you get NO bonus. Always do ALL engagement & research before touching ANY materials!",
+          "💡 PRO TIP: Complete 100% of Engagement tasks first (builds interest early), then 100% of Research (sets up multipliers), THEN do Materials. This order can DOUBLE your score vs doing materials first!",
+          "🚀 OPTIMAL PATH: Think of it like this - Engagement = compound interest (starts early), Research = multiplier (affects future only), Materials = base score (save for last). Wrong order = lost points forever!",
         ];
         response =
           planningResponses[

@@ -69,24 +69,49 @@ npm run preview
 ## Important Implementation Details
 
 ### Scoring System
-```javascript
-Student Learning = Materials × (1 + 0.15×Research) + Engagement Interest
-```
+**CRITICAL: Task Order Determines Score!**
+
+**Optimal Strategy: 1️⃣ Engagement → 2️⃣ Research → 3️⃣ Materials**
+
+**Why Order Matters:**
+- Research multipliers (15% per point) ONLY apply to materials earned AFTER
+- Engagement interest compounds from the start - do it FIRST for maximum benefit
+- Materials done before research = ZERO multiplier (huge score loss!)
+
+**Example - Same Tasks, Different Order:**
+- **Bad Order** (Materials→Research): 10 materials × 1.0 + 5 research = 10 points
+- **Good Order** (Research→Materials): 5 research first, then 10 materials × 1.75 = 17.5 points
+- **75% score difference just from ordering!**
+
+**Technical Implementation:**
+- Materials points tracked at each research level: `materialsAtResearchLevel[researchLevel]`
+- Formula: Each material batch multiplied by (1 + researchLevel × 0.15)
+- Engagement interest: 0.15% × engagement points × current score, applied after EVERY task
+
+**Point Values:**
 - Exact answer = 2 points
 - Within 1 = 1 point  
 - Otherwise = 0 points
-- Engagement interest compounds after every task completion
 
 ### Checkpoint System
 - Semester 2 includes midterm at 6-minute mark (1 minute for admin mode)
-- 50+ student learning points = 300 bonus points
+- **300+ student learning points = 300 bonus points** (increased from 50)
 - Checkpoint pauses game for user acknowledgment
+- Configurable per access code (checkpointSemester2 flag)
 
 ### Session Security
-- One-time access codes prevent multiple attempts
+- One-time access codes prevent multiple attempts (students only)
 - Session blocking on idle (60s) or tab switch (30s warning)
 - No refresh/restart allowed for students
 - Admin mode bypasses restrictions
+- ADMIN-TEST codes allow unlimited attempts for testing
+
+### AI Strategy Advice
+When asked about strategy, the AI MUST emphasize:
+- **Engagement → Research → Materials** is the ONLY optimal order
+- Materials done before research get NO multiplier (critical mistake!)
+- Complete ALL engagement and research before ANY materials
+- This order can double the final score
 
 ### AI Help Pattern
 The AI assistant follows a deterministic pattern for the first 5 uses:
@@ -168,12 +193,30 @@ event = {
 ## Testing Considerations
 
 - **Admin Mode**: `?admin=berkeley2024` URL parameter
-- **Timer Adjustment**: 2-minute timer for admin vs 20-minute for students
+- **Timer Adjustment**: 2-minute timer for admin vs 12-minute for students (per semester)
 - **Practice Skip**: Admin can bypass mandatory practice mode
 - **Firebase Testing**: Use `node src/testFirebase.js` to verify connection
-- **Checkpoint Timing**: Adjusts based on admin/student mode (1min vs 6min)
+- **Checkpoint Timing**: Adjusts based on admin/student mode (1min vs 6min in semester 2)
 - **AI Testing**: All difficulty levels now work correctly for counting tasks
 - **Data Verification**: Comprehensive event tracking for analysis
+
+## Access Code Reference
+
+### Student Sections (Real IDs - One-time access)
+- **Section 01A-Checkpoint**: No AI, with semester 2 checkpoint
+- **Section 01A-No Checkpoint**: No AI, no checkpoint
+- **Section 02A-Checkpoint**: AI enabled, with semester 2 checkpoint  
+- **Section 02A-No Checkpoint**: AI enabled, no checkpoint
+
+### Admin Test Codes (Unlimited access)
+- **ADMIN-TEST1 to ADMIN-TEST10**: Student-like 12-min semesters, AI enabled, checkpoint enabled
+- **ADMIN-REGULAR**: 12-min mode with AI and checkpoint
+- **ADMIN-FAST**: 2-min quick test with AI and checkpoint
+- **ADMIN-1-CP**: No AI, with checkpoint (2 min)
+- **ADMIN-1-NCP**: No AI, no checkpoint (2 min)
+- **ADMIN-2-CP**: AI enabled, with checkpoint (2 min)
+- **ADMIN-2-NCP**: AI enabled, no checkpoint (2 min)
+- **ADMIN-MASTER**: Access to master admin dashboard (no gameplay)
 
 ## Important Notes for Development
 

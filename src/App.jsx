@@ -47,20 +47,7 @@ function calculateLevenshteinDistance(str1, str2) {
 }
 
 function App() {
-  // Master Admin interface (highest priority)
-  if (window.location.search.includes("master=true")) {
-    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
-    if (config.role === "master_admin") {
-      return <MasterAdmin />;
-    }
-  }
-
-  // Admin page (hidden route)
-  if (window.location.search.includes("admin=true")) {
-    return <AdminPage />;
-  }
-
-  // Admin mode check
+  // Admin mode check (before hooks)
   const urlParams = new URLSearchParams(window.location.search);
   const isAdminMode = urlParams.get("admin") === "berkeley2024";
 
@@ -110,6 +97,13 @@ function App() {
     engagement: 0, // Renamed from typing
     bonus: 0, // Checkpoint bonuses
   });
+  // Track materials points earned at each research level
+  // Format: { researchLevel: materialsPoints }
+  // e.g., { 0: 10, 1: 5, 2: 8 } means:
+  // - 10 materials points earned when research was 0
+  // - 5 materials points earned when research was 1
+  // - 8 materials points earned when research was 2
+  const [materialsAtResearchLevel, setMaterialsAtResearchLevel] = useState({});
   const [taskAttempts, setTaskAttempts] = useState({});
   const [taskPoints, setTaskPoints] = useState({});
 
@@ -282,30 +276,49 @@ function App() {
     };
   }, [mode]);
 
-  const calculateStudentLearning = (points = categoryPoints) => {
-    const materialsPoints = points.materials || 0;
-    const researchPoints = points.research || 0;
-    const engagementPoints = points.engagement || 0;
+  // Conditional returns after hooks
+  // Master Admin interface (highest priority)
+  if (window.location.search.includes("master=true")) {
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    if (config.role === "master_admin") {
+      return <MasterAdmin />;
+    }
+  }
 
-    // Research multiplier: each point adds 0.15 to multiplier
-    const researchMultiplier = 1 + researchPoints * 0.15;
+  // Admin page (hidden route)
+  if (window.location.search.includes("admin=true")) {
+    return <AdminPage />;
+  }
 
-    // Base score: Materials × Research multiplier
-    const baseScore = materialsPoints * researchMultiplier;
+  const calculateStudentLearning = (
+    points = categoryPoints,
+    materialsBreakdown = materialsAtResearchLevel
+  ) => {
+    // Calculate materials score with research multipliers applied only to future points
+    let materialsScore = 0;
+    
+    // Go through each research level and calculate the materials points with appropriate multiplier
+    Object.entries(materialsBreakdown).forEach(([researchLevel, materials]) => {
+      const level = parseInt(researchLevel);
+      const multiplier = 1 + level * 0.15;
+      materialsScore += materials * multiplier;
+    });
 
     // Get accumulated interest from localStorage
     const accumulatedInterest =
       parseFloat(localStorage.getItem("engagementInterest") || "0") || 0;
 
-    const total = baseScore + accumulatedInterest;
+    const total = materialsScore + accumulatedInterest;
 
-    // Student Learning Points Update
+    // Student Learning Points Update with new formula display
+    const totalMaterials = points.materials || 0;
+    const researchPoints = points.research || 0;
     console.log(
       `📊 STUDENT LEARNING: ${total.toFixed(
         1
-      )} pts | Formula: ${materialsPoints} × ${researchMultiplier.toFixed(
-        2
-      )} + ${accumulatedInterest.toFixed(1)} = ${total.toFixed(1)}`
+      )} pts | Materials: ${totalMaterials} (with sequential multipliers) | Research: ${researchPoints} | Interest: ${accumulatedInterest.toFixed(
+        1
+      )} = ${total.toFixed(1)}`
     );
 
     return isNaN(total) ? 0 : total;
@@ -379,7 +392,7 @@ function App() {
     const studentLearning = calculateStudentLearning();
 
     // Only check for bonus in semester 2 with checkpoint enabled
-    if (studentLearning >= 50) {
+    if (studentLearning >= 300) {
       const bonus = 300;
       setCheckpointBonus(bonus);
 
@@ -489,6 +502,7 @@ function App() {
     localStorage.setItem("engagementInterest", "0");
     // Reset teaching points
     setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
+    setMaterialsAtResearchLevel({});
 
     setMode("challenge");
     setCompleted({});
@@ -592,6 +606,18 @@ function App() {
       return newPoints;
     });
 
+    // Track materials points at current research level
+    if (category === "materials" && points > 0) {
+      const currentResearchLevel = categoryPoints.research;
+      setMaterialsAtResearchLevel((prev) => {
+        const existing = prev[currentResearchLevel] || 0;
+        return {
+          ...prev,
+          [currentResearchLevel]: existing + points,
+        };
+      });
+    }
+
     // Calculate and apply engagement interest after EVERY task completion
     const currentEngagementPoints =
       category === "engagement"
@@ -599,24 +625,36 @@ function App() {
         : categoryPoints.engagement;
     const engagementInterestRate = 0.0015 * currentEngagementPoints;
 
-    // Get current goal points (materials × research multiplier)
-    const currentMaterialsPoints =
-      category === "materials"
-        ? categoryPoints.materials + points
-        : categoryPoints.materials;
-    const currentResearchMultiplier =
-      1 +
-      (category === "research"
-        ? categoryPoints.research + points
-        : categoryPoints.research) *
-        0.15;
-    const goalPoints = currentMaterialsPoints * currentResearchMultiplier;
+    // Calculate current student learning (without interest) for interest calculation
+    const newCategoryPoints = {
+      ...categoryPoints,
+      [category]: categoryPoints[category] + points,
+    };
+    
+    // Update materials breakdown if needed
+    let newMaterialsBreakdown = materialsAtResearchLevel;
+    if (category === "materials" && points > 0) {
+      const currentResearchLevel = categoryPoints.research;
+      const existing = materialsAtResearchLevel[currentResearchLevel] || 0;
+      newMaterialsBreakdown = {
+        ...materialsAtResearchLevel,
+        [currentResearchLevel]: existing + points,
+      };
+    }
+    
+    // Calculate materials score with proper multipliers
+    let materialsScore = 0;
+    Object.entries(newMaterialsBreakdown).forEach(([researchLevel, materials]) => {
+      const level = parseInt(researchLevel);
+      const multiplier = 1 + level * 0.15;
+      materialsScore += materials * multiplier;
+    });
 
     // Add engagement interest to accumulated interest
     const previousInterest = parseFloat(
       localStorage.getItem("engagementInterest") || "0"
     );
-    const newInterest = previousInterest + engagementInterestRate * goalPoints;
+    const newInterest = previousInterest + engagementInterestRate * materialsScore;
     localStorage.setItem("engagementInterest", newInterest.toString());
 
     setTaskPoints((prev) => ({
@@ -630,12 +668,15 @@ function App() {
     }));
 
     // Calculate the new student learning score
-    const newCategoryPoints = {
+    const finalCategoryPoints = {
       ...categoryPoints,
       [category]: categoryPoints[category] + points,
     };
 
-    const newStudentLearning = calculateStudentLearning(newCategoryPoints);
+    const newStudentLearning = calculateStudentLearning(
+      finalCategoryPoints,
+      newMaterialsBreakdown
+    );
     setStudentLearningScore(newStudentLearning);
 
     // Show detailed feedback with task-specific information
@@ -1041,7 +1082,7 @@ function App() {
                 <ul style={{ marginLeft: "20px", marginBottom: "10px" }}>
                   <li>Your students will be tested at the midpoint</li>
                   <li>
-                    If student learning ≥ 50 points:{" "}
+                    If student learning ≥ 300 points:{" "}
                     <strong>+300 bonus points!</strong>
                   </li>
                   <li>
@@ -1178,65 +1219,26 @@ function App() {
             </h1>
 
             <div className="game-info" style={{ textAlign: "left" }}>
+              {/* Strategic Order Box - NEW */}
               <div
                 style={{
-                  marginBottom: "35px",
-                  textAlign: "left",
+                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                  borderRadius: "12px",
+                  padding: "20px",
+                  marginBottom: "30px",
+                  color: "white",
+                  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
                 }}
               >
-                <h3
-                  style={{
-                    color: "#4CAF50",
-                    fontSize: "20px",
-                    marginBottom: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                  }}
-                >
-                  <span style={{ fontSize: "24px" }}>🎯</span> Materials
+                <h3 style={{ margin: "0 0 15px 0", fontSize: "22px" }}>
+                  🎯 Optimal Strategy: Order Matters!
                 </h3>
-                <p
-                  style={{
-                    marginLeft: "34px",
-                    fontSize: "16px",
-                    lineHeight: "1.6",
-                    color: "#555",
-                  }}
-                >
-                  Create teaching materials - each point directly contributes to
-                  your goal points!
-                </p>
-              </div>
-
-              <div
-                style={{
-                  marginBottom: "35px",
-                  textAlign: "left",
-                }}
-              >
-                <h3
-                  style={{
-                    color: "#9C27B0",
-                    fontSize: "20px",
-                    marginBottom: "12px",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                  }}
-                >
-                  <span style={{ fontSize: "24px" }}>📚</span> Research
-                </h3>
-                <p
-                  style={{
-                    marginLeft: "34px",
-                    fontSize: "16px",
-                    lineHeight: "1.6",
-                    color: "#555",
-                  }}
-                >
-                  Research amplifies your materials! Each point adds +15%
-                  multiplier to all materials points.
+                <div style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
+                  1️⃣ Engagement First → 2️⃣ Research Second → 3️⃣ Materials Last
+                </div>
+                <p style={{ margin: "10px 0 0 0", fontSize: "14px", opacity: 0.95 }}>
+                  Why? Engagement compounds from the start, Research multiplies all future materials.
+                  Doing materials first wastes potential multipliers!
                 </p>
               </div>
 
@@ -1256,18 +1258,83 @@ function App() {
                     gap: "10px",
                   }}
                 >
-                  <span style={{ fontSize: "24px" }}>✉️</span> Engagement
+                  <span style={{ fontSize: "24px" }}>1️⃣ ✉️</span> Engagement (DO FIRST!)
                 </h3>
                 <p
                   style={{
-                    marginLeft: "34px",
+                    marginLeft: "44px",
                     fontSize: "16px",
                     lineHeight: "1.6",
                     color: "#555",
                   }}
                 >
-                  Build interest that compounds! Each point adds 0.15% interest
-                  after every task completion.
+                  <strong>Start here!</strong> Each point adds 0.15% compound interest 
+                  after EVERY task. The earlier you build engagement, the more interest 
+                  you'll earn throughout the game!
+                </p>
+              </div>
+
+              <div
+                style={{
+                  marginBottom: "35px",
+                  textAlign: "left",
+                }}
+              >
+                <h3
+                  style={{
+                    color: "#9C27B0",
+                    fontSize: "20px",
+                    marginBottom: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                  }}
+                >
+                  <span style={{ fontSize: "24px" }}>2️⃣ 📚</span> Research (DO SECOND!)
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "44px",
+                    fontSize: "16px",
+                    lineHeight: "1.6",
+                    color: "#555",
+                  }}
+                >
+                  <strong>Build multipliers early!</strong> Each point adds +15% to ALL 
+                  future materials. Research done early = bigger multipliers on more materials.
+                  Research done late = wasted potential!
+                </p>
+              </div>
+
+              <div
+                style={{
+                  marginBottom: "35px",
+                  textAlign: "left",
+                }}
+              >
+                <h3
+                  style={{
+                    color: "#4CAF50",
+                    fontSize: "20px",
+                    marginBottom: "12px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                  }}
+                >
+                  <span style={{ fontSize: "24px" }}>3️⃣ 🎯</span> Materials (DO LAST!)
+                </h3>
+                <p
+                  style={{
+                    marginLeft: "44px",
+                    fontSize: "16px",
+                    lineHeight: "1.6",
+                    color: "#555",
+                  }}
+                >
+                  <strong>Save for maximum impact!</strong> Each material point benefits from 
+                  ALL research multipliers you've built. Materials done early get NO multipliers.
+                  Materials done late get FULL multipliers!
                 </p>
               </div>
 
@@ -1290,25 +1357,52 @@ function App() {
                     gap: "10px",
                   }}
                 >
-                  <span style={{ fontSize: "24px" }}>📊</span> Student Learning
-                  Formula
+                  <span style={{ fontSize: "24px" }}>📊</span> Why Order Matters - The Math
                 </h3>
                 <div
                   style={{
-                    background: "white",
-                    padding: "18px",
+                    background: "linear-gradient(135deg, #fff 0%, #f0f8ff 100%)",
+                    padding: "20px",
                     borderRadius: "6px",
-                    fontFamily: "monospace",
-                    fontSize: "18px",
-                    textAlign: "center",
+                    fontSize: "15px",
                     marginBottom: "20px",
-                    border: "1px solid #e0e0e0",
+                    border: "1px solid #2196F3",
                     lineHeight: "1.8",
                   }}
                 >
-                  Goal = <strong>Materials</strong>
-                  <br />× (1 + 0.15× <strong>Research</strong> )<br />+{" "}
-                  <strong>Engagement</strong> Interest
+                  <div style={{ marginBottom: "15px", textAlign: "center" }}>
+                    <strong style={{ fontSize: "17px", color: "#2196F3" }}>
+                      Score = Materials × (1 + Research×0.15) + Interest
+                    </strong>
+                  </div>
+                  
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: "20px" }}>
+                    <div style={{ flex: 1, padding: "10px", background: "#ffebee", borderRadius: "4px" }}>
+                      <strong style={{ color: "#d32f2f" }}>❌ Bad Order Example:</strong>
+                      <div style={{ fontSize: "13px", marginTop: "5px" }}>
+                        Materials first (10 pts) → Research (5 pts)
+                        <br />
+                        Result: 10 × 1.0 = <strong>10 pts</strong>
+                        <br />
+                        <span style={{ color: "#666" }}>(Research came too late!)</span>
+                      </div>
+                    </div>
+                    
+                    <div style={{ flex: 1, padding: "10px", background: "#e8f5e9", borderRadius: "4px" }}>
+                      <strong style={{ color: "#2e7d32" }}>✅ Good Order Example:</strong>
+                      <div style={{ fontSize: "13px", marginTop: "5px" }}>
+                        Research first (5 pts) → Materials (10 pts)
+                        <br />
+                        Result: 10 × 1.75 = <strong>17.5 pts</strong>
+                        <br />
+                        <span style={{ color: "#666" }}>(75% bonus from research!)</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: "10px", padding: "8px", background: "#fff3cd", borderRadius: "4px", textAlign: "center" }}>
+                    <strong style={{ color: "#856404" }}>💡 Remember: Do Engagement → Research → Materials!</strong>
+                  </div>
                 </div>
                 <ul
                   style={{
@@ -1321,17 +1415,19 @@ function App() {
                   }}
                 >
                   <li>
-                    Exact answer = 2 points, Within 1 = 1 point, Otherwise = 0
-                    points
+                    <strong>Scoring:</strong> Exact = 2 pts | Within 1 = 1 pt | Otherwise = 0 pts
                   </li>
                   <li>
-                    Strategic timing matters - early multipliers compound!
+                    <strong style={{ color: "#f44336" }}>Critical:</strong> Order determines your score! 
+                    Engagement→Research→Materials maximizes points!
                   </li>
-                  <li>Maximize student learning through strategic teaching!</li>
+                  <li>
+                    <strong>Pro tip:</strong> Complete ALL engagement & research before touching materials!
+                  </li>
                   {currentSemester === 2 && (
                     <li>
                       At minute {isAdmin ? "1" : "10"}: Exam checkpoint with
-                      bonus opportunity (50+ Student Learning = 300 bonus)
+                      bonus opportunity (300+ Student Learning = 300 bonus)
                     </li>
                   )}
                 </ul>
@@ -1929,6 +2025,7 @@ function App() {
       setSemesterHistory(newHistory);
       localStorage.setItem("engagementInterest", "0");
       setCategoryPoints({ materials: 0, research: 0, engagement: 0, bonus: 0 });
+      setMaterialsAtResearchLevel({});
 
       if (sessionId && !sessionId.startsWith("offline-")) {
         await updateDoc(doc(db, "sessions", sessionId), {
@@ -2235,7 +2332,7 @@ function App() {
                   {categoryPoints.research || 0}
                 </div>
                 <div style={{ fontSize: "12px", color: "#666" }}>
-                  +{(categoryPoints.research || 0) * 15}% multiplier
+                  +{(categoryPoints.research || 0) * 15}% to future materials
                 </div>
               </div>
 

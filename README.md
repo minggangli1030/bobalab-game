@@ -6,12 +6,25 @@ An interactive React-based educational game where players act as instructors try
 
 **Objective**: Maximize student learning points by strategically completing teaching tasks across multiple semesters.
 
-**Core Mechanics**:
-- **Materials Tasks** (Slider precision) → Direct base points
-- **Research Tasks** (Pattern counting) → 15% multiplier per point to all materials
-- **Engagement Tasks** (Text replication) → 0.15% compound interest per point after each task
+### 🎮 Optimal Strategy (ORDER MATTERS!)
 
-**Scoring Formula**: `Student Learning = Materials × (1 + 0.15×Research) + Engagement Interest`
+**The winning sequence: 1️⃣ Engagement → 2️⃣ Research → 3️⃣ Materials**
+
+Why this order wins:
+- **Engagement First**: Builds 0.15% compound interest from the START - affects ALL future tasks
+- **Research Second**: Adds 15% multiplier per point to ALL future materials (not past ones!)
+- **Materials Last**: Gets the FULL benefit of all multipliers you've built
+
+⚠️ **Critical**: Materials done BEFORE research get NO multiplier! A material task worth 10 points stays at 10 if done first, but becomes 17.5 points if done after earning 5 research points!
+
+**Core Mechanics**:
+- **Materials Tasks** (Slider precision) → Base points (SAVE FOR LAST!)
+- **Research Tasks** (Pattern counting) → 15% multiplier to FUTURE materials only (DO EARLY!)
+- **Engagement Tasks** (Text replication) → 0.15% compound interest per task (DO FIRST!)
+
+**Scoring Formula**: `Score = Materials × (1 + Research×0.15) + Engagement Interest`
+- Research multipliers ONLY apply to materials earned AFTER the research
+- Wrong order can cut your score in HALF!
 
 ## 🚀 Quick Start
 
@@ -72,14 +85,19 @@ npm run preview
 ## 🎮 Game Features
 
 ### Student Experience
-- **Semester System**: Multiple timed semesters with checkpoints
-- **Checkpoint Rewards**: 300 bonus points if ≥50 learning points at midterm
+- **Semester System**: 2 semesters (12 minutes each for students)
+- **Checkpoint System**: Semester 2 midterm at 6-minute mark
+- **Checkpoint Rewards**: 300 bonus points if ≥300 learning points at midterm
 - **AI Teaching Assistant**: Context-aware help with educational mistake patterns
 - **Anti-Cheating**: Session blocking, refresh prevention, tab-switch detection
+- **One-Time Access**: Students can only play once per day
 
 ### Admin Features
 - **Admin Mode**: `?admin=berkeley2024` URL parameter
-- **Shortened Timer**: 2 minutes vs 20 minutes for testing
+- **Test Codes**: `ADMIN-TEST1` to `ADMIN-TEST10` - Student-like experience with infinite attempts
+- **Quick Test Codes**: Various admin codes for different testing scenarios
+- **Master Admin**: `ADMIN-MASTER` - Access to admin dashboard
+- **Shortened Timer**: 2 minutes per semester for admin testing
 - **Practice Skip**: Bypass mandatory practice mode
 - **Debug Access**: Enhanced logging and session management
 
@@ -96,10 +114,31 @@ VITE_FIREBASE_APP_ID=your_app_id
 ```
 
 ### Game Configuration Options
-- **Semester Duration**: Default 20 minutes (1200000ms)
-- **Checkpoint System**: Configurable midterm timing
-- **AI Availability**: Per-session AI enable/disable
-- **Access Codes**: One-time use validation system
+- **Semester Duration**: 12 minutes for students (720000ms), 2 minutes for admin (120000ms)
+- **Checkpoint System**: Semester 2 midterm at 6 minutes (1 minute for admin mode)
+- **AI Availability**: Configurable per access code (Section 01A: No AI, Section 02A: AI enabled)
+- **Access Codes**: Student IDs for one-time access, Admin codes for unlimited testing
+
+### Access Code Types
+1. **Student IDs**: Real student IDs organized in 4 sections
+   - Section 01A-Checkpoint: No AI, with semester 2 checkpoint
+   - Section 01A-No Checkpoint: No AI, no checkpoint
+   - Section 02A-Checkpoint: AI enabled, with semester 2 checkpoint
+   - Section 02A-No Checkpoint: AI enabled, no checkpoint
+
+2. **Admin Test Codes** (`ADMIN-TEST1` to `ADMIN-TEST10`):
+   - Student-like experience (12-minute semesters)
+   - AI enabled, checkpoint in semester 2
+   - Unlimited attempts for testing
+   
+3. **Admin Quick Test Codes**:
+   - `ADMIN-REGULAR`: 12-minute mode with AI
+   - `ADMIN-FAST`: 2-minute quick test with AI
+   - `ADMIN-1-CP`: No AI, with checkpoint (2 min)
+   - `ADMIN-1-NCP`: No AI, no checkpoint (2 min)
+   - `ADMIN-2-CP`: AI enabled, with checkpoint (2 min)
+   - `ADMIN-2-NCP`: AI enabled, no checkpoint (2 min)
+   - `ADMIN-MASTER`: Access to master admin dashboard
 
 ## 📈 Recent Improvements
 
