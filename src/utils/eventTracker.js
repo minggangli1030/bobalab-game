@@ -211,6 +211,56 @@ export const eventTracker = {
       this.init();
     }
   },
+
+  // Missing methods that are being called
+  async trackAIHelpResponse(taskId, data) {
+    return this.logEvent("ai_help_response", {
+      taskId,
+      ...data,
+    });
+  },
+
+  async trackTaskAttempt(taskId, data) {
+    return this.logEvent("task_attempt", {
+      taskId,
+      ...data,
+    });
+  },
+
+  async trackUserAction(action, data) {
+    return this.logEvent("user_action", {
+      action,
+      ...data,
+    });
+  },
+
+  async syncOfflineEvents() {
+    // Placeholder for offline sync functionality
+    console.log("Syncing offline events...");
+    return Promise.resolve();
+  },
+
+  async trackTaskComplete(taskId, data) {
+    return this.logEvent("task_complete", {
+      taskId,
+      ...data,
+    });
+  },
+
+  async trackPageSwitch(from, to, isAutoAdvance) {
+    return this.logEvent("page_switch", {
+      from,
+      to,
+      isAutoAdvance,
+    });
+  },
+
+  trackAITaskHelp(taskType, data) {
+    return this.logEvent("ai_task_help", {
+      taskType,
+      ...data,
+    });
+  },
 };
 
 // Auto-initialize when module loads

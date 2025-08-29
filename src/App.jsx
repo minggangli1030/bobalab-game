@@ -739,7 +739,7 @@ function App() {
     }
 
     if (!isAutoAdvance) {
-      await eventTracker.trackUserAction("manual_tab_switch", {
+      await eventTracker.logEvent("manual_tab_switch", {
         from: currentTab,
         to: newTab,
         reason: "user_clicked",
