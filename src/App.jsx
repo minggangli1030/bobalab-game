@@ -699,23 +699,21 @@ function App() {
       });
     }
 
-    // Auto-advance to next task after 1.5 seconds (more stable)
-    setTimeout(() => {
-      // Prevent advance if user already switched
-      if (currentTab !== tabId) return;
+    // Auto-advance to next task immediately (no delay to prevent clashing with manual switching)
+    // Prevent advance if user already switched
+    if (currentTab !== tabId) return;
 
-      const currentGame = tabId[1];
-      const currentTaskNum = parseInt(tabId.substring(3)); // Fix parsing for 2-digit numbers
+    const currentGame = tabId[1];
+    const currentTaskNum = parseInt(tabId.substring(3)); // Fix parsing for 2-digit numbers
 
-      // Try next task in same game
-      if (currentTaskNum < 50) {
-        // Updated to 50 tasks
-        const nextTask = `g${currentGame}t${currentTaskNum + 1}`;
-        if (!completed[nextTask]) {
-          handleTabSwitch(nextTask, true);
-        }
+    // Try next task in same game
+    if (currentTaskNum < 50) {
+      // Updated to 50 tasks
+      const nextTask = `g${currentGame}t${currentTaskNum + 1}`;
+      if (!completed[nextTask]) {
+        handleTabSwitch(nextTask, true);
       }
-    }, 800);
+    }
   };
 
   // Handle tab switching

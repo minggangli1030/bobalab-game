@@ -208,16 +208,14 @@ export default function TypingTask({
       setFeedback(`✓ ${distance} errors - 0 points earned.`);
     }
 
-    setTimeout(() => {
-      onComplete(`g3t${taskNum}`, {
-        attempts: attemptsRef.current,
-        totalTime: timeTaken,
-        accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
-        userAnswer: input, // FIXED: was using undefined 'userValue'
-        correctAnswer: pattern, // FIXED: was using undefined 'target'
-        points: points,
-      });
-    }, 800);
+    onComplete(`g3t${taskNum}`, {
+      attempts: attemptsRef.current,
+      totalTime: timeTaken,
+      accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
+      userAnswer: input, // FIXED: was using undefined 'userValue'
+      correctAnswer: pattern, // FIXED: was using undefined 'target'
+      points: points,
+    });
   };
 
   const patternInfo = patternGenerator.generateTypingPattern(taskNum);

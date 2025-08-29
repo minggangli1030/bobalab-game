@@ -25,6 +25,18 @@ export default function StudentLogin({ onLoginSuccess }) {
       isMasterInterface: true,
     },
 
+    // Internal testing codes - like student mode but with infinite attempts
+    ...Array.from({ length: 10 }, (_, i) => ({
+      [`ADMIN-TEST${i + 1}`]: {
+        role: "test",
+        semesterDuration: 720000, // 12 min like students
+        name: `Test User ${i + 1}`,
+        hasAI: true,
+        checkpointSemester2: true,
+        isTestCode: true,
+      },
+    })).reduce((acc, obj) => ({ ...acc, ...obj }), {}),
+
     // Original admin codes (kept the same)
     "ADMIN-REGULAR": {
       role: "admin",
@@ -286,6 +298,7 @@ export default function StudentLogin({ onLoginSuccess }) {
           hasAI: validation.data.hasAI,
           checkpointSemester2: validation.data.checkpointSemester2,
           isMasterCode: true,
+          isTestCode: validation.data.isTestCode || false,
           isMasterInterface: validation.data.isMasterInterface || false,
         };
 
@@ -627,12 +640,14 @@ export default function StudentLogin({ onLoginSuccess }) {
             >
               <strong>Test Codes:</strong>
               <div style={{ marginTop: "8px", fontFamily: "monospace" }}>
+                <div>ADMIN-TEST1 to ADMIN-TEST10 (Test users)</div>
                 <div>ADMIN-1-CP (No AI, With Checkpoint)</div>
                 <div>ADMIN-1-NCP (No AI, No Checkpoint)</div>
                 <div>ADMIN-2-CP (AI, With Checkpoint)</div>
                 <div>ADMIN-2-NCP (AI, No Checkpoint)</div>
                 <div>ADMIN-REGULAR (Original)</div>
                 <div>ADMIN-FAST (2 min test)</div>
+                <div>ADMIN-MASTER (Master interface)</div>
               </div>
             </div>
           )}

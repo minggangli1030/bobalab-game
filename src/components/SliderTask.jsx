@@ -226,16 +226,14 @@ export default function SliderTask({
       setFeedback(`✓ Off by ${difference.toFixed(2)} - 0 points earned.`);
     }
 
-    setTimeout(() => {
-      onComplete(`g2t${taskNum}`, {
-        attempts: attemptsRef.current,
-        totalTime: timeTaken,
-        accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
-        userAnswer: userValue, // or input for typing/counting
-        correctAnswer: target, // or pattern for typing
-        points: points, // THIS IS CRITICAL - must include points
-      });
-    }, 800);
+    onComplete(`g2t${taskNum}`, {
+      attempts: attemptsRef.current,
+      totalTime: timeTaken,
+      accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
+      userAnswer: userValue, // or input for typing/counting
+      correctAnswer: target, // or pattern for typing
+      points: points, // THIS IS CRITICAL - must include points
+    });
   };
 
   const pattern = patternGenerator.generateSliderPattern(taskNum);

@@ -150,7 +150,11 @@ export default function MasterAdmin() {
     if (CLASS_2A_ID_NOCHECKPOINT.includes(studentId)) {
       return { section: "02A-No Checkpoint", hasCheckpoint: false };
     }
-    // Admin codes or test accounts
+    // Handle ADMIN-TEST codes specifically  
+    if (studentId.startsWith("ADMIN-TEST")) {
+      return { section: "ADMIN-TEST", hasCheckpoint: true };
+    }
+    // Other admin codes
     if (studentId.includes("ADMIN") || studentId.includes("admin")) {
       return { section: "ADMIN", hasCheckpoint: false };
     }
@@ -172,7 +176,7 @@ export default function MasterAdmin() {
 
       sessionsSnapshot.forEach((doc) => {
         const data = doc.data();
-        // Skip actual admin sessions
+        // Skip actual admin sessions but keep test sessions
         if (data.role === "admin" || data.role === "master_admin") {
           return; // Skip admin sessions
         }
@@ -202,6 +206,7 @@ export default function MasterAdmin() {
             completedTasks: Object.keys(data.completedTasks || {}).length,
             finalScore: data.finalScore || 0,
             currentSemester: data.currentSemester || 1,
+            timeElapsed: data.timeElapsed || data.totalTime || 0,
           });
         }
       });
@@ -355,6 +360,22 @@ export default function MasterAdmin() {
   const getHighestScore = (student) => {
     if (!student.sessions || student.sessions.length === 0) return 0;
     return Math.max(...student.sessions.map(session => session.finalScore || 0));
+  };
+
+  const getBestSessionTimeElapsed = (student) => {
+    if (!student.sessions || student.sessions.length === 0) return 0;
+    // Find the session with the highest score and return its time
+    const bestSession = student.sessions.reduce((best, current) => 
+      (current.finalScore || 0) > (best.finalScore || 0) ? current : best
+    , student.sessions[0]);
+    return bestSession.timeElapsed || 0;
+  };
+
+  const formatTimeElapsed = (seconds) => {
+    if (!seconds) return "N/A";
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   // Calculate summary stats
@@ -618,6 +639,15 @@ export default function MasterAdmin() {
                   fontWeight: "600",
                 }}
               >
+                Time Taken
+              </th>
+              <th
+                style={{
+                  padding: "15px",
+                  textAlign: "center",
+                  fontWeight: "600",
+                }}
+              >
                 Total
               </th>
               <th
@@ -635,7 +665,7 @@ export default function MasterAdmin() {
             {loading ? (
               <tr>
                 <td
-                  colSpan="7"
+                  colSpan="8"
                   style={{ padding: "40px", textAlign: "center" }}
                 >
                   Loading student data...
@@ -644,7 +674,7 @@ export default function MasterAdmin() {
             ) : filteredStudents.length === 0 ? (
               <tr>
                 <td
-                  colSpan="7"
+                  colSpan="8"
                   style={{ padding: "40px", textAlign: "center" }}
                 >
                   No students found
@@ -756,6 +786,18 @@ export default function MasterAdmin() {
                         }}
                       >
                         {highestScore}
+                      </span>
+                    </td>
+                    <td style={{ padding: "15px", textAlign: "center" }}>
+                      <span
+                        style={{
+                          fontFamily: "monospace",
+                          fontSize: "12px",
+                          color: "#666",
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {formatTimeElapsed(getBestSessionTimeElapsed(student))}
                       </span>
                     </td>
                     <td

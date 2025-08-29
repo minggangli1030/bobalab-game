@@ -330,8 +330,8 @@ export default function NavTabsEnhanced({
                             ✓
                           </span>
                         )}
-                        {/* Points dots */}
-                        {isCompleted && points > 0 && (
+                        {/* Points dots - show 0, 1, or 2 dots based on actual points */}
+                        {isCompleted && (
                           <div
                             style={{
                               position: "absolute",
@@ -342,17 +342,31 @@ export default function NavTabsEnhanced({
                               gap: "2px",
                             }}
                           >
-                            {[...Array(points)].map((_, i) => (
+                            {points === 0 ? (
+                              // Show empty circle for 0 points
                               <div
-                                key={i}
                                 style={{
-                                  width: "4px",
-                                  height: "4px",
+                                  width: "6px",
+                                  height: "6px",
                                   borderRadius: "50%",
-                                  background: gameColors[gameNum],
+                                  border: `1px solid ${gameColors[gameNum]}`,
+                                  background: "transparent",
                                 }}
                               />
-                            ))}
+                            ) : (
+                              // Show filled dots for 1 or 2 points
+                              [...Array(Math.min(points, 2))].map((_, i) => (
+                                <div
+                                  key={i}
+                                  style={{
+                                    width: "4px",
+                                    height: "4px",
+                                    borderRadius: "50%",
+                                    background: gameColors[gameNum],
+                                  }}
+                                />
+                              ))
+                            )}
                           </div>
                         )}
                       </button>
@@ -422,8 +436,7 @@ export default function NavTabsEnhanced({
             {Math.round(calculateStudentLearning())}
           </div>
           <div style={{ fontSize: "10px", color: "#999" }}>
-            Multiplier = {researchMultiplier.toFixed(2)}, Interest ={" "}
-            {engagementInterest.toFixed(2)}
+            {categoryPoints.materials || 0} × {researchMultiplier.toFixed(2)} + {engagementInterest.toFixed(1)} = {Math.round(calculateStudentLearning())}
           </div>
         </div>
 

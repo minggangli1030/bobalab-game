@@ -440,16 +440,14 @@ export default function CountingTask({
       setFeedback(`✓ Off by ${difference} - 0 points earned.`);
     }
 
-    setTimeout(() => {
-      onComplete?.(`g1t${taskNum}`, {
-        attempts: attemptsRef.current,
-        totalTime: timeTaken,
-        accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
-        userAnswer: userAnswer, // FIXED: was using undefined 'userValue'
-        correctAnswer: correctAnswer, // FIXED: was using undefined 'target'
-        points: points,
-      });
-    }, 800);
+    onComplete?.(`g1t${taskNum}`, {
+      attempts: attemptsRef.current,
+      totalTime: timeTaken,
+      accuracy: points === 2 ? 100 : points === 1 ? 70 : 0,
+      userAnswer: userAnswer, // FIXED: was using undefined 'userValue'
+      correctAnswer: correctAnswer, // FIXED: was using undefined 'target'
+      points: points,
+    });
   };
 
   // Derive difficulty UI from pattern
