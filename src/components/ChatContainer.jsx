@@ -395,17 +395,26 @@ export default function ChatContainer({
   // Get the game config to check if AI is enabled
   const [hasAI, setHasAI] = useState(true);
   const [aiUsageCount, setAiUsageCount] = useState(0); // Track AI usage for display
+  const [currentTaskUsed, setCurrentTaskUsed] = useState(false); // Track if AI used for current task
 
   useEffect(() => {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
     setHasAI(config.hasAI !== false); // Default to true if not specified
   }, []);
 
+  // Update currentTaskUsed when task changes
+  useEffect(() => {
+    if (currentTask) {
+      const used = aiTaskHelper.getTaskUsageCount(currentTask) >= 1;
+      setCurrentTaskUsed(used);
+    }
+  }, [currentTask]);
+
   const [messages, setMessages] = useState([
     {
       sender: "bot",
       text: hasAI
-        ? "Hello! I'm your AI teaching assistant. Click the help buttons below for task assistance!"
+        ? "Hello! I'm your AI teaching assistant. You get ONE AI help attempt per task - use it wisely!"
         : "Hello! This is the chat interface. AI assistance is not available for this session.",
     },
   ]);
@@ -445,6 +454,19 @@ export default function ChatContainer({
         {
           sender: "bot",
           text: "Please start a task first, then I can help you!",
+        },
+      ]);
+      return;
+    }
+
+    // Check if AI has already been used for this specific task
+    const taskUsageCount = aiTaskHelper.getTaskUsageCount(currentTask);
+    if (taskUsageCount >= 1) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "❌ You've already used AI help for this task. Only 1 AI attempt allowed per task!",
         },
       ]);
       return;
@@ -529,6 +551,7 @@ export default function ChatContainer({
     );
 
     setAiUsageCount(aiTaskHelper.totalAIUsage); // Update display counter
+    setCurrentTaskUsed(true); // Mark current task as used
 
     setMessages((prev) => [
       ...prev,
@@ -586,6 +609,7 @@ Suggested value: ${help.value.toFixed(
       );
 
       setAiUsageCount(aiTaskHelper.totalAIUsage); // Update display counter
+      setCurrentTaskUsed(true); // Mark current task as used
 
       const countType = help.isMultiLetter ? "letters/characters" : "words";
       setMessages((prev) => [
@@ -669,6 +693,7 @@ Found ${suggestedCount} ${countType}`,
         );
 
         setAiUsageCount(aiTaskHelper.totalAIUsage); // Update display counter
+        setCurrentTaskUsed(true); // Mark current task as used
 
         setMessages((prev) => [
           ...prev,
@@ -808,7 +833,7 @@ Typing: "${help.text.substring(
         <h3>{hasAI ? "AI Teaching Assistant" : "Chat Interface"}</h3>
         <div style={{ fontSize: "11px", color: "#888", marginTop: "2px" }}>
           {hasAI
-            ? "Unlimited help (reliability varies by task)"
+            ? "1 AI help per task (reliability varies)"
             : "AI assistance disabled for this session"}
         </div>
 
@@ -893,6 +918,11 @@ Typing: "${help.text.substring(
             }}
           >
             AI Usage: {aiUsageCount} total attempts
+            {currentTaskUsed && (
+              <span style={{ color: "#ff9800", fontWeight: "bold" }}>
+                {" "}| Current task: 1/1 used
+              </span>
+            )}
           </div>
 
           <div
@@ -915,14 +945,14 @@ Typing: "${help.text.substring(
               {/* Help Task Button */}
               <button
                 onClick={() => handleSmartHelp()}
-                disabled={!currentGameType}
+                disabled={!currentGameType || currentTaskUsed}
                 style={{
                   padding: "12px",
-                  background: currentGameType ? "#2196F3" : "#ccc",
+                  background: currentTaskUsed ? "#ff9800" : currentGameType ? "#2196F3" : "#ccc",
                   color: "white",
                   border: "none",
                   borderRadius: "8px",
-                  cursor: currentGameType ? "pointer" : "not-allowed",
+                  cursor: currentGameType && !currentTaskUsed ? "pointer" : "not-allowed",
                   fontWeight: "bold",
                   fontSize: "14px",
                   transition: "all 0.2s",
@@ -933,7 +963,7 @@ Typing: "${help.text.substring(
                 }}
               >
                 <span style={{ fontSize: "18px" }}>🤖</span>
-                {currentGameType ? "Help Task" : "Start task first"}
+                {currentTaskUsed ? "AI Used (1/1)" : currentGameType ? "Help Task" : "Start task first"}
               </button>
 
               {/* Help Plan Button */}
@@ -963,16 +993,18 @@ Typing: "${help.text.substring(
             {/* Individual Task Buttons */}
             <button
               onClick={() => handleSmartHelp("research")}
-              disabled={!currentTask.startsWith("g1")}
+              disabled={!currentTask.startsWith("g1") || currentTaskUsed}
               style={{
                 padding: "10px",
-                background: currentTask.startsWith("g1")
+                background: currentTask.startsWith("g1") && !currentTaskUsed
                   ? "#9C27B0"
+                  : currentTaskUsed && currentTask.startsWith("g1")
+                  ? "#ff9800"
                   : "#e0e0e0",
-                color: currentTask.startsWith("g1") ? "white" : "#999",
+                color: currentTask.startsWith("g1") || currentTaskUsed ? "white" : "#999",
                 border: "none",
                 borderRadius: "6px",
-                cursor: currentTask.startsWith("g1")
+                cursor: currentTask.startsWith("g1") && !currentTaskUsed
                   ? "pointer"
                   : "not-allowed",
                 fontWeight: "bold",
@@ -984,16 +1016,18 @@ Typing: "${help.text.substring(
 
             <button
               onClick={() => handleSmartHelp("materials")}
-              disabled={!currentTask.startsWith("g2")}
+              disabled={!currentTask.startsWith("g2") || currentTaskUsed}
               style={{
                 padding: "10px",
-                background: currentTask.startsWith("g2")
+                background: currentTask.startsWith("g2") && !currentTaskUsed
                   ? "#4CAF50"
+                  : currentTaskUsed && currentTask.startsWith("g2")
+                  ? "#ff9800"
                   : "#e0e0e0",
-                color: currentTask.startsWith("g2") ? "white" : "#999",
+                color: currentTask.startsWith("g2") || currentTaskUsed ? "white" : "#999",
                 border: "none",
                 borderRadius: "6px",
-                cursor: currentTask.startsWith("g2")
+                cursor: currentTask.startsWith("g2") && !currentTaskUsed
                   ? "pointer"
                   : "not-allowed",
                 fontWeight: "bold",
@@ -1005,16 +1039,18 @@ Typing: "${help.text.substring(
 
             <button
               onClick={() => handleSmartHelp("engagement")}
-              disabled={!currentTask.startsWith("g3")}
+              disabled={!currentTask.startsWith("g3") || currentTaskUsed}
               style={{
                 padding: "10px",
-                background: currentTask.startsWith("g3")
+                background: currentTask.startsWith("g3") && !currentTaskUsed
                   ? "#f44336"
+                  : currentTaskUsed && currentTask.startsWith("g3")
+                  ? "#ff9800"
                   : "#e0e0e0",
-                color: currentTask.startsWith("g3") ? "white" : "#999",
+                color: currentTask.startsWith("g3") || currentTaskUsed ? "white" : "#999",
                 border: "none",
                 borderRadius: "6px",
-                cursor: currentTask.startsWith("g3")
+                cursor: currentTask.startsWith("g3") && !currentTaskUsed
                   ? "pointer"
                   : "not-allowed",
                 fontWeight: "bold",

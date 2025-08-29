@@ -27,9 +27,9 @@ export default function SliderTask({
 
   useEffect(() => {
     if (isPractice) {
-      // For practice mode, use fixed values
+      // For practice mode, use integer values only (like easy mode)
       setTarget(3);
-      setStep(0.01);
+      setStep(1); // Changed from 0.01 to 1 for integer sliding
       setShowValue(true);
     } else {
       // For regular mode, use pattern generator
@@ -341,7 +341,7 @@ export default function SliderTask({
         </div>
 
         <div className="current-value">
-          {showValue ? parseFloat(input).toFixed(pattern.precision) : "??"}
+          {showValue ? parseFloat(input).toFixed(isPractice ? 0 : pattern.precision) : "??"}
         </div>
       </div>
       <button
