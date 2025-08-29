@@ -139,26 +139,26 @@ export default function MasterAdmin() {
   // Helper function to determine student section and checkpoint status
   const getStudentInfo = (studentId) => {
     if (CLASS_1A_ID_CHECKPOINT.includes(studentId)) {
-      return { section: "01A-Checkpoint", hasCheckpoint: true };
+      return { section: "01A-Checkpoint", hasCheckpoint: true, isAdmin: false };
     }
     if (CLASS_1A_ID_NOCHECKPOINT.includes(studentId)) {
-      return { section: "01A-No Checkpoint", hasCheckpoint: false };
+      return { section: "01A-No Checkpoint", hasCheckpoint: false, isAdmin: false };
     }
     if (CLASS_2A_ID_CHECKPOINT.includes(studentId)) {
-      return { section: "02A-Checkpoint", hasCheckpoint: true };
+      return { section: "02A-Checkpoint", hasCheckpoint: true, isAdmin: false };
     }
     if (CLASS_2A_ID_NOCHECKPOINT.includes(studentId)) {
-      return { section: "02A-No Checkpoint", hasCheckpoint: false };
+      return { section: "02A-No Checkpoint", hasCheckpoint: false, isAdmin: false };
     }
     // Handle ADMIN-TEST codes specifically  
     if (studentId.startsWith("ADMIN-TEST")) {
-      return { section: "ADMIN-TEST", hasCheckpoint: true };
+      return { section: "ADMIN-TEST", hasCheckpoint: true, isAdmin: true };
     }
-    // Other admin codes
+    // Other admin codes - all get "ADMIN" section
     if (studentId.includes("ADMIN") || studentId.includes("admin")) {
-      return { section: "ADMIN", hasCheckpoint: false };
+      return { section: "ADMIN", hasCheckpoint: false, isAdmin: true };
     }
-    return { section: "Unknown", hasCheckpoint: false };
+    return { section: "Unknown", hasCheckpoint: false, isAdmin: false };
   };
 
   useEffect(() => {
@@ -195,6 +195,7 @@ export default function MasterAdmin() {
               section: studentInfo.section,
               hasCheckpoint: studentInfo.hasCheckpoint,
               hasPlayed: true,
+              isAdmin: studentInfo.isAdmin,
             };
           }
 
@@ -246,6 +247,7 @@ export default function MasterAdmin() {
             section: studentInfo.section,
             hasCheckpoint: studentInfo.hasCheckpoint,
             hasPlayed: false,
+            isAdmin: studentInfo.isAdmin,
           });
         }
       });
@@ -768,7 +770,6 @@ export default function MasterAdmin() {
             ) : (
               filteredStudents.map((student) => {
                 const highestScore = getHighestScore(student);
-                const isAdmin = student.section === "ADMIN";
 
                 return (
                   <tr
@@ -801,26 +802,26 @@ export default function MasterAdmin() {
                             : "#f5f5f5",
                           borderRadius: "4px",
                           fontSize: "12px",
-                          fontWeight: isAdmin ? "bold" : "normal",
-                          color: isAdmin ? "#333" : "inherit",
+                          fontWeight: student.isAdmin ? "bold" : "normal",
+                          color: student.isAdmin ? "#333" : "inherit",
                         }}
                       >
                         {student.section}
                       </span>
                     </td>
                     <td style={{ padding: "15px", textAlign: "center" }}>
-                      {isAdmin ? (
+                      {student.isAdmin ? (
                         <span
                           style={{
                             padding: "4px 8px",
-                            background: "#ffeb3b",
-                            color: "#333",
+                            background: "#9C27B0",
+                            color: "white",
                             borderRadius: "12px",
                             fontSize: "12px",
                             fontWeight: "bold",
                           }}
                         >
-                          Admin Test
+                          Unlimited
                         </span>
                       ) : !student.hasPlayed ? (
                         <span
@@ -895,7 +896,9 @@ export default function MasterAdmin() {
                       {student.totalAccesses}
                     </td>
                     <td style={{ padding: "15px", textAlign: "center" }}>
-                      {!isAdmin && (
+                      {student.isAdmin ? (
+                        <span style={{ color: "#999", fontSize: "12px" }}>N/A</span>
+                      ) : (
                         <button
                           onClick={() => {
                             setSelectedStudent(student.studentId);

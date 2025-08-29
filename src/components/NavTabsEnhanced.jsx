@@ -436,7 +436,7 @@ export default function NavTabsEnhanced({
             {Math.round(calculateStudentLearning())}
           </div>
           <div style={{ fontSize: "10px", color: "#999" }}>
-            {categoryPoints.materials || 0} (materials) × {researchMultiplier.toFixed(2)} (research) + {engagementInterest.toFixed(1)} (engagement) = {Math.round(calculateStudentLearning())}
+            {categoryPoints.materials || 0} (materials) × {researchMultiplier.toFixed(2)} (research) + {engagementInterest.toFixed(1)} (engagement interest per material)
           </div>
         </div>
 
