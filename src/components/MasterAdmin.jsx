@@ -781,7 +781,7 @@ export default function MasterAdmin() {
                           ? "#f0f8ff"
                           : !student.hasPlayed
                           ? "#fafafa"
-                          : isAdmin
+                          : student.isAdmin
                           ? "#fff9c4"
                           : "white",
                     }}
@@ -793,7 +793,7 @@ export default function MasterAdmin() {
                       <span
                         style={{
                           padding: "4px 8px",
-                          background: isAdmin
+                          background: student.isAdmin
                             ? "#ffeb3b"
                             : student.section.includes("01A")
                             ? "#e3f2fd"
