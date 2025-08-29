@@ -6,25 +6,18 @@ An interactive React-based educational game where players act as instructors try
 
 **Objective**: Maximize student learning points by strategically completing teaching tasks across multiple semesters.
 
-### 🎮 Optimal Strategy (ORDER MATTERS!)
+### 🎮 Strategic Mechanics (ORDER MATTERS!)
 
-**The winning sequence: 1️⃣ Engagement → 2️⃣ Research → 3️⃣ Materials**
-
-Why this order wins:
-- **Engagement First**: Builds 0.15% compound interest from the START - affects ALL future tasks
-- **Research Second**: Adds 15% multiplier per point to ALL future materials (not past ones!)
-- **Materials Last**: Gets the FULL benefit of all multipliers you've built
-
-⚠️ **Critical**: Materials done BEFORE research get NO multiplier! A material task worth 10 points stays at 10 if done first, but becomes 17.5 points if done after earning 5 research points!
+**Key Insight**: Task completion order significantly affects your final score!
 
 **Core Mechanics**:
-- **Materials Tasks** (Slider precision) → Base points (SAVE FOR LAST!)
-- **Research Tasks** (Pattern counting) → 15% multiplier to FUTURE materials only (DO EARLY!)
-- **Engagement Tasks** (Text replication) → 0.15% compound interest per task (DO FIRST!)
+- **Materials Tasks** (Slider precision) → Direct base points
+- **Research Tasks** (Pattern counting) → 15% multiplier per point to FUTURE materials only
+- **Engagement Tasks** (Text replication) → 0.15% compound interest per point after each task
 
 **Scoring Formula**: `Score = Materials × (1 + Research×0.15) + Engagement Interest`
 - Research multipliers ONLY apply to materials earned AFTER the research
-- Wrong order can cut your score in HALF!
+- Players must discover the optimal strategy through experimentation or AI assistance!
 
 ## 🚀 Quick Start
 

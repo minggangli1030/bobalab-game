@@ -1219,28 +1219,6 @@ function App() {
             </h1>
 
             <div className="game-info" style={{ textAlign: "left" }}>
-              {/* Strategic Order Box - NEW */}
-              <div
-                style={{
-                  background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                  borderRadius: "12px",
-                  padding: "20px",
-                  marginBottom: "30px",
-                  color: "white",
-                  boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-                }}
-              >
-                <h3 style={{ margin: "0 0 15px 0", fontSize: "22px" }}>
-                  🎯 Optimal Strategy: Order Matters!
-                </h3>
-                <div style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "10px" }}>
-                  1️⃣ Engagement First → 2️⃣ Research Second → 3️⃣ Materials Last
-                </div>
-                <p style={{ margin: "10px 0 0 0", fontSize: "14px", opacity: 0.95 }}>
-                  Why? Engagement compounds from the start, Research multiplies all future materials.
-                  Doing materials first wastes potential multipliers!
-                </p>
-              </div>
 
               <div
                 style={{
@@ -1258,19 +1236,18 @@ function App() {
                     gap: "10px",
                   }}
                 >
-                  <span style={{ fontSize: "24px" }}>1️⃣ ✉️</span> Engagement (DO FIRST!)
+                  <span style={{ fontSize: "24px" }}>✉️</span> Engagement
                 </h3>
                 <p
                   style={{
-                    marginLeft: "44px",
+                    marginLeft: "34px",
                     fontSize: "16px",
                     lineHeight: "1.6",
                     color: "#555",
                   }}
                 >
-                  <strong>Start here!</strong> Each point adds 0.15% compound interest 
-                  after EVERY task. The earlier you build engagement, the more interest 
-                  you'll earn throughout the game!
+                  Build interest that compounds! Each point adds 0.15% interest 
+                  after every task completion.
                 </p>
               </div>
 
@@ -1290,19 +1267,18 @@ function App() {
                     gap: "10px",
                   }}
                 >
-                  <span style={{ fontSize: "24px" }}>2️⃣ 📚</span> Research (DO SECOND!)
+                  <span style={{ fontSize: "24px" }}>📚</span> Research
                 </h3>
                 <p
                   style={{
-                    marginLeft: "44px",
+                    marginLeft: "34px",
                     fontSize: "16px",
                     lineHeight: "1.6",
                     color: "#555",
                   }}
                 >
-                  <strong>Build multipliers early!</strong> Each point adds +15% to ALL 
-                  future materials. Research done early = bigger multipliers on more materials.
-                  Research done late = wasted potential!
+                  Research amplifies your FUTURE materials! Each point adds +15%
+                  multiplier to materials earned after the research (order matters!).
                 </p>
               </div>
 
@@ -1322,19 +1298,18 @@ function App() {
                     gap: "10px",
                   }}
                 >
-                  <span style={{ fontSize: "24px" }}>3️⃣ 🎯</span> Materials (DO LAST!)
+                  <span style={{ fontSize: "24px" }}>🎯</span> Materials
                 </h3>
                 <p
                   style={{
-                    marginLeft: "44px",
+                    marginLeft: "34px",
                     fontSize: "16px",
                     lineHeight: "1.6",
                     color: "#555",
                   }}
                 >
-                  <strong>Save for maximum impact!</strong> Each material point benefits from 
-                  ALL research multipliers you've built. Materials done early get NO multipliers.
-                  Materials done late get FULL multipliers!
+                  Create teaching materials - each point directly contributes to
+                  your goal points!
                 </p>
               </div>
 
@@ -1357,51 +1332,25 @@ function App() {
                     gap: "10px",
                   }}
                 >
-                  <span style={{ fontSize: "24px" }}>📊</span> Why Order Matters - The Math
+                  <span style={{ fontSize: "24px" }}>📊</span> Student Learning Formula
                 </h3>
                 <div
                   style={{
-                    background: "linear-gradient(135deg, #fff 0%, #f0f8ff 100%)",
-                    padding: "20px",
+                    background: "white",
+                    padding: "18px",
                     borderRadius: "6px",
-                    fontSize: "15px",
+                    fontFamily: "monospace",
+                    fontSize: "18px",
+                    textAlign: "center",
                     marginBottom: "20px",
-                    border: "1px solid #2196F3",
+                    border: "1px solid #e0e0e0",
                     lineHeight: "1.8",
                   }}
                 >
-                  <div style={{ marginBottom: "15px", textAlign: "center" }}>
-                    <strong style={{ fontSize: "17px", color: "#2196F3" }}>
-                      Score = Materials × (1 + Research×0.15) + Interest
-                    </strong>
-                  </div>
-                  
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: "20px" }}>
-                    <div style={{ flex: 1, padding: "10px", background: "#ffebee", borderRadius: "4px" }}>
-                      <strong style={{ color: "#d32f2f" }}>❌ Bad Order Example:</strong>
-                      <div style={{ fontSize: "13px", marginTop: "5px" }}>
-                        Materials first (10 pts) → Research (5 pts)
-                        <br />
-                        Result: 10 × 1.0 = <strong>10 pts</strong>
-                        <br />
-                        <span style={{ color: "#666" }}>(Research came too late!)</span>
-                      </div>
-                    </div>
-                    
-                    <div style={{ flex: 1, padding: "10px", background: "#e8f5e9", borderRadius: "4px" }}>
-                      <strong style={{ color: "#2e7d32" }}>✅ Good Order Example:</strong>
-                      <div style={{ fontSize: "13px", marginTop: "5px" }}>
-                        Research first (5 pts) → Materials (10 pts)
-                        <br />
-                        Result: 10 × 1.75 = <strong>17.5 pts</strong>
-                        <br />
-                        <span style={{ color: "#666" }}>(75% bonus from research!)</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div style={{ marginTop: "10px", padding: "8px", background: "#fff3cd", borderRadius: "4px", textAlign: "center" }}>
-                    <strong style={{ color: "#856404" }}>💡 Remember: Do Engagement → Research → Materials!</strong>
+                  Goal = <strong>Materials × (1 + Research×0.15) + Engagement Interest</strong>
+                  <br />
+                  <div style={{ fontSize: "14px", marginTop: "10px", fontFamily: "sans-serif" }}>
+                    Research multipliers apply only to materials earned <em>after</em> the research
                   </div>
                 </div>
                 <ul
@@ -1418,11 +1367,10 @@ function App() {
                     <strong>Scoring:</strong> Exact = 2 pts | Within 1 = 1 pt | Otherwise = 0 pts
                   </li>
                   <li>
-                    <strong style={{ color: "#f44336" }}>Critical:</strong> Order determines your score! 
-                    Engagement→Research→Materials maximizes points!
+                    <strong>Timing:</strong> Task completion order affects your final score
                   </li>
                   <li>
-                    <strong>Pro tip:</strong> Complete ALL engagement & research before touching materials!
+                    <strong>Strategy:</strong> Think carefully about when to complete each task type!
                   </li>
                   {currentSemester === 2 && (
                     <li>
