@@ -176,10 +176,11 @@ export default function MasterAdmin() {
 
       sessionsSnapshot.forEach((doc) => {
         const data = doc.data();
-        // Skip actual admin sessions but keep test sessions
-        if (data.role === "admin" || data.role === "master_admin") {
-          return; // Skip admin sessions
+        // Only skip master_admin sessions (those accessing this interface)
+        if (data.role === "master_admin") {
+          return; // Skip master admin sessions
         }
+        // Keep admin, test, and student sessions for tracking
 
         if (data.studentId) {
           const studentInfo = getStudentInfo(data.studentId);
@@ -431,6 +432,90 @@ export default function MasterAdmin() {
           >
             {refreshing ? "Processing..." : "🗑️ Reset All Data"}
           </button>
+        </div>
+      </div>
+
+      {/* Admin Code Summary */}
+      <div
+        style={{
+          background: "white",
+          borderRadius: "12px",
+          padding: "25px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          marginBottom: "30px",
+        }}
+      >
+        <h2 style={{ margin: "0 0 20px 0", color: "#333", fontSize: "20px" }}>
+          📋 Admin Code Reference
+        </h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+            gap: "20px",
+          }}
+        >
+          {/* Test Codes */}
+          <div
+            style={{
+              border: "2px solid #4CAF50",
+              borderRadius: "8px",
+              padding: "15px",
+              background: "#f8fff8",
+            }}
+          >
+            <h3 style={{ margin: "0 0 10px 0", color: "#4CAF50", fontSize: "16px" }}>
+              🧪 Test Codes (Internal Use)
+            </h3>
+            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "14px" }}>
+              <li><code>ADMIN-TEST1</code> to <code>ADMIN-TEST10</code></li>
+              <li>Student-like experience with infinite attempts</li>
+              <li>12-minute duration, AI enabled, checkpoints</li>
+              <li>Data tracked like regular students</li>
+            </ul>
+          </div>
+
+          {/* Regular Admin Codes */}
+          <div
+            style={{
+              border: "2px solid #2196F3",
+              borderRadius: "8px",
+              padding: "15px",
+              background: "#f8fcff",
+            }}
+          >
+            <h3 style={{ margin: "0 0 10px 0", color: "#2196F3", fontSize: "16px" }}>
+              ⚙️ Admin Codes (Testing)
+            </h3>
+            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "14px" }}>
+              <li><code>ADMIN-REGULAR</code> - Standard 12min, AI enabled</li>
+              <li><code>ADMIN-FAST</code> - Quick 2min test mode</li>
+              <li><code>ADMIN-1-CP</code> - No AI, with checkpoint</li>
+              <li><code>ADMIN-1-NCP</code> - No AI, no checkpoint</li>
+              <li><code>ADMIN-2-CP</code> - AI enabled, with checkpoint</li>
+              <li><code>ADMIN-2-NCP</code> - AI enabled, no checkpoint</li>
+            </ul>
+          </div>
+
+          {/* Master Admin */}
+          <div
+            style={{
+              border: "2px solid #9C27B0",
+              borderRadius: "8px",
+              padding: "15px",
+              background: "#fdf8ff",
+            }}
+          >
+            <h3 style={{ margin: "0 0 10px 0", color: "#9C27B0", fontSize: "16px" }}>
+              🔐 Master Admin
+            </h3>
+            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "14px" }}>
+              <li><code>ADMIN-MASTER</code> - Access to this interface</li>
+              <li>Student data management and analysis</li>
+              <li>Access refresh and data reset capabilities</li>
+              <li>No gameplay, admin interface only</li>
+            </ul>
+          </div>
         </div>
       </div>
 
@@ -724,19 +809,7 @@ export default function MasterAdmin() {
                       </span>
                     </td>
                     <td style={{ padding: "15px", textAlign: "center" }}>
-                      {!student.hasPlayed ? (
-                        <span
-                          style={{
-                            padding: "4px 8px",
-                            background: "#e0e0e0",
-                            color: "#666",
-                            borderRadius: "12px",
-                            fontSize: "12px",
-                          }}
-                        >
-                          Never Played
-                        </span>
-                      ) : isAdmin ? (
+                      {isAdmin ? (
                         <span
                           style={{
                             padding: "4px 8px",
@@ -749,7 +822,7 @@ export default function MasterAdmin() {
                         >
                           Admin Test
                         </span>
-                      ) : (
+                      ) : !student.hasPlayed ? (
                         <span
                           style={{
                             padding: "4px 8px",
@@ -760,6 +833,18 @@ export default function MasterAdmin() {
                           }}
                         >
                           Active
+                        </span>
+                      ) : (
+                        <span
+                          style={{
+                            padding: "4px 8px",
+                            background: "#ffeb3b",
+                            color: "#f57c00",
+                            borderRadius: "12px",
+                            fontSize: "12px",
+                          }}
+                        >
+                          Restricted
                         </span>
                       )}
                     </td>

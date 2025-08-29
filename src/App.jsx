@@ -454,9 +454,8 @@ function App() {
       practiceCompleted.g3t1;
 
     setPracticeChoice(choice);
-    eventTracker.trackUserAction("practice_choice", {
+    eventTracker.logEvent("practice_choice", {
       choice: choice,
-      timestamp: Date.now(),
     });
 
     if (choice === "no") {

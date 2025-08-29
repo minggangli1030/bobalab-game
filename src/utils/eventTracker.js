@@ -1,4 +1,7 @@
 // Core fixes for the main tracking issues
+import { db } from '../firebase';
+import { collection, addDoc } from 'firebase/firestore';
+
 export const eventTracker = {
   // Initialize session properly when module loads
   init() {

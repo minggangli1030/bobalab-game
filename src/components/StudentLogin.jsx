@@ -295,6 +295,7 @@ export default function StudentLogin({ onLoginSuccess }) {
           role: validation.data.role,
           semesterDuration: validation.data.semesterDuration,
           displayName: validation.data.name,
+          section: validation.data.isTestCode ? "ADMIN-TEST" : "ADMIN", // Add section field
           hasAI: validation.data.hasAI,
           checkpointSemester2: validation.data.checkpointSemester2,
           isMasterCode: true,
