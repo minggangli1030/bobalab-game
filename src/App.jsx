@@ -535,34 +535,49 @@ function App() {
 
     if (category === "materials") {
       // Slider: exact = 2 points, within 1 = 1 point
-      const userValue = parseFloat(data.userValue || 0);
-      const targetValue = parseFloat(data.targetValue || 0);
-      const diff = Math.abs(userValue - targetValue);
+      // Use points from data if available, otherwise calculate
+      if (data.points !== undefined) {
+        points = data.points;
+      } else {
+        const userValue = parseFloat(data.userAnswer || data.userValue || 0);
+        const targetValue = parseFloat(data.correctAnswer || data.targetValue || 0);
+        const diff = Math.abs(userValue - targetValue);
 
-      if (diff === 0) points = 2;
-      else if (diff <= 1) points = 1;
-      else points = 0;
+        if (diff === 0) points = 2;
+        else if (diff <= 1) points = 1;
+        else points = 0;
+      }
     } else if (category === "research") {
       // Counting: exact = 2 points, within 1 = 1 point
-      const userCount = parseInt(data.userAnswer || 0);
-      const correctCount = parseInt(data.correctAnswer || 0);
-      const diff = Math.abs(userCount - correctCount);
+      // Use points from data if available, otherwise calculate
+      if (data.points !== undefined) {
+        points = data.points;
+      } else {
+        const userCount = parseInt(data.userAnswer || 0);
+        const correctCount = parseInt(data.correctAnswer || 0);
+        const diff = Math.abs(userCount - correctCount);
 
-      if (diff === 0) points = 2;
-      else if (diff <= 1) points = 1;
-      else points = 0;
+        if (diff === 0) points = 2;
+        else if (diff <= 1) points = 1;
+        else points = 0;
+      }
     } else if (category === "engagement") {
       // Typing: exact = 2 points, one typo = 1 point
-      const userText = data.userAnswer || "";
-      const correctText = data.correctAnswer || "";
-
-      if (userText === correctText) {
-        points = 2;
+      // Use points from data if available, otherwise calculate
+      if (data.points !== undefined) {
+        points = data.points;
       } else {
-        // Check if only one character difference (Levenshtein distance = 1)
-        const distance = calculateLevenshteinDistance(userText, correctText);
-        if (distance === 1) points = 1;
-        else points = 0;
+        const userText = data.userAnswer || "";
+        const correctText = data.correctAnswer || "";
+
+        if (userText === correctText) {
+          points = 2;
+        } else {
+          // Check if only one character difference (Levenshtein distance = 1)
+          const distance = calculateLevenshteinDistance(userText, correctText);
+          if (distance === 1) points = 1;
+          else points = 0;
+        }
       }
     }
 
@@ -655,9 +670,7 @@ function App() {
     }
 
     showNotification(
-      `${feedbackMsg} | +${points} ${category} pts | Goal: ${Math.round(
-        newStudentLearning
-      )} pts`
+      `${feedbackMsg} | +${points} ${category} pts`
     );
 
     setCompleted((prev) => ({ ...prev, [tabId]: true }));
