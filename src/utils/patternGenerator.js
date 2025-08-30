@@ -41,7 +41,7 @@ export const patternGenerator = {
         1: { target: "the", type: "word" },
         2: { target: "and", type: "word" },
         3: { target: "of", type: "word" },
-        4: { target: "a", type: "word" },
+        4: { target: "to", type: "word" },
         5: { target: "in", type: "word" },
       },
       medium: {

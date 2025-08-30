@@ -5,7 +5,7 @@ import SliderTask from "./components/SliderTask";
 import TypingTask from "./components/TypingTask";
 import NavTabsEnhanced from "./components/NavTabsEnhanced";
 import PracticeMode from "./components/PracticeMode";
-import ChatContainer from "./components/ChatContainer";
+import ChatContainer, { aiTaskHelper } from "./components/ChatContainer";
 import StudentLogin from "./components/StudentLogin";
 import { sessionManager } from "./utils/sessionManager";
 import { eventTracker } from "./utils/eventTracker";
@@ -117,6 +117,14 @@ function App() {
   const lastActivityRef = useRef(Date.now());
   const timeRemainingRef = useRef(1200);
   const timeLimitRef = useRef(1200);
+
+  // Helper function to get checkpoint timing for display
+  const getCheckpointMinutes = () => {
+    const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const semesterDurationMs = config.semesterDuration || 1200000; // Default 20 minutes
+    const checkpointTimeSeconds = Math.floor(semesterDurationMs / 2000); // Half duration in seconds
+    return Math.floor(checkpointTimeSeconds / 60); // Convert to minutes for display
+  };
 
   // Initialize session on mount
   useEffect(() => {
@@ -450,10 +458,9 @@ function App() {
         currentSemester === 2 && config.checkpointSemester2;
 
       if (checkpointEnabled) {
-        const checkpointTime =
-          config.role === "admin" && config.semesterDuration === 120000
-            ? 60 // 1 minute for admin fast mode
-            : 360; // 6 minutes for regular mode
+        // Dynamic checkpoint time: semester duration / 2
+        const semesterDurationMs = config.semesterDuration || 1200000; // Default 20 minutes
+        const checkpointTime = Math.floor(semesterDurationMs / 2000); // Half duration in seconds
 
         if (elapsedSeconds === checkpointTime && !checkpointReached) {
           handleCheckpoint();
@@ -1090,7 +1097,7 @@ function App() {
               >
                 <p style={{ marginBottom: "10px" }}>
                   <strong>
-                    Semester 2 includes a midterm exam at the 6-minute mark!
+                    Semester 2 includes a midterm exam at the {getCheckpointMinutes()}-minute mark!
                   </strong>
                 </p>
                 <ul style={{ marginLeft: "20px", marginBottom: "10px" }}>
@@ -1114,7 +1121,7 @@ function App() {
                     color: "#f57c00",
                   }}
                 >
-                  Goal: Reach 50+ Student Learning by minute 10
+                  Goal: Reach 300+ Student Learning by minute {getCheckpointMinutes()}
                 </p>
               </div>
             </div>
@@ -1388,7 +1395,7 @@ function App() {
                   </li>
                   {currentSemester === 2 && (
                     <li>
-                      At minute {isAdmin ? "1" : "10"}: Exam checkpoint with
+                      At minute {getCheckpointMinutes()}: Exam checkpoint with
                       bonus opportunity (300+ Student Learning = 300 bonus)
                     </li>
                   )}
@@ -1456,7 +1463,7 @@ function App() {
                     📚 Semester 2: Midterm Checkpoint!
                   </h3>
                   <p style={{ color: "#856404", fontSize: "14px", margin: 0 }}>
-                    At the 10-minute mark, if you have 50+ student learning
+                    At the {getCheckpointMinutes()}-minute mark, if you have 300+ student learning
                     points, you'll earn a 300-point bonus!
                   </p>
                 </div>
@@ -1572,7 +1579,7 @@ function App() {
                   color: "#d00",
                 }}
               >
-                ADMIN MODE: {timeLimit / 60} minute timer, checkpoint at 1
+                ADMIN MODE: {timeLimit / 60} minute timer, checkpoint at {getCheckpointMinutes()}
                 minute
               </div>
             )}
@@ -1998,6 +2005,9 @@ function App() {
       }
 
       setCurrentSemester(currentSemester + 1);
+
+      // Reset AI help usage for new semester
+      aiTaskHelper.resetForNewSemester();
 
       // Go to semester break page instead of directly starting
       setMode("semesterBreak");
@@ -2617,7 +2627,7 @@ function App() {
                   </>
                 ) : (
                   <>
-                    📚 Goal was 50+ points (you had{" "}
+                    📚 Goal was 300+ points (you had{" "}
                     {Math.round(calculateStudentLearning())}). Keep teaching!
                   </>
                 )
@@ -2640,7 +2650,7 @@ function App() {
             >
               <strong>Tips for the rest of the semester:</strong>
               <ul style={{ margin: "10px 0 0 20px", lineHeight: "1.6" }}>
-                <li>You have about 6 minutes remaining</li>
+                <li>You have about {getCheckpointMinutes()} minutes remaining</li>
                 <li>Focus on accuracy - every point counts!</li>
                 <li>
                   Research multiplies everything, Engagement compounds over time

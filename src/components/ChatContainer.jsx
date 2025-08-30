@@ -59,6 +59,18 @@ class AITaskHelper {
     this.taskUsageCount[taskId]++;
   }
 
+  // Reset AI usage for new semester
+  resetForNewSemester() {
+    this.totalAIUsage = 0;
+    this.usageCount = {
+      materials: 0,
+      research: 0,
+      engagement: 0,
+    };
+    this.taskUsageCount = {};
+    console.log("🔄 AI Help usage reset for new semester");
+  }
+
   helpWithSlider(targetValue, currentTaskId) {
     this.incrementTaskUsage(currentTaskId, "materials");
     const attemptNumber = this.getUniversalAttemptNumber();
@@ -385,6 +397,9 @@ class AITaskHelper {
 
 const aiTaskHelper = new AITaskHelper();
 
+// Export the AI helper instance for external access
+export { aiTaskHelper };
+
 export default function ChatContainer({
   bonusPrompts = 0,
   currentTask = "",
@@ -409,6 +424,21 @@ export default function ChatContainer({
       setCurrentTaskUsed(used);
     }
   }, [currentTask]);
+
+  // Sync AI usage count display with actual usage (for semester resets)
+  useEffect(() => {
+    const syncCount = () => {
+      setAiUsageCount(aiTaskHelper.totalAIUsage);
+    };
+    
+    // Check every second if the count needs syncing (for semester resets)
+    const interval = setInterval(syncCount, 1000);
+    
+    // Also sync immediately
+    syncCount();
+    
+    return () => clearInterval(interval);
+  }, []);
 
   const [messages, setMessages] = useState([
     {
@@ -800,7 +830,12 @@ Typing: "${help.text.substring(
           "Keep pushing! You're doing great!",
           "Remember: Materials × Research × Engagement = Success!",
           "Focus on accuracy for those 2-point rewards!",
-          "The checkpoint at minute 10 can give huge bonuses!",
+          `The checkpoint at minute ${(() => {
+            const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+            const semesterDurationMs = config.semesterDuration || 1200000;
+            const checkpointTimeSeconds = Math.floor(semesterDurationMs / 2000);
+            return Math.floor(checkpointTimeSeconds / 60);
+          })()} can give huge bonuses!`,
           "Try the help buttons below for task assistance!",
         ];
         response =
