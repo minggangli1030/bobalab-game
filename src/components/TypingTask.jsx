@@ -275,6 +275,12 @@ export default function TypingTask({
           spellCheck={false}
           value={input}
           onChange={(e) => !isAITyping && setInput(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter' && !isAITyping) {
+              e.preventDefault(); // Prevent form submission default
+              handleSubmit();
+            }
+          }}
           placeholder="Type here..."
           className="typing-input"
           disabled={isAITyping}

@@ -508,6 +508,11 @@ export default function CountingTask({
           max="999"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              handleSubmit();
+            }
+          }}
           placeholder="Enter count"
         />
       </div>

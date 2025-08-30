@@ -84,6 +84,18 @@ export default function SliderTask({
     return () => window.removeEventListener("aiSliderHelp", handleAIHelp);
   }, [input]);
 
+  // Add Enter key handler for submit
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === 'Enter' && !isAIControlled) {
+        handleSubmit();
+      }
+    };
+
+    document.addEventListener('keypress', handleKeyPress);
+    return () => document.removeEventListener('keypress', handleKeyPress);
+  }, [isAIControlled, input, target]);
+
   const handleMouseDown = (e) => {
     if (isAIControlled) return;
 
