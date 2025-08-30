@@ -17,6 +17,7 @@ import AdminPage from "./AdminPage";
 import GameModeSelector from "./components/GameModeSelector";
 import CompletionCodeDisplay from "./components/CompletionCodeDisplay";
 import MasterAdmin from "./components/MasterAdmin";
+import { qualtricsMessenger } from "./utils/qualtricsMessenger";
 
 // Helper function to calculate Levenshtein distance
 function calculateLevenshteinDistance(str1, str2) {
@@ -121,6 +122,19 @@ function App() {
   useEffect(() => {
     checkAndInitSession();
   }, []);
+
+  // Notify Qualtrics when all semesters are complete
+  useEffect(() => {
+    if (mode === "complete" && currentSemester >= totalSemesters) {
+      // Game is fully complete - notify Qualtrics to show next button
+      qualtricsMessenger.notifyGameComplete({
+        finalScore: Math.round(calculateStudentLearning()) + (categoryPoints.bonus || 0),
+        totalTime: globalTimer,
+        semestersCompleted: currentSemester,
+        sessionId: sessionId
+      });
+    }
+  }, [mode, currentSemester, totalSemesters, globalTimer, categoryPoints.bonus, sessionId]);
 
   // Focus/blur detection with game blocking
   useEffect(() => {
