@@ -128,7 +128,74 @@ function App() {
 
   // Initialize session on mount
   useEffect(() => {
-    checkAndInitSession();
+    const initSession = async () => {
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasCode = urlParams.has("code") || urlParams.has("c");
+        const code = urlParams.get("code") || urlParams.get("c");
+
+        // Special handling for ADMIN-MASTER code
+        if (code === "ADMIN-MASTER") {
+          sessionStorage.setItem(
+            "gameConfig",
+            JSON.stringify({
+              role: "master_admin",
+              section: "master_admin",
+              hasAI: false,
+              isMasterInterface: true,
+              displayName: "Master Administrator",
+            })
+          );
+          setIsLoading(false);
+          return;
+        }
+
+        // Set up admin gameConfig if admin mode but no gameConfig exists
+        if (isAdminMode && !sessionStorage.getItem("gameConfig")) {
+          sessionStorage.setItem(
+            "gameConfig",
+            JSON.stringify({
+              role: "admin",
+              section: "admin",
+              hasAI: true,
+              checkpointSemester2: true,
+              displayName: "Admin User",
+            })
+          );
+        }
+
+        if (!hasCode) {
+          setMode("studentLogin");
+          setIsLoading(false);
+          return;
+        }
+
+        const { allowed, reason, resumeSession, newSession, code: accessCode, codeData } =
+          await sessionManager.checkAccess();
+
+        if (!allowed) {
+          setAccessDenied(true);
+          setAccessDeniedReason(reason);
+          setIsLoading(false);
+          return;
+        }
+
+        if (resumeSession) {
+          setSessionId(resumeSession);
+          localStorage.setItem("sessionId", resumeSession);
+        } else if (newSession) {
+          const id = await sessionManager.createSession(accessCode, codeData);
+          setSessionId(id);
+        }
+
+        await eventTracker.syncOfflineEvents();
+        setIsLoading(false);
+      } catch (error) {
+        setIsLoading(false);
+      }
+    };
+    
+    initSession();
   }, []);
 
   // Notify Qualtrics when all semesters are complete
@@ -405,73 +472,6 @@ function App() {
     return isNaN(total) ? 0 : total;
   };
 
-  // Session management
-  const checkAndInitSession = async () => {
-    try {
-      const urlParams = new URLSearchParams(window.location.search);
-      const hasCode = urlParams.has("code") || urlParams.has("c");
-      const code = urlParams.get("code") || urlParams.get("c");
-
-      // Special handling for ADMIN-MASTER code
-      if (code === "ADMIN-MASTER") {
-        sessionStorage.setItem(
-          "gameConfig",
-          JSON.stringify({
-            role: "master_admin",
-            section: "master_admin",
-            hasAI: false,
-            isMasterInterface: true,
-            displayName: "Master Administrator",
-          })
-        );
-        setIsLoading(false);
-        return;
-      }
-
-      // Set up admin gameConfig if admin mode but no gameConfig exists
-      if (isAdminMode && !sessionStorage.getItem("gameConfig")) {
-        sessionStorage.setItem(
-          "gameConfig",
-          JSON.stringify({
-            role: "admin",
-            section: "admin",
-            hasAI: true,
-            checkpointSemester2: true,
-            displayName: "Admin User",
-          })
-        );
-      }
-
-      if (!hasCode) {
-        setMode("studentLogin");
-        setIsLoading(false);
-        return;
-      }
-
-      const { allowed, reason, resumeSession, newSession, code: accessCode, codeData } =
-        await sessionManager.checkAccess();
-
-      if (!allowed) {
-        setAccessDenied(true);
-        setAccessDeniedReason(reason);
-        setIsLoading(false);
-        return;
-      }
-
-      if (resumeSession) {
-        setSessionId(resumeSession);
-        localStorage.setItem("sessionId", resumeSession);
-      } else if (newSession) {
-        const id = await sessionManager.createSession(accessCode, codeData);
-        setSessionId(id);
-      }
-
-      await eventTracker.syncOfflineEvents();
-      setIsLoading(false);
-    } catch (error) {
-      setIsLoading(false);
-    }
-  };
 
   const handleCheckpoint = () => {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
