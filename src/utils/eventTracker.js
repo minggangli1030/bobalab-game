@@ -37,6 +37,10 @@ export const eventTracker = {
     const seconds = Math.floor((timeElapsed % 60000) / 1000);
     const readableTime = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 
+    // Get full game context from localStorage/sessionStorage
+    const gameConfig = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
+    const gameContext = this.getFullGameContext();
+
     const event = {
       sessionId,
       type: eventType,
@@ -45,6 +49,13 @@ export const eventTracker = {
       timeElapsedSeconds: parseFloat(timeElapsedSeconds), // Time since session start in seconds
       readableTime,
       semesterTime: this.getSemesterTime(),
+      // Add full context to every event
+      ...gameContext,
+      // Add config data
+      isAdminMode: gameConfig.role === "admin",
+      hasCheckpoint: gameConfig.checkpointSemester2 || false,
+      hasAI: gameConfig.hasAI || false,
+      // Event-specific data goes last to allow overrides
       ...this.convertTimesToSeconds(eventData), // Convert all time fields to seconds
       // REMOVED: userAgent and screenResolution
     };
@@ -132,6 +143,40 @@ export const eventTracker = {
     };
   },
 
+  // Get full game context for every event
+  getFullGameContext() {
+    // Try to get from localStorage as fallback
+    const currentTask = localStorage.getItem("currentTask") || "";
+    const gameMode = localStorage.getItem("gameMode") || "";
+    const currentSemester = parseInt(localStorage.getItem("currentSemester") || "1");
+    const totalSemesters = parseInt(localStorage.getItem("totalSemesters") || "2");
+    const practiceCompleted = localStorage.getItem("practiceCompleted") === "true";
+    const completedTasks = parseInt(localStorage.getItem("completedTasksCount") || "0");
+    const completedLevels = parseInt(localStorage.getItem("completedLevels") || "0");
+    const totalSwitches = parseInt(localStorage.getItem("totalSwitches") || "0");
+    const aiUsageCount = parseInt(localStorage.getItem("aiUsageCount") || "0");
+    
+    // Get category points
+    const categoryPoints = JSON.parse(localStorage.getItem("categoryPoints") || "{}");
+    const studentLearning = parseFloat(localStorage.getItem("studentLearningScore") || "0");
+    
+    return {
+      currentTask,
+      gameMode,
+      currentSemester,
+      totalSemesters,
+      practiceCompleted,
+      completedTasks,
+      completedLevels,
+      totalSwitches,
+      aiUsageCount,
+      studentLearning,
+      totalBonus: categoryPoints.bonus || 0,
+      finalScore: Math.round(studentLearning) + (categoryPoints.bonus || 0),
+      semester: currentSemester, // Duplicate for compatibility
+    };
+  },
+
   // Fixed improvement trend calculation - needs at least 3 data points
   calculateImprovementTrend(history) {
     if (!history || history.length < 3) {
@@ -214,8 +259,14 @@ export const eventTracker = {
 
   // Missing methods that are being called
   async trackAIHelpResponse(taskId, data) {
+    // Update AI usage count
+    const currentCount = parseInt(localStorage.getItem("aiUsageCount") || "0");
+    localStorage.setItem("aiUsageCount", (currentCount + 1).toString());
+    
     return this.logEvent("ai_help_response", {
       taskId,
+      response: data.response || "",
+      action: data.action || "",
       ...data,
     });
   },
@@ -230,6 +281,11 @@ export const eventTracker = {
   async trackUserAction(action, data) {
     return this.logEvent("user_action", {
       action,
+      response: data.response || "",
+      query: data.query || "",
+      queryType: data.queryType || "",
+      choice: data.choice || "",
+      currentMode: data.currentMode || "",
       ...data,
     });
   },

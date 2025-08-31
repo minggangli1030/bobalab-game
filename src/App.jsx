@@ -144,6 +144,48 @@ function App() {
     }
   }, [mode, currentSemester, totalSemesters, globalTimer, categoryPoints.bonus, sessionId]);
 
+  // Sync game state to localStorage for eventTracker
+  useEffect(() => {
+    localStorage.setItem("currentTask", currentTab);
+  }, [currentTab]);
+
+  useEffect(() => {
+    localStorage.setItem("gameMode", JSON.stringify(gameMode));
+  }, [gameMode]);
+
+  useEffect(() => {
+    localStorage.setItem("currentSemester", currentSemester.toString());
+  }, [currentSemester]);
+
+  useEffect(() => {
+    localStorage.setItem("totalSemesters", totalSemesters.toString());
+  }, [totalSemesters]);
+
+  useEffect(() => {
+    localStorage.setItem("completedTasksCount", Object.keys(completed).length.toString());
+  }, [completed]);
+
+  useEffect(() => {
+    localStorage.setItem("completedLevels", completedLevels.toString());
+  }, [completedLevels]);
+
+  useEffect(() => {
+    localStorage.setItem("totalSwitches", switches.toString());
+  }, [switches]);
+
+  useEffect(() => {
+    localStorage.setItem("categoryPoints", JSON.stringify(categoryPoints));
+  }, [categoryPoints]);
+
+  useEffect(() => {
+    localStorage.setItem("studentLearningScore", studentLearningScore.toString());
+  }, [studentLearningScore]);
+
+  useEffect(() => {
+    const allPracticeComplete = practiceCompleted.g2t1 && practiceCompleted.g1t1 && practiceCompleted.g3t1;
+    localStorage.setItem("practiceCompleted", allPracticeComplete.toString());
+  }, [practiceCompleted]);
+
   // Focus/blur detection with game blocking
   useEffect(() => {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
@@ -298,7 +340,24 @@ function App() {
     };
   }, [mode]);
 
-  // Conditional returns after hooks
+  // Loading screen - MUST come before any other conditional returns
+  if (isLoading) {
+    return (
+      <div
+        className="app"
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <h2>Loading...</h2>
+      </div>
+    );
+  }
+
+  // Conditional returns after loading check
   // Master Admin interface (highest priority)
   if (window.location.search.includes("master=true")) {
     const config = JSON.parse(sessionStorage.getItem("gameConfig") || "{}");
@@ -351,6 +410,23 @@ function App() {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const hasCode = urlParams.has("code") || urlParams.has("c");
+      const code = urlParams.get("code") || urlParams.get("c");
+
+      // Special handling for ADMIN-MASTER code
+      if (code === "ADMIN-MASTER") {
+        sessionStorage.setItem(
+          "gameConfig",
+          JSON.stringify({
+            role: "master_admin",
+            section: "master_admin",
+            hasAI: false,
+            isMasterInterface: true,
+            displayName: "Master Administrator",
+          })
+        );
+        setIsLoading(false);
+        return;
+      }
 
       // Set up admin gameConfig if admin mode but no gameConfig exists
       if (isAdminMode && !sessionStorage.getItem("gameConfig")) {
@@ -372,7 +448,7 @@ function App() {
         return;
       }
 
-      const { allowed, reason, resumeSession, newSession, code, codeData } =
+      const { allowed, reason, resumeSession, newSession, code: accessCode, codeData } =
         await sessionManager.checkAccess();
 
       if (!allowed) {
@@ -386,7 +462,7 @@ function App() {
         setSessionId(resumeSession);
         localStorage.setItem("sessionId", resumeSession);
       } else if (newSession) {
-        const id = await sessionManager.createSession(code, codeData);
+        const id = await sessionManager.createSession(accessCode, codeData);
         setSessionId(id);
       }
 
@@ -972,22 +1048,7 @@ function App() {
     );
   };
 
-  // Loading screen
-  if (isLoading) {
-    return (
-      <div
-        className="app"
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-        }}
-      >
-        <h2>Loading...</h2>
-      </div>
-    );
-  }
+  // Loading check moved earlier in component
 
   // Student login screen
   if (mode === "studentLogin") {
