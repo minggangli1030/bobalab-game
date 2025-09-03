@@ -11,6 +11,11 @@ This is a React-based educational game application called "Can you beat Park?" -
 
 The app uses Firebase for data persistence and includes an AI teaching assistant that provides task help with varying reliability.
 
+**Game Structure**: 100 levels per task type (300 total levels) with progressive difficulty:
+- Levels 1-10: Easy
+- Levels 11-24: Medium  
+- Levels 25-100: Hard
+
 ## Development Commands
 
 ```bash
@@ -130,6 +135,16 @@ The AI assistant follows a deterministic pattern for the first 5 uses:
 - **Visual Feedback**: Over-highlighting makes AI errors obvious for educational value
 
 ## Recent Major Improvements
+
+### Latest Updates (December 2024)
+- **Expanded Level System**: Increased from 50 to 100 levels per task type (300 total)
+  - Levels 1-10: Easy difficulty
+  - Levels 11-24: Medium difficulty  
+  - Levels 25-100: Hard difficulty (all hard from level 25 onwards)
+- **Qualtrics Integration Fix**: Enhanced message passing to ensure Next button remains visible
+- **Time Tracking Fix**: Added timeElapsed field for proper duration display in ADMIN-MASTER dashboard
+- **UI Performance**: Improved animations with requestAnimationFrame and cubic-bezier transitions
+- **Glitch Prevention**: Added debouncing utilities and smooth update mechanisms
 
 ### Data Collection System (Enhanced)
 - **Comprehensive Event Tracking**: All interactions with readable timestamps (MM:SS after semester start)

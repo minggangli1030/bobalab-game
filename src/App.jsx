@@ -529,6 +529,14 @@ function App() {
       const remaining = Math.max(0, limitInSeconds - elapsedSeconds);
       setTimeRemaining(remaining);
 
+      // Update session time periodically (every 10 seconds)
+      if (elapsedSeconds % 10 === 0 && sessionId && !sessionId.startsWith("offline-")) {
+        updateDoc(doc(db, "sessions", sessionId), {
+          timeElapsed: elapsedSeconds,
+          lastUpdated: serverTimestamp(),
+        }).catch(err => console.error("Failed to update session time:", err));
+      }
+
       // Check for checkpoint only if enabled
       const checkpointEnabled =
         currentSemester === 2 && config.checkpointSemester2;
@@ -857,8 +865,8 @@ function App() {
     const currentTaskNum = parseInt(tabId.substring(3)); // Fix parsing for 2-digit numbers
 
     // Try next task in same game
-    if (currentTaskNum < 50) {
-      // Updated to 50 tasks
+    if (currentTaskNum < 100) {
+      // Updated to 100 tasks
       const nextTask = `g${currentGame}t${currentTaskNum + 1}`;
       if (!completed[nextTask]) {
         handleTabSwitch(nextTask, true);
@@ -972,6 +980,7 @@ function App() {
         status: "completed",
         completedAt: serverTimestamp(),
         finalTime,
+        timeElapsed: finalTime, // Add timeElapsed field for MasterAdmin compatibility
         totalSwitches: switches,
         completionReason: reason,
         currentSemester: currentSemester,

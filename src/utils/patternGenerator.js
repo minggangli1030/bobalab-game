@@ -1,4 +1,4 @@
-// src/utils/patternGenerator.js - Generate patterns for 50 levels per game
+// src/utils/patternGenerator.js - Generate patterns for 100 levels per game
 
 export const patternGenerator = {
   // Seeded random number generator
@@ -21,9 +21,9 @@ export const patternGenerator = {
 
   // Counting Game Patterns
   generateCountingPattern(level) {
-    // Difficulty based on actual level (1-50)
-    // 1-10: easy, 11-25: medium, 26-50: hard
-    const difficulty = level <= 10 ? "easy" : level <= 25 ? "medium" : "hard";
+    // Difficulty based on actual level (1-100)
+    // 1-10: easy, 11-24: medium, 25-100: hard
+    const difficulty = level <= 10 ? "easy" : level < 25 ? "medium" : "hard";
 
     // For pattern selection, cycle through available patterns
     let patternIndex;
@@ -32,7 +32,7 @@ export const patternGenerator = {
     } else if (difficulty === "medium") {
       patternIndex = ((level - 11) % 5) + 6; // Cycles 6-10
     } else {
-      patternIndex = ((level - 26) % 5) + 11; // Cycles 11-15
+      patternIndex = ((level - 25) % 5) + 11; // Cycles 11-15 for levels 25-100
     }
 
     // Word/letter targets based on pattern
@@ -82,9 +82,9 @@ export const patternGenerator = {
 
   // Slider Game Patterns
   generateSliderPattern(level) {
-    // Difficulty based on actual level (1-50)
-    // 1-10: easy, 11-25: medium, 26-50: hard
-    const difficulty = level <= 10 ? "easy" : level <= 25 ? "medium" : "hard";
+    // Difficulty based on actual level (1-100)
+    // 1-10: easy, 11-24: medium, 25-100: hard
+    const difficulty = level <= 10 ? "easy" : level < 25 ? "medium" : "hard";
 
     let target, step, showValue;
 
@@ -103,7 +103,7 @@ export const patternGenerator = {
       target = Math.round(this.getRandom() * 10 * 100) / 100;
       step = 0.01;
       // Hide value occasionally in hard mode (every 5th hard level)
-      showValue = (level - 26) % 5 !== 0;
+      showValue = (level - 25) % 5 !== 0;
     }
 
     return {
@@ -118,9 +118,9 @@ export const patternGenerator = {
 
   // Typing Game Patterns
   generateTypingPattern(level) {
-    // Difficulty based on actual level (1-50)
-    // 1-10: easy, 11-25: medium, 26-50: hard
-    const difficulty = level <= 10 ? "easy" : level <= 25 ? "medium" : "hard";
+    // Difficulty based on actual level (1-100)
+    // 1-10: easy, 11-24: medium, 25-100: hard
+    const difficulty = level <= 10 ? "easy" : level < 25 ? "medium" : "hard";
 
     const patterns = {
       // Easy patterns
@@ -194,8 +194,8 @@ export const patternGenerator = {
       const index = (level - 11) % patterns.medium.length;
       pattern = patterns.medium[index];
     } else {
-      // Cycle through hard patterns (25 patterns for 25 levels)
-      const index = (level - 26) % patterns.hard.length;
+      // Cycle through hard patterns (25 patterns for levels 25-100)
+      const index = (level - 25) % patterns.hard.length;
       pattern = patterns.hard[index];
     }
 

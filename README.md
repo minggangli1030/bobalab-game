@@ -19,6 +19,11 @@ An interactive React-based educational game where players act as instructors try
 - Research multipliers ONLY apply to materials earned AFTER the research
 - Players must discover the optimal strategy through experimentation or AI assistance!
 
+**Level System**: 100 levels per task type (300 total levels)
+- Levels 1-10: Easy difficulty
+- Levels 11-24: Medium difficulty
+- Levels 25-100: Hard difficulty (all hard from level 25 onwards)
+
 ## 🚀 Quick Start
 
 ```bash
@@ -134,6 +139,13 @@ VITE_FIREBASE_APP_ID=your_app_id
    - `ADMIN-MASTER`: Access to master admin dashboard
 
 ## 📈 Recent Improvements
+
+### Latest Updates (December 2024)
+- **Expanded Level System**: Increased from 50 to 100 levels per task type (300 total)
+- **Qualtrics Integration**: Fixed Next button visibility issues with enhanced message passing
+- **Time Tracking**: Fixed duration display in ADMIN-MASTER dashboard with periodic updates
+- **Performance Optimization**: Improved animations with requestAnimationFrame and smoother transitions
+- **Glitch Prevention**: Added debouncing utilities and optimized UI updates
 
 ### Data Collection Enhancement
 - Added comprehensive event tracking with readable timestamps

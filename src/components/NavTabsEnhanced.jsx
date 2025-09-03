@@ -28,11 +28,11 @@ export default function NavTabsEnhanced({
     parseFloat(localStorage.getItem("engagementInterest") || "0") || 0;
   const researchMultiplier = 1 + (categoryPoints.research || 0) * 0.15;
 
-  // Generate all 150 tabs (50 per game) - reordered for display
+  // Generate all 300 tabs (100 per game) - reordered for display
   const tabs = [];
   // Generate in original order first (important for task IDs)
   for (let game = 1; game <= 3; game++) {
-    for (let level = 1; level <= 50; level++) {
+    for (let level = 1; level <= 100; level++) {
       const gameLabel = ["Research", "Materials", "Engage"][game - 1];
       tabs.push({
         id: `g${game}t${level}`,
@@ -165,7 +165,7 @@ export default function NavTabsEnhanced({
                       marginTop: "2px",
                     }}
                   >
-                    Level {Math.min(currentGameLevel, 15)}
+                    Level {Math.min(currentGameLevel, 30)}
                   </div>
                 </div>
 
@@ -281,23 +281,29 @@ export default function NavTabsEnhanced({
                             isAvailable && !isCompleted
                               ? "pointer"
                               : "not-allowed",
-                          transition: "all 0.2s ease",
+                          transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                           opacity: isCompleted ? 0.7 : 1,
                           boxShadow: isCurrent
                             ? `0 2px 8px ${gameColors[gameNum]}40`
                             : "none",
+                          transform: "translateY(0)",
+                          willChange: "transform, box-shadow",
                         }}
                         onMouseEnter={(e) => {
                           if (isAvailable && !isCurrent && !isCompleted) {
-                            e.currentTarget.style.transform =
-                              "translateY(-2px)";
-                            e.currentTarget.style.boxShadow = `0 4px 12px ${gameColors[gameNum]}30`;
+                            requestAnimationFrame(() => {
+                              e.currentTarget.style.transform =
+                                "translateY(-2px)";
+                              e.currentTarget.style.boxShadow = `0 4px 12px ${gameColors[gameNum]}30`;
+                            });
                           }
                         }}
                         onMouseLeave={(e) => {
                           if (isAvailable && !isCurrent && !isCompleted) {
-                            e.currentTarget.style.transform = "translateY(0)";
-                            e.currentTarget.style.boxShadow = "none";
+                            requestAnimationFrame(() => {
+                              e.currentTarget.style.transform = "translateY(0)";
+                              e.currentTarget.style.boxShadow = "none";
+                            });
                           }
                         }}
                         title={
